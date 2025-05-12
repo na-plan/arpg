@@ -1,7 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "ARPGGameMode.h"
-#include "ARPGCharacter.h"
+#include "Public/NAPlayerState.h"
 #include "UObject/ConstructorHelpers.h"
 
 AARPGGameMode::AARPGGameMode()
@@ -12,4 +12,6 @@ AARPGGameMode::AARPGGameMode()
 	{
 		DefaultPawnClass = PlayerPawnBPClass.Class;
 	}
+	
+	PlayerStateClass = ANAPlayerState::StaticClass();
 }
