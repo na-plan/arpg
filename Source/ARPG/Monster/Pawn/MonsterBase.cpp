@@ -20,7 +20,8 @@ AMonsterBase::AMonsterBase()
 
 	/*Not Use right now*/
 
-	/*if someone Use UFloatingPawnMovement Delete this Comment And Used it plz or someone do not need this delete all this codes*/
+	/*TODO:: After Create MovementComponents
+	if someone Use UFloatingPawnMovement Delete this Comment And Used it plz or someone do not need this delete all this codes*/
 	//MovementComponent = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("MovementComponent"));
 	//check(MovementComponent);
 
@@ -62,6 +63,46 @@ void AMonsterBase::BeginPlay()
 {
 	Super::BeginPlay();
 	
+}
+
+float AMonsterBase::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	//there is no Status Part so Skip Status Parts
+	//TODO:: After Create Status Data or Components  Plz Add Here
+	
+	//if (StatusComponent->IsDie()) { return 0.f; }
+
+
+	//float DamageResult = StatusComponent->TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+	//if (FMath::IsNearlyZero(DamageResult)) { return 0.0; }
+
+	if (Controller)
+	{
+		//damage 맞을때 멈칫하려고 하지 않는다면 해당 부분은 delete해주세요
+		Controller->StopMovement();
+	}
+	/*TODO:: Afeter Create StatusComponent */
+	//if (StatusComponent->IsDie() && !MonsterData->DieMontage.IsEmpty())
+	//{
+	//	if (Controller)
+	//	{
+	//		Controller->Destroy();
+	//	}
+	//	SetActorEnableCollision(false);
+
+	//	const int64 Index = FMath::RandRange(0, MonsterData->DieMontage.Num() - 1);
+	//	CurrentDieMontage = MonsterData->DieMontage[Index];
+
+	//	AnimInstance->Montage_Play(CurrentDieMontage);
+	//	UKismetSystemLibrary::K2_SetTimer(this, TEXT("OnDie"),
+	//		MonsterData->DieMontage[Index]->GetPlayLength() - 0.5f, false);
+	//}
+	//else if (!StatusComponent->IsDie() && !MonsterData->HitReactMontage.IsEmpty())
+	//{
+	//	const int64 HitReactIndex = FMath::RandRange(0, MonsterData->HitReactMontage.Num() - 1);
+	//	AnimInstance->Montage_Play(MonsterData->HitReactMontage[HitReactIndex]);
+	//}
+	return 0.0f;
 }
 
 // Called every frame

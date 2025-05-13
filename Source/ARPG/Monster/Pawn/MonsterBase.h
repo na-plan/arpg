@@ -73,6 +73,10 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	//Take damage Parts
+	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -94,8 +98,12 @@ protected:
 	UPROPERTY(EditAnywhere, meta = (RowType = "/Script/ARPG.MonsterBaseTableRow"))
 	FDataTableRowHandle MonsterDataTableRowHandle;
 
-	//Make Better to Useful
+	// Make Better to Useful 사용하기 편하게 하려고 사용할 예정입니다
 	FMonsterBaseTableRow* MonsterData;
 
 	UFloatingPawnMovement* MovementComponent;
+
+protected:
+	UPROPERTY(VisibleAnywhere)
+	UAnimInstance* AnimInstance;
 };

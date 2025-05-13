@@ -32,6 +32,7 @@ void UDefaultAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	APawn* Pawn = TryGetPawnOwner();
 	FRotator Rotation = Pawn->GetActorRotation();
+	//
 	Direction = CalculateDirection(MovementComponent->Velocity, Rotation);
 
 
