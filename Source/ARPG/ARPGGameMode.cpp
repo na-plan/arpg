@@ -3,6 +3,7 @@
 #include "ARPGGameMode.h"
 
 #include "NAInGameHUD.h"
+#include "NAPlayerController.h"
 #include "Public/NAPlayerState.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -16,5 +17,6 @@ AARPGGameMode::AARPGGameMode()
 	}
 	
 	PlayerStateClass = ANAPlayerState::StaticClass();
+	PlayerControllerClass = ANAPlayerController::StaticClass();
 	HUDClass = ANAInGameHUD::StaticClass();
 }
