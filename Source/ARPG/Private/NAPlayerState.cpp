@@ -17,7 +17,7 @@ void ANAPlayerState::IncreaseHealth(int32 Increment)
 		return DecreaseHealth(-Increment);
 	}
 	
-	if (std::numeric_limits<int32>::min() > Health + Increment)
+	if (Increment > 0 && Health > std::numeric_limits<int32>::max() - Increment)
 	{
 		Health = MaxHealth;
 	}
@@ -31,14 +31,14 @@ void ANAPlayerState::IncreaseHealth(int32 Increment)
 	}
 }
 
-void ANAPlayerState::DecreaseHealth(int32 Decrement)
+void ANAPlayerState::DecreaseHealth(const int32 Decrement)
 {
 	if (Decrement < 0)
 	{
 		return IncreaseHealth(-Decrement);
 	}
 
-	if (std::numeric_limits<int32>::max() > Health - Decrement)
+	if (Decrement > 0 && Health < std::numeric_limits<int32>::min() + Decrement)
 	{
 		Health = MaxHealth;
 	}
@@ -61,7 +61,7 @@ void ANAPlayerState::OnCharacterTakeAnyDamage(AActor* DamagedActor, float Damage
                                               AController* InstigatedBy, AActor* DamageCauser)
 {
 	const int32 BeforeHealth = Health;
-	DecreaseHealth(Damage);
+	DecreaseHealth(static_cast<int32>(Damage));
 	OnHealthChanged.Broadcast(BeforeHealth, GetHealth());
 }
 
