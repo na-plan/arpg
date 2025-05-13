@@ -10,6 +10,8 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "NAPlayerState.h"
+#include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -58,6 +60,10 @@ void AARPGCharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
+
+	// == 테스트 코드 ==
+	UGameplayStatics::ApplyDamage(this, 10.f, GetController(), this, nullptr);
+	// ===============
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -127,4 +133,16 @@ void AARPGCharacter::Look(const FInputActionValue& Value)
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
+}
+
+bool AARPGCharacter::ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator,
+	AActor* DamageCauser) const
+{
+	if (const ANAPlayerState* CastedPlayerState = GetPlayerState<ANAPlayerState>())
+	{
+		// 플레이어가 살아있을 경우에만 데미지를 입음
+		return Super::ShouldTakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser) && CastedPlayerState->IsAlive(); 
+	}
+	
+	return Super::ShouldTakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 }
