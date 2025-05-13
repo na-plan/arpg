@@ -59,6 +59,10 @@ void AARPGCharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
+
+	// == 테스트 코드 ==
+	UGameplayStatics::ApplyDamage(this, 10.f, GetController(), this, nullptr);
+	// ===============
 }
 
 //////////////////////////////////////////////////////////////////////////

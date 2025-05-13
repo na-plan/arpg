@@ -69,6 +69,10 @@ void ANAPlayerState::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// == 테스트 코드 ==
+	MaxHealth = 100;
+	// ===============
+	
 	Health = MaxHealth;
 }
 
