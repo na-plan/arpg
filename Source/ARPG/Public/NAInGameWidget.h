@@ -6,6 +6,8 @@
 #include "Blueprint/UserWidget.h"
 #include "NAInGameWidget.generated.h"
 
+class UNAHPWidget;
+
 /**
  * 
  */
@@ -13,4 +15,8 @@ UCLASS()
 class ARPG_API UNAInGameWidget : public UUserWidget
 {
 	GENERATED_BODY()
+
+private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true", BindWidget))
+	UNAHPWidget* HPWidget;
 };

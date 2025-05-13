@@ -38,6 +38,9 @@ public:
 	// 체력 감소 함수, 음수가 주어질 경우 체력이 증가
 	void DecreaseHealth(int32 Decrement);
 
+	// 생존 상태 반환
+	bool IsAlive() const;
+
 protected:
 
 	virtual void BeginPlay() override;

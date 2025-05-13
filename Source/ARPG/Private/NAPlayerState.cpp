@@ -52,8 +52,13 @@ void ANAPlayerState::DecreaseHealth(int32 Decrement)
 	}
 }
 
+bool ANAPlayerState::IsAlive() const
+{
+	return Health > 0;
+}
+
 void ANAPlayerState::OnCharacterTakeAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
-	AController* InstigatedBy, AActor* DamageCauser)
+                                              AController* InstigatedBy, AActor* DamageCauser)
 {
 	const int32 BeforeHealth = Health;
 	DecreaseHealth(Damage);
