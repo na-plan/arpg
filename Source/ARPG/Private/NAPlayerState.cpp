@@ -68,6 +68,8 @@ void ANAPlayerState::OnCharacterTakeAnyDamage(AActor* DamagedActor, float Damage
 void ANAPlayerState::BeginPlay()
 {
 	Super::BeginPlay();
+
+	Health = MaxHealth;
 }
 
 void ANAPlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
