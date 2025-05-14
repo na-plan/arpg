@@ -17,5 +17,7 @@ class ARPG_API ANAPlayerController : public APlayerController
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
 
+	virtual void AcknowledgePossession(class APawn* P) override;
+	
 	virtual void OnUnPossess() override;
 };
