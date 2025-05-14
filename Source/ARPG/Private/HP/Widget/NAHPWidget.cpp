@@ -35,7 +35,7 @@ float UNAHPWidget::GetHealthPercentage()
 	if (const ANAPlayerState* PlayerState = GetPlayerContext().GetPlayerState<ANAPlayerState>();
 		IsValid(PlayerState))
 	{
-		return static_cast<float>(PlayerState->GetHealth()) / PlayerState->GetMaxHealth();
+		return PlayerState->GetHealth() / PlayerState->GetMaxHealth();
 	}
 
 	return 0.f;

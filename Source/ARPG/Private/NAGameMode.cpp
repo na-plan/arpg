@@ -4,7 +4,7 @@
 
 #include "NAInGameHUD.h"
 #include "NAPlayerController.h"
-#include "Public/NAPlayerState.h"
+#include "NAPlayerState.h"
 #include "UObject/ConstructorHelpers.h"
 
 ANAGameMode::ANAGameMode()
