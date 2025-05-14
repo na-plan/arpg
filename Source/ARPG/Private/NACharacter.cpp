@@ -1,6 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "ARPGCharacter.h"
+#include "NACharacter.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -18,7 +18,7 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 //////////////////////////////////////////////////////////////////////////
 // AARPGCharacter
 
-AARPGCharacter::AARPGCharacter()
+ANACharacter::ANACharacter()
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -56,7 +56,7 @@ AARPGCharacter::AARPGCharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
 
-void AARPGCharacter::BeginPlay()
+void ANACharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
@@ -69,7 +69,7 @@ void AARPGCharacter::BeginPlay()
 //////////////////////////////////////////////////////////////////////////
 // Input
 
-void AARPGCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	// Add Input Mapping Context
 	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
@@ -88,10 +88,10 @@ void AARPGCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
 		// Moving
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AARPGCharacter::Move);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ANACharacter::Move);
 
 		// Looking
-		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AARPGCharacter::Look);
+		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ANACharacter::Look);
 	}
 	else
 	{
@@ -99,7 +99,7 @@ void AARPGCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	}
 }
 
-void AARPGCharacter::Move(const FInputActionValue& Value)
+void ANACharacter::Move(const FInputActionValue& Value)
 {
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
@@ -122,7 +122,7 @@ void AARPGCharacter::Move(const FInputActionValue& Value)
 	}
 }
 
-void AARPGCharacter::Look(const FInputActionValue& Value)
+void ANACharacter::Look(const FInputActionValue& Value)
 {
 	// input is a Vector2D
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
@@ -135,7 +135,7 @@ void AARPGCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-bool AARPGCharacter::ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator,
+bool ANACharacter::ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator,
 	AActor* DamageCauser) const
 {
 	if (const ANAPlayerState* CastedPlayerState = GetPlayerState<ANAPlayerState>())
