@@ -55,6 +55,9 @@ Build/*
 # Whitelist PakBlacklist-<BuildConfiguration>.txt files
 !Build/*/
 Build/*/**
+
+# Rider
+.idea/*
 !Build/*/PakBlacklist*.txt
 
 # Don't ignore icon files in Build
