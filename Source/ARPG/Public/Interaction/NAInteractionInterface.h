@@ -7,7 +7,7 @@
 #include "NAInteractionInterface.generated.h"
 
 // This class does not need to be modified.
-UINTERFACE(MinimalAPI/*, meta = (CannotImplementInterfaceInBlueprint)*/)
+UINTERFACE(MinimalAPI)
 class UNAInteraction : public UInterface
 {
 	GENERATED_BODY()
