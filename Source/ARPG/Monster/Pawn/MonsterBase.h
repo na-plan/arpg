@@ -68,11 +68,16 @@ public:
 	// Sets default values for this pawn's properties
 	AMonsterBase();
 	virtual void SetData(const FDataTableRowHandle& InDataTableRowHandle);
-
+protected:
+	//Duplacte In Editor
+	virtual void PostDuplicate(EDuplicateMode::Type DuplicateMode) override;
+	virtual void PostLoad() override;
+	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	virtual void OnConstruction(const FTransform& Transform);
 	//Take damage Parts
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
