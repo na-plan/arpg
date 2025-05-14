@@ -44,7 +44,7 @@ void AMonsterBase::SetData(const FDataTableRowHandle& InDataTableRowHandle)
 	
 	//AI Controller Parts 
 	/*Add AI After Create*/
-	//AIControllerClass = MonsterData->AIControllerClass;
+	AIControllerClass = MonsterData->AIControllerClass;
 
 	//Speed Control from Monster Data
 	/*UFloatingPawnMovement 말고 다른거 사용할 경우 MovementComponent의 해당 타입을 사용할 다른걸로 바꿔주세요*/
@@ -141,10 +141,4 @@ void AMonsterBase::Tick(float DeltaTime)
 
 }
 
-// Called to bind functionality to input
-void AMonsterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-}
 

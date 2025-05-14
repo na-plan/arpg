@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "../AI/MonsterAIController.h"
+#include "Aicontroller.h"
 #include "GameFramework/FloatingPawnMovement.h"
 #include "CoreMinimal.h"
 #include "Components/CapsuleComponent.h"
@@ -27,6 +29,9 @@ public:	// Base Resource
 	UPROPERTY(EditAnywhere, Category = "Monster")
 	float CollisionCapsuleHalfHeight = 100.f;
 
+	//Base AiController 
+	UPROPERTY(EditAnywhere, Category = "Pawn|AI")
+	TSubclassOf<AAIController> AIControllerClass = AMonsterAIController::StaticClass();
 
 public: // Animation
 	//юс╫ц animinstance
@@ -86,8 +91,6 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 protected:
 	UPROPERTY(VisibleAnywhere)
