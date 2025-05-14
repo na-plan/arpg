@@ -1,13 +1,13 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "NAGameMode.h"
+#include "ARPGGameMode.h"
 
 #include "NAInGameHUD.h"
 #include "NAPlayerController.h"
-#include "NAPlayerState.h"
+#include "Public/NAPlayerState.h"
 #include "UObject/ConstructorHelpers.h"
 
-ANAGameMode::ANAGameMode()
+AARPGGameMode::AARPGGameMode()
 {
 	// set default pawn class to our Blueprinted character
 	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnBPClass(TEXT("/Game/ThirdPerson/Blueprints/BP_ThirdPersonCharacter"));
