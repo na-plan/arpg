@@ -1,8 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "../Pawn/MonsterBase.h"
-//#include "Pawn/Monster/MonsterBase.h"
-
+#include "Monster/Pawn/MonsterBase.h"
 
 // Sets default values
 AMonsterBase::AMonsterBase()
