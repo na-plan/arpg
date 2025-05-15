@@ -1,4 +1,4 @@
-#include "Item/Weapon/NAWeaponData.h"
+#include "Item/Weapon/NAWeaponInstance.h"
 
 ANAWeaponBase::ANAWeaponBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -27,18 +27,4 @@ bool ANAWeaponBase::SetData(const FDataTableRowHandle& InDataTableRowHandle)
 	FNAWeaponTableRow* WeaponData = GetItemData<FNAWeaponTableRow>(ItemDataTableRowHandle);
 	if (!WeaponData) { return false; }
 
-}
-
-bool ANAWeaponBase::IsCompatibleDataTable(const FDataTableRowHandle& InDataTableRowHandle) const
-{
-	if (InDataTableRowHandle.IsNull()) { return false; }
-
-	const UDataTable* DT = InDataTableRowHandle.DataTable;
-	if (!DT) { return false; }
-
-	const UScriptStruct* RowStruct = DT->GetRowStruct();
-	if (!RowStruct) { return false; }
-
-	bool bIsCompatible = RowStruct == FNAWeaponTableRow::StaticStruct();
-	return bIsCompatible;
 }
