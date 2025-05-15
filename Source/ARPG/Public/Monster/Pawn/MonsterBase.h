@@ -114,4 +114,8 @@ protected:
 protected:
 	UPROPERTY(VisibleAnywhere)
 	UAnimInstance* AnimInstance;
+
+
+
+
 };
