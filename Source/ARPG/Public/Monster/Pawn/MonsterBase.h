@@ -34,31 +34,31 @@ public:	// Base Resource
 	TSubclassOf<AAIController> AIControllerClass = AMonsterAIController::StaticClass();
 
 public: // Animation
-	//ÀÓ½Ã animinstance
+	//ì„ì‹œ animinstance
 	UPROPERTY(EditAnywhere, Category = "Monster|Animation")
 	TSubclassOf<UAnimInstance> AnimClass;
 	UPROPERTY(EditAnywhere, Category = "Monster|Animation")
 	TArray<UAnimMontage*> HitReactMontage;
 	UPROPERTY(EditAnywhere, Category = "Monster|Animation")
 	TArray<UAnimMontage*> DieMontage;
-	// »óÇÏÃ¼ ºĞ¸® use Upper boddy
+	// ìƒí•˜ì²´ ë¶„ë¦¬ use Upper boddy
 	UPROPERTY(EditAnywhere, Category = "Monster|Animation")
 	TArray<UAnimMontage*> AttackMontage;
 
 public: //Type & Other Datatable
-	// ÀÏ¹İ Æ¯¼ö ¿¤¸®Æ® Áß°£º¸½º º¸½º µîµî		±âº»°ø°İ¸¸ / ½ºÅ³»ç¿ë°¡´É / Æ¯¼ö ÆĞÅÏ / ±â¹Í µî Ãß°¡ÇÏ°í ½ÍÀº°Å Ãß°¡ °¡´ÉÇÏ°ÔÁ¶Àı °¡´É
+	// ì¼ë°˜ íŠ¹ìˆ˜ ì—˜ë¦¬íŠ¸ ì¤‘ê°„ë³´ìŠ¤ ë³´ìŠ¤ ë“±ë“±		ê¸°ë³¸ê³µê²©ë§Œ / ìŠ¤í‚¬ì‚¬ìš©ê°€ëŠ¥ / íŠ¹ìˆ˜ íŒ¨í„´ / ê¸°ë¯¹ ë“± ì¶”ê°€í•˜ê³  ì‹¶ì€ê±° ì¶”ê°€ ê°€ëŠ¥í•˜ê²Œì¡°ì ˆ ê°€ëŠ¥
 	uint8 MonsterType = 0;
 
-	// Å¸ÀÔ¿¡ µû¶ó¼­ Max Speed ¸¦ Á¶Àı ÇÒ¼öµµ ÀÖ¾î¼­ ¹Ù²Ü¼ö ÀÖ°Ô ÇÔ
+	// íƒ€ì…ì— ë”°ë¼ì„œ Max Speed ë¥¼ ì¡°ì ˆ í• ìˆ˜ë„ ìˆì–´ì„œ ë°”ê¿€ìˆ˜ ìˆê²Œ í•¨
 	UPROPERTY(EditAnywhere, Category = "Pawn|Movement")
 	float MovementMaxSpeed = 400.f;
 
 
-	// ³ªÁß¿¡ ½ºÅ³ °°Àº°Å »ç¿ë ÇÒ¶§ datatable ¸¸µé°í ÀÏ¹İ ¸÷ ¸»°í ÀÚ½Ä¿¡ 
+	// ë‚˜ì¤‘ì— ìŠ¤í‚¬ ê°™ì€ê±° ì‚¬ìš© í• ë•Œ datatable ë§Œë“¤ê³  ì¼ë°˜ ëª¹ ë§ê³  ìì‹ì— 
 	//UPROPERTY(EditAnywhere, Category = "Pawn|Skill", meta = (RowType = "/Script/ARPG.SkillTableRow"))
 	//FDataTableRowHandle OwnSkillData;
 	
-	// ³ªÁß¿¡ ¾ÆÀÌÅÛ µå¶ø °°Àº°Å ÇÒ¶§ ¸¸µé±â
+	// ë‚˜ì¤‘ì— ì•„ì´í…œ ë“œë ê°™ì€ê±° í• ë•Œ ë§Œë“¤ê¸°
 	//UPROPERTY(EditAnywhere, Category = "Pawn|Drop", meta = (RowType = "/Script/ARPG.ItemTableRow"))
 	//FDataTableRowHandle OwnDropData;
 
@@ -106,7 +106,7 @@ protected:
 	UPROPERTY(EditAnywhere, meta = (RowType = "/Script/ARPG.MonsterBaseTableRow"))
 	FDataTableRowHandle MonsterDataTableRowHandle;
 
-	// Make Better to Useful »ç¿ëÇÏ±â ÆíÇÏ°Ô ÇÏ·Á°í »ç¿ëÇÒ ¿¹Á¤ÀÔ´Ï´Ù
+	// Make Better to Useful ì‚¬ìš©í•˜ê¸° í¸í•˜ê²Œ í•˜ë ¤ê³  ì‚¬ìš©í•  ì˜ˆì •ì…ë‹ˆë‹¤
 	FMonsterBaseTableRow* MonsterData;
 
 	UFloatingPawnMovement* MovementComponent;

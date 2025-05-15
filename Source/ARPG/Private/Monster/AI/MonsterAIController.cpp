@@ -24,7 +24,7 @@ void AMonsterAIController::CheckSpawnRadius()
 	FVector FSpawnLocation = Blackboard->GetValueAsVector(TEXT("SpwanPosition"));
 	APawn* OwningPawn = GetPawn();
 	FVector OwningPawnLocation = OwningPawn->GetActorLocation();
-	//ÀÌµ¿ ¹İ°æ
+	//ì´ë™ ë°˜ê²½
 	float Radius = 2000;
 
 	float Distance = FVector::Dist(FSpawnLocation, OwningPawnLocation);

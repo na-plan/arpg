@@ -22,10 +22,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 protected:
-	/*Spawn À§Ä¡ ±âÁØ ÀÏÁ¤ ¹üÀ§ ³ª°¬´ÂÁö È®ÀÎÇÏ´Â ±â´É*/
+	/*Spawn ìœ„ì¹˜ ê¸°ì¤€ ì¼ì • ë²”ìœ„ ë‚˜ê°”ëŠ”ì§€ í™•ì¸í•˜ëŠ” ê¸°ëŠ¥*/
 	void CheckSpawnRadius();
 
-	//Ability system ¿Ï¼ºÈÄ¿¡ ¸¸µé¾î¾ß ÇÒ°Å °°À½
+	//Ability system ì™„ì„±í›„ì— ë§Œë“¤ì–´ì•¼ í• ê±° ê°™ìŒ
 	//UFUNCTION()
 	//void OnDamaged(float CurrentHP, float MaxHP);
 

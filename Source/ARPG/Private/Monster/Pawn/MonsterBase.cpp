@@ -45,14 +45,14 @@ void AMonsterBase::SetData(const FDataTableRowHandle& InDataTableRowHandle)
 	AIControllerClass = MonsterData->AIControllerClass;
 
 	//Speed Control from Monster Data
-	/*UFloatingPawnMovement ¸»°í ´Ù¸¥°Å »ç¿ëÇÒ °æ¿ì MovementComponentÀÇ ÇØ´ç Å¸ÀÔÀ» »ç¿ëÇÒ ´Ù¸¥°É·Î ¹Ù²ãÁÖ¼¼¿ä*/
+	/*UFloatingPawnMovement ë§ê³  ë‹¤ë¥¸ê±° ì‚¬ìš©í•  ê²½ìš° MovementComponentì˜ í•´ë‹¹ íƒ€ìž…ì„ ì‚¬ìš©í•  ë‹¤ë¥¸ê±¸ë¡œ ë°”ê¿”ì£¼ì„¸ìš”*/
 	MovementComponent->MaxSpeed = MonsterData->MovementMaxSpeed;
 
 	SkeletalMeshComponent->SetSkeletalMesh(MonsterData->SkeletalMesh);
 	SkeletalMeshComponent->SetAnimClass(MonsterData->AnimClass);
 	SkeletalMeshComponent->SetRelativeTransform(MonsterData->MeshTransform);
 
-	/*Collision Component¸¦ ¾ÆÁ÷ ¾È¸¸µé¾úÀ½À¸·Î ³ÖÁö´Â ¾ÊÀ½*/
+	/*Collision Componentë¥¼ ì•„ì§ ì•ˆë§Œë“¤ì—ˆìŒìœ¼ë¡œ ë„£ì§€ëŠ” ì•ŠìŒ*/
 
 }
 
@@ -105,7 +105,7 @@ float AMonsterBase::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AC
 
 	if (Controller)
 	{
-		//damage ¸ÂÀ»¶§ ¸ØÄ©ÇÏ·Á°í ÇÏÁö ¾Ê´Â´Ù¸é ÇØ´ç ºÎºÐÀº deleteÇØÁÖ¼¼¿ä
+		//damage ë§žì„ë•Œ ë©ˆì¹«í•˜ë ¤ê³  í•˜ì§€ ì•ŠëŠ”ë‹¤ë©´ í•´ë‹¹ ë¶€ë¶„ì€ deleteí•´ì£¼ì„¸ìš”
 		Controller->StopMovement();
 	}
 	/*TODO:: Afeter Create StatusComponent */

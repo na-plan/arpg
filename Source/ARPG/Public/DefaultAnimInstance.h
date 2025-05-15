@@ -9,7 +9,7 @@
 /**
  * 
  */
-// ÇöÀç ÇØ´ç ÆÄÀÏ À§Ä¡´Â monster ÀÔ´Ï´Ù ÃßÈÄ player ³ª ´Ù¸¥°÷¿¡ »ç¿ëÇÑ´Ù¸é ÀÌµ¿½ÃÄÑ ÁÖ¼¼¿ä
+// í˜„ì¬ í•´ë‹¹ íŒŒì¼ ìœ„ì¹˜ëŠ” monster ì…ë‹ˆë‹¤ ì¶”í›„ player ë‚˜ ë‹¤ë¥¸ê³³ì— ì‚¬ìš©í•œë‹¤ë©´ ì´ë™ì‹œì¼œ ì£¼ì„¸ìš”
 UCLASS()
 class ARPG_API UDefaultAnimInstance : public UAnimInstance
 {
@@ -34,7 +34,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	bool bShoudMove = false;
 
-	/*¾µÁö ¾È¾µÁö °í¹ÎÁß + fall anim not exist */
+	/*ì“¸ì§€ ì•ˆì“¸ì§€ ê³ ë¯¼ì¤‘ + fall anim not exist */
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsCrouch = false;
 	UPROPERTY(BlueprintReadOnly)

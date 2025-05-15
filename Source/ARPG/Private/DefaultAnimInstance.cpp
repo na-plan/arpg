@@ -11,7 +11,7 @@ void UDefaultAnimInstance::NativeInitializeAnimation()
 	APawn* Pawn = TryGetPawnOwner();
 	if (GIsEditor && FApp::IsGame() && !Pawn)
 	{
-		checkf(false, TEXT("UDefaultAnimInstance¸¦ »ç¿ëÇÏ·Á¸é ¼ÒÀ¯±ÇÀÚ°¡ PawnÀÌ¿©¾ß ÇÕ´Ï´Ù."));
+		checkf(false, TEXT("UDefaultAnimInstanceë¥¼ ì‚¬ìš©í•˜ë ¤ë©´ ì†Œìœ ê¶Œìžê°€ Pawnì´ì—¬ì•¼ í•©ë‹ˆë‹¤."));
 		return;
 	}
 	else if (!Pawn) { return; }
@@ -38,7 +38,7 @@ void UDefaultAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 
 
-	//Player controller ºÎºÐÀÔ´Ï´Ù ÇÊ¿ä½Ã ÇØ´ç ÁÖ¼®À» ¸ðµÎ Ç®°í »ç¿ëÇÏ°Å³ª ÇÊ¿ä ¾øÀ» °æ¿ì Áö¿öÁÖ¼¼¿ä
+	//Player controller ë¶€ë¶„ìž…ë‹ˆë‹¤ í•„ìš”ì‹œ í•´ë‹¹ ì£¼ì„ì„ ëª¨ë‘ í’€ê³  ì‚¬ìš©í•˜ê±°ë‚˜ í•„ìš” ì—†ì„ ê²½ìš° ì§€ì›Œì£¼ì„¸ìš”
 	//this is Player controller Parts 
 	// if someone need this delete this Commets And Used it plz or someone do not need this delete all this codes
 	/*
@@ -54,9 +54,9 @@ void UDefaultAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	//Direction = AimRotation.Yaw;
 	//if (Direction > 180.0) { Direction -= 360.0; }
 	//else if (Direction < -180.0) { Direction += 360.0; }
-
-
-	//¾µÁö ¾È¾µÁö °í¹ÎÁß + fall anim not exist
+	
+	
+	//ì“¸ì§€ ì•ˆì“¸ì§€ ê³ ë¯¼ì¤‘ + fall anim not exist
 	//bIsCrouch = MovementComponent->IsCrouching();	
 	//bIsFalling = MovementComponent->IsFalling();
 	*/
