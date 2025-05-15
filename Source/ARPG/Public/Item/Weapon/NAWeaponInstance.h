@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Item/NAItemBase.h"
 #include "Item/Weapon/NAWeaponData.h"
-#include "NAWeaponBase.generated.h"
+#include "Item/NAItemInstance.h"
+#include "NAWeaponInstance.generated.h"
 
 UCLASS()
 class ARPG_API ANAWeaponBase : public ANAItemBase

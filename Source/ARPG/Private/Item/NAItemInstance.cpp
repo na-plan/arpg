@@ -1,9 +1,9 @@
 
-#include "Item/NAItemBase.h"
+#include "Item/NAItemInstance.h"
 
 #include "Components/SphereComponent.h"
 
-ANAItemBase::ANAItemBase(const FObjectInitializer& ObjectInitializer)
+ANAItemInstance::ANAItemInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
@@ -11,22 +11,18 @@ ANAItemBase::ANAItemBase(const FObjectInitializer& ObjectInitializer)
 	ItemStaticMesh->SetupAttachment(RootComponent);
 }
 
-bool ANAItemBase::TryGetItemData(FNAItemBaseTableRow& OutDataTableRow) const
+UNAItemData* ANAItemInstance::GetItemData() const
 {
-	if (ItemDataTableRowHandle.IsNull()) { return false; }
-	const FNAItemBaseTableRow* DT = GetItemData<FNAItemBaseTableRow>(ItemDataTableRowHandle);
-	if (!DT) { return false; }
-	OutDataTableRow = *DT;
-	return true;
+	return nullptr;
 }
 
-void ANAItemBase::OnConstruction(const FTransform& Transform)
+void ANAItemInstance::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 	SetData(ItemDataTableRowHandle);
 }
 
-bool ANAItemBase::SetData(const FDataTableRowHandle& InDataTableRowHandle)
+bool ANAItemInstance::InitItemInstance(const FDataTableRowHandle& InDataTableRowHandle)
 {
 	if (!IsCompatibleDataTable(InDataTableRowHandle))
 	{
@@ -86,18 +82,4 @@ bool ANAItemBase::SetData(const FDataTableRowHandle& InDataTableRowHandle)
 	ItemState = ItemData->ItemState;
 
 	return true;
-}
-
-bool ANAItemBase::IsCompatibleDataTable(const FDataTableRowHandle& InDataTableRowHandle) const
-{
-	if (InDataTableRowHandle.IsNull()) { return false; }
-
-	const UDataTable* DT = InDataTableRowHandle.DataTable;
-	if (!DT) { return false; }
-
-	const UScriptStruct* RowStruct = DT->GetRowStruct();
-	if (!RowStruct) { return false; }
-
-	bool bIsCompatible = RowStruct == FNAItemBaseTableRow::StaticStruct();
-	return bIsCompatible;
 }

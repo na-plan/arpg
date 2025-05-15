@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Item/Consumable/NAConsumableItem.h"
-
-#include "NAProjectile.generated.h"
+#include "Item/Consumable/NAConsumableItemInstance.h"
+#include "Item/ConSumable/NAProjectileData.h"
+#include "NAProjectileInstance.generated.h"
 
 class ANAFirearm;
 USTRUCT()

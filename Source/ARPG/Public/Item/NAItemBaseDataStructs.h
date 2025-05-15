@@ -8,7 +8,7 @@
 UENUM(BlueprintType)
 enum class EItemType : uint8
 {
-	IT_None                UMETA(DisplayName = "None"),		// ÃÊ±âÈ­ ÇÊ¿ä
+	IT_None                UMETA(DisplayName = "None"),		// ï¿½Ê±ï¿½È­ ï¿½Ê¿ï¿½
 
 	IT_Tool                UMETA(DisplayName = "Tool"),
 	IT_Weapon          UMETA(DisplayName = "Weapon"),
@@ -21,24 +21,6 @@ enum class EItemType : uint8
 	IT_Currency            UMETA(DisplayName = "Currency"),
 	IT_KeyItem             UMETA(DisplayName = "Key Item"),
 	IT_Misc                UMETA(DisplayName = "Miscellaneous"),
-};
-
-UENUM(BlueprintType)
-enum class EItemState : uint8
-{
-	IS_None            UMETA(DisplayName = "None"),           // ÃÊ±âÈ­ ÇÊ¿ä
-
-	IS_Active          UMETA(DisplayName = "Active"),         // »ç¿ë °¡´É »óÅÂ
-	IS_Inactive        UMETA(DisplayName = "Inactive"),       // »ç¿ë ºÒ°¡ (Á¶°Ç ºÒÃæÁ·, Äğ´Ù¿î µî)
-	IS_Consumed        UMETA(DisplayName = "Consumed"),       // »ç¿ë ÈÄ »ç¶óÁø »óÅÂ
-	IS_Disabled        UMETA(DisplayName = "Disabled"),       // ÀÇµµÀûÀ¸·Î ºñÈ°¼ºÈ­µÈ »óÅÂ
-	IS_Locked          UMETA(DisplayName = "Locked"),         // Æ¯Á¤ Á¶°ÇÀ» ¸¸Á·ÇØ¾ß »ç¿ëÇÒ ¼ö ÀÖÀ½
-	IS_Expired         UMETA(DisplayName = "Expired"),        // À¯È¿±â°£ °æ°ú µîÀ¸·Î ¹«È¿ »óÅÂ
-	IS_Hidden          UMETA(DisplayName = "Hidden"),          // UI µî¿¡¼­ ¼û±è Ã³¸®
-	IS_Equipped          UMETA(DisplayName = "Equipped"),          // Âø¿ë ÁßÀÎ Àåºñ ¾ÆÀÌÅÛ Àü¿ë
-	IS_Broken          UMETA(DisplayName = "Broken"),          // ³»±¸µµ°¡ 0ÀÌ µÇ¾î ÀÛµ¿ÇÏÁö ¾Ê´Â »óÅÂ
-	IS_Pending          UMETA(DisplayName = "Pending"),          // ³×Æ®¿öÅ© Ã³¸® ÁßÀÌ°Å³ª, UI ¿¬Ãâ Áß Àá½Ã ´ë±â »óÅÂ
-	IS_PreviewOnly          UMETA(DisplayName = "PreviewOnly"),          // ¿ùµå¿¡ ÀÖÁö¸¸ »óÈ£ÀÛ¿ëÇÒ ¼ö ¾ø´Â »óÅÂ (¿¹: »óÁ¡ ÇÁ¸®ºä)
 };
 
 USTRUCT()
@@ -75,11 +57,11 @@ struct FNAStaticMeshItemAssetData
 	UPROPERTY(EditAnywhere, Category = "Static Mesh Item Asset Data")
 	FTransform MeshTransform = FTransform::Identity;
 
-	// (¼±ÅÃ) Fracture ±¸Çö¿¡ ÇÊ¿äÇÑ Geometry Collection ¿¡¼Â
+	// (ì„ íƒ) Fracture  Geometry Collection ì—ì…‹
 	UPROPERTY(EditAnywhere, Category = "Static Mesh Item Asset Data|Fracture")
 	TObjectPtr<UGeometryCollection> FractureCollection = nullptr;
 
-	// (¼±ÅÃ) Fracture ¾Ö´Ï¸ŞÀÌ¼Ç 
+	// (ì„ íƒ) Fracture Geometry Collection ì• ë‹ˆë©”ì´ì…˜ 
 	UPROPERTY(EditAnywhere, Category = "Static Mesh Item Asset Data|Fracture")
 	TObjectPtr<UGeometryCollectionCache> FractureCache = nullptr;
 };
@@ -111,23 +93,35 @@ enum class EItemMeshType : uint8
 	IMT_Skeletal UMETA(DisplayName = "Skeletal"),
 };
 
+// Weight Capacity: ï¿½Îºï¿½ï¿½ä¸®ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½Ö´ï¿½ ï¿½Ö´ï¿½ ï¿½ï¿½ï¿½ï¿½
+// Total Weight: ï¿½Îºï¿½ï¿½ä¸®ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½. ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½: ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+// ï¿½ï¿½ï¿½ï¿½ ï¿½Ò°ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½×»ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 1ï¿½ï¿½ ï¿½ï¿½ï¿½Öµï¿½, ï¿½Ì·ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ == ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 USTRUCT()
 struct FItemNumericData
 {
 	GENERATED_BODY()
 
-	int32 ItemId = -1;
-	int32 MaxStackSize = -1;	// 0 <= MaxStackSize ÀÌ¸é ÀÎº¥Åä¸®¿¡ ¸ø ³ÖÀ½
-	float Weight = 0.0f;	
+	UPROPERTY(EditAnywhere, Category = "Item Numeric Data")
+	float ItemWeight = 0.0f;	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+
+	UPROPERTY(EditAnywhere, Category = "Item Numeric Data", meta = (UIMin = 0, UIMax = 100))
+	int32 MaxStackSize = -1;	// 0ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½Îºï¿½ï¿½ä¸®ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ò°ï¿½, 1ï¿½ï¿½ ï¿½ï¿½ï¿½ bIsStackableï¿½ï¿½ falseï¿½ï¿½ ï¿½ï¿½ï¿½Öµï¿½
+
+	UPROPERTY(EditAnywhere, Category = "Item Numeric Data")
+	uint8 bIsStackable : 1 = false;	// trueï¿½ï¿½ ï¿½Îºï¿½ï¿½ä¸®ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 };
 
-class ANAItemBase;
+class ANAItemInstance;
 USTRUCT()
 struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 {
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(EditAnywhere, Category = "Item Base")
+	TSubclassOf<ANAItemInstance> ItemClass;
+
 	UPROPERTY(EditAnywhere, Category = "Item Base")
 	uint8 bUseTriggerShpereAsRoot : 1 = true;
 
@@ -139,33 +133,27 @@ public:
 		meta = (EditCondition = "bUseTriggerShpereAsRoot", EditConditionHides, ClampMin = "0.0"))
 	float TriggerSphereRadius = 0.0f;
 
-	/** ¾î¶² Å¸ÀÔÀÇ ¸Ş½Ã ¿¡¼ÂÀ» ¾µÁö °í¸£´Â ÆÇº°ÀÚ */
+	/** ï¿½î¶² Å¸ï¿½ï¿½ï¿½ï¿½ ï¿½Ş½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Çºï¿½ï¿½ï¿½ */
 	UPROPERTY(EditAnywhere, Category = "Item Base")
-	EItemMeshType ItemMeshType = EItemMeshType::IMT_None;
+	EItemMeshType MeshType = EItemMeshType::IMT_None;
 
-	/** Static Mesh Àü¿ë µ¥ÀÌÅÍ */
+	/** Static Mesh ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
 	UPROPERTY(EditAnywhere, Category = "Item Base",
-		meta=(EditCondition="ItemMeshType==EItemMeshType::IMT_Static", EditConditionHides/*, ShowOnlyInnerProperties*/))
-	FNAStaticMeshItemAssetData StaticMeshItemAssetData;
+		meta=(EditCondition="MeshType==EItemMeshType::IMT_Static", EditConditionHides/*, ShowOnlyInnerProperties*/))
+	FNAStaticMeshItemAssetData StaticMeshAssetData;
 
-	/** Skeletal  Mesh Àü¿ë µ¥ÀÌÅÍ */
+	/** Skeletal  Mesh ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
 	UPROPERTY(EditAnywhere, Category = "Item Base",
-		meta=(EditCondition="ItemMeshType==EItemMeshType::IMT_Skeletal", EditConditionHides/*, ShowOnlyInnerProperties*/))
-	FNASkeletalMeshItemAssetData SkeletalMeshItemAssetData;
-
-	UPROPERTY(EditAnywhere, Category = "Item Base")
-	TSubclassOf<ANAItemBase> ItemClass;
+		meta=(EditCondition="MeshType==EItemMeshType::IMT_Skeletal", EditConditionHides/*, ShowOnlyInnerProperties*/))
+	FNASkeletalMeshItemAssetData SkeletalMeshAssetData;
 
 	UPROPERTY(EditAnywhere, Category ="Item Base")
 	EItemType ItemType = EItemType::IT_None;
 
 	UPROPERTY(EditAnywhere, Category = "Item Base")
-	FItemTextData ItemTextData;
+	FItemTextData TextData;
 
 	UPROPERTY(EditAnywhere, Category = "Item Base")
-	FItemNumericData ItemNumericData;
-
-	UPROPERTY(EditAnywhere, Category = "Item Base")
-	EItemState ItemState = EItemState::IS_None;
+	FItemNumericData NumericData;
 };
 

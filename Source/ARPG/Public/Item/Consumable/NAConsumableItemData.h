@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Item/NAItemBase.h"
+#include "Item/NAItemData.h"
 
-#include "NAConsumableItem.generated.h"
+#include "NAConsumableItemData.generated.h"
 
 UCLASS()
 class ARPG_API ANAConsumableItem : public ANAItemBase
