@@ -11,11 +11,14 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "InputMappingContext.h"
 #include "NAPlayerState.h"
+#include "RenderGraphResources.h"
 #include "Ability/AttributeSet/NAAttributeSet.h"
 #include "Ability/GameInstanceSubsystem/NAAbilityGameInstanceSubsystem.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
 #include "Net/UnrealNetwork.h"
+#include "UObject/PropertyIterator.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -71,30 +74,19 @@ void ANACharacter::BeginPlay()
 	{
 		if (HasAuthority())
 		{
-			if (const UNAAbilityGameInstanceSubsystem* AbilityGameInstanceSubsystem = GetGameInstance()->GetSubsystem<UNAAbilityGameInstanceSubsystem>())
-			{
-				// todo?: 캐릭터의 이름에 따라 속성 초기화하기
-				AbilityGameInstanceSubsystem->InitializeAttribute(this, TEXT("Test"));
-			}
-			else
-			{
-				ensureMsgf(AbilityGameInstanceSubsystem, TEXT("Ability game instance subsystem is not initialized"));
-			}
-		
+			// 데미지
+			FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+			EffectContext.AddInstigator(GetController(), this);
+
+			// Gameplay Effect CDO, 레벨?, ASC에서 부여받은 Effect Context로 적용할 효과에 대한 설명을 생성
+			const FGameplayEffectSpecHandle DamageEffectSpec = AbilitySystemComponent->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1, EffectContext);
+
+			// 설명에 따라 효과 부여 (본인에게)
+			const auto& Handle = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*DamageEffectSpec.Data.Get());
+			// 다른 대상에게...
+			//AbilitySystemComponent->ApplyGameplayEffectSpecToTarget()
+			check(Handle.WasSuccessfullyApplied());
 		}
-		
-		// 데미지
-		FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
-		EffectContext.AddInstigator(GetController(), this);
-
-		// Gameplay Effect CDO, 레벨?, ASC에서 부여받은 Effect Context로 적용할 효과에 대한 설명을 생성
-		const FGameplayEffectSpecHandle DamageEffectSpec = AbilitySystemComponent->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1, EffectContext);
-
-		// 설명에 따라 효과 부여 (본인에게)
-		const auto& Handle = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*DamageEffectSpec.Data.Get());
-		// 다른 대상에게...
-		//AbilitySystemComponent->ApplyGameplayEffectSpecToTarget()
-		check(Handle.WasSuccessfullyApplied());
 	}
 	// ===============
 }
@@ -144,6 +136,69 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	else
 	{
 		UE_LOG(LogTemplateCharacter, Error, TEXT("'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
+	}
+}
+
+void ANACharacter::RetrieveAsset(const AActor* InCDO)
+{
+	if (const ANACharacter* DefaultAsset = Cast<ANACharacter>(InCDO))
+	{
+		const FTransform Transform = DefaultAsset->GetMesh()->GetRelativeTransform();
+		
+		GetMesh()->SetRelativeTransform(Transform);
+		GetMesh()->SetSkeletalMeshAsset(DefaultAsset->GetMesh()->GetSkeletalMeshAsset());
+		GetMesh()->SetAnimInstanceClass(DefaultAsset->GetMesh()->GetAnimClass());
+
+		// 리플리케이션을 위한 Mesh Offset
+		CacheInitialMeshOffset(Transform.GetLocation(), Transform.Rotator() );
+
+		if (HasAuthority())
+		{
+			if (const UNAAbilityGameInstanceSubsystem* AbilityGameInstanceSubsystem = GetGameInstance()->GetSubsystem<UNAAbilityGameInstanceSubsystem>())
+			{
+				if (const UDataTable* DataTable = AbilityGameInstanceSubsystem->GetAttributeDataTable(GetAssetName()); DataTable && AbilitySystemComponent)
+				{
+					for (const FAttributeDefaults& Attribute : DefaultAsset->GetAbilitySystemComponent()->DefaultStartingData)
+					{
+						if (!AbilitySystemComponent->GetAttributeSet(Attribute.Attributes))
+						{
+							AbilitySystemComponent->InitStats(Attribute.Attributes, DataTable);	
+						}
+					}
+				}
+				else
+				{
+					ensureMsgf(DataTable, TEXT("Designated table is not found"));
+				}
+			}
+			else
+			{
+				ensureMsgf(AbilityGameInstanceSubsystem, TEXT("Ability game instance subsystem is not initialized"));
+			}
+		
+		}
+
+		for (TFieldIterator<FObjectProperty> It(StaticClass()); It; ++It)
+		{
+			const FObjectProperty* Property = *It;
+
+			if (!Property)
+			{
+				continue;
+			}
+			
+			if (Property->PropertyClass->IsChildOf(UInputMappingContext::StaticClass()))
+			{
+				const auto* Other = Cast<UInputMappingContext>(Property->GetObjectPropertyValue_InContainer(DefaultAsset));
+				Property->SetObjectPropertyValue_InContainer(this, const_cast<UInputMappingContext*>(Other));
+			}
+
+			if (Property->PropertyClass->IsChildOf(UInputAction::StaticClass()))
+			{
+				const auto* Other = Cast<UInputAction>(Property->GetObjectPropertyValue_InContainer(DefaultAsset));
+				Property->SetObjectPropertyValue_InContainer(this, const_cast<UInputAction*>(Other));
+			}			 
+		}
 	}
 }
 

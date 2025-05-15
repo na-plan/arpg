@@ -28,10 +28,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	UDataTable* GetAttributeDataTable(const FName& InRowName) const;
 
-	// ACS를 사용하는 객체에 대해 주어진 이름에 해당하는 속성을 적용
-	UFUNCTION(BlueprintCallable)
-	void InitializeAttribute(const TScriptInterface<IAbilitySystemInterface>& InTarget, const FName& InRowName) const;
-	
 protected:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	
