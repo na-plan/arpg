@@ -3,12 +3,17 @@
 #pragma once
 
 #include "../AI/MonsterAIController.h"
+#include "Perception/AISenseConfig_Sight.h"
 #include "Aicontroller.h"
 #include "GameFramework/FloatingPawnMovement.h"
 #include "CoreMinimal.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Pawn.h"
 #include "MonsterBase.generated.h"
+
+
+
+
 USTRUCT()
 struct ARPG_API FMonsterBaseTableRow : public FTableRowBase
 {
@@ -55,14 +60,16 @@ public: //Type & Other Datatable
 
 
 	// 나중에 스킬 같은거 사용 할때 datatable 만들고 일반 몹 말고 자식에 
-	//UPROPERTY(EditAnywhere, Category = "Pawn|Skill", meta = (RowType = "/Script/ARPG.SkillTableRow"))
-	//FDataTableRowHandle OwnSkillData;
+	// 임시로 활성화 풀었음 아직 datatable은 안만듦
+	UPROPERTY(EditAnywhere, Category = "Pawn|Skill", meta = (RowType = "/Script/ARPG.SkillTableRow"))
+	FDataTableRowHandle OwnSkillData;
 	
 	// 나중에 아이템 드랍 같은거 할때 만들기
 	//UPROPERTY(EditAnywhere, Category = "Pawn|Drop", meta = (RowType = "/Script/ARPG.ItemTableRow"))
 	//FDataTableRowHandle OwnDropData;
 
 };
+
 
 UCLASS()
 class ARPG_API AMonsterBase : public APawn
@@ -73,6 +80,7 @@ public:
 	// Sets default values for this pawn's properties
 	AMonsterBase();
 	virtual void SetData(const FDataTableRowHandle& InDataTableRowHandle);
+	virtual void SetSkillData(const FDataTableRowHandle& InSkillDataTableRowHandle);
 protected:
 	//Duplacte In Editor
 	virtual void PostDuplicate(EDuplicateMode::Type DuplicateMode) override;
@@ -86,7 +94,8 @@ protected:
 	//Take damage Parts
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
-
+	UFUNCTION()
+	virtual void OnDie();
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -116,6 +125,11 @@ protected:
 	UAnimInstance* AnimInstance;
 
 
+	UPROPERTY(VisibleAnywhere)
+	UAIPerceptionComponent* AIPerceptionComponent;
+
+	UPROPERTY(VisibleAnywhere)
+	UAISenseConfig_Sight* AISenseConfig_Sight;
 
 
 };

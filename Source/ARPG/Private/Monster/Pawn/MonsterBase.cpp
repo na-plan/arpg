@@ -30,6 +30,18 @@ AMonsterBase::AMonsterBase()
 	/*Use this Afeter Create SkillComponent(Finishkill) */
 	//SkillComponent = CreateDefaultSubobject<USkillComponent>(TEXT("MonsterSkillComponent"));
 	//check(SkillComponent);
+
+
+	/*AI*/
+	AIPerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerceptionComponent"));
+	AISenseConfig_Sight = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("AISenseConfig_Sight"));
+	AISenseConfig_Sight->DetectionByAffiliation.bDetectNeutrals = true;
+	AISenseConfig_Sight->SightRadius = 800.f;
+	AISenseConfig_Sight->LoseSightRadius = 1000.f;
+	AISenseConfig_Sight->PeripheralVisionAngleDegrees = 120.f;
+	AIPerceptionComponent->ConfigureSense(*AISenseConfig_Sight);
+
+
 }
 
 void AMonsterBase::SetData(const FDataTableRowHandle& InDataTableRowHandle)
@@ -53,7 +65,43 @@ void AMonsterBase::SetData(const FDataTableRowHandle& InDataTableRowHandle)
 	SkeletalMeshComponent->SetRelativeTransform(MonsterData->MeshTransform);
 
 	/*Collision Component를 아직 안만들었음으로 넣지는 않음*/
+	if (!IsValid(CollisionComponent) || CollisionComponent->GetClass() != MonsterData->CollisionClass)
+	{
+		EObjectFlags SubobjectFlags = GetMaskedFlags(RF_PropagateToSubObjects) | RF_DefaultSubObject;
+		CollisionComponent = NewObject<UShapeComponent>(this, MonsterData->CollisionClass, TEXT("CollisionComponent"), SubobjectFlags);
+		CollisionComponent->RegisterComponent();
+		CollisionComponent->SetCanEverAffectNavigation(false);
+		// Enigine Setting Collision 에 Monster가 없고 해당 설정이 없어서 일단 Pawn으로 합니다
+		CollisionComponent->SetCollisionProfileName(TEXT("Pawn"));
+		SetRootComponent(CollisionComponent);
+		DefaultSceneRoot->SetRelativeTransform(FTransform::Identity);
+		DefaultSceneRoot->AttachToComponent(CollisionComponent, FAttachmentTransformRules::KeepRelativeTransform);
 
+		//Forcheck visable true
+		CollisionComponent->SetVisibility(true);
+	}
+
+	if (UCapsuleComponent* CapsuleComponent = Cast<UCapsuleComponent>(CollisionComponent))
+	{
+		CapsuleComponent->SetCapsuleSize(MonsterData->CollisionCapsuleRadius, MonsterData->CollisionCapsuleHalfHeight);
+	}
+}
+
+void AMonsterBase::SetSkillData(const FDataTableRowHandle& InSkillDataTableRowHandle)
+{
+	MonsterData->OwnSkillData = InSkillDataTableRowHandle;
+	if (MonsterData->OwnSkillData.IsNull()) { return; }
+
+	/*아직 미완성 부분입니다*/
+	//FSkillTableRow* Data = MonsterData->OwnSkillData.GetRow<FSkillTableRow>(TEXT("MonsterSkillData"));
+	//if (!Data) { ensure(false); return; }
+	//MonsterSkillData = Data;
+
+	//여기에 skill data setting중이라..
+	//SkillComponent->SetData(InSkillDataTableRowHandle);
+
+
+	//int32 CheckSkillNum = MonsterSkillData->SkillDataArray.Num();
 }
 
 void AMonsterBase::PostDuplicate(EDuplicateMode::Type DuplicateMode)
@@ -130,6 +178,11 @@ float AMonsterBase::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AC
 	//	AnimInstance->Montage_Play(MonsterData->HitReactMontage[HitReactIndex]);
 	//}
 	return 0.0f;
+}
+
+void AMonsterBase::OnDie()
+{
+
 }
 
 // Called every frame

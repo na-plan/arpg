@@ -7,6 +7,23 @@
 
 void AMonsterAIController::BeginPlay()
 {
+	Super::BeginPlay();
+
+	if (!IsValid(BrainComponent))
+	{
+		//BT로 바꾸기
+		UBehaviorTree* BehaviorTree = LoadObject<UBehaviorTree>(nullptr, TEXT("/Script/AIModule.BehaviorTree'/Game/TempResource/Monster/AI/BT_BaseMonster.BT_BaseMonster'"));
+		check(BehaviorTree);
+		RunBehaviorTree(BehaviorTree);
+	}
+
+	//Spawn 위치 기준 일정 범위 이상 못나가게 하려고 할때 사용 가능합니다
+	APawn* OwningPawn = GetPawn();
+	FVector FSpawnLocation = OwningPawn->GetActorLocation();
+	Blackboard->SetValueAsVector(TEXT("SpwanPosition"), FSpawnLocation);
+
+
+
 
 }
 
