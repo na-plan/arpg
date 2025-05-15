@@ -6,6 +6,7 @@
 #include "AbilitySystemComponent.h"
 #include "NACharacter.h"
 #include "Ability/AttributeSet/NAAttributeSet.h"
+#include "Assets/Interface/NAManagedAsset.h"
 #include "Net/UnrealNetwork.h"
 
 float ANAPlayerState::GetHealth() const
@@ -53,12 +54,44 @@ bool ANAPlayerState::IsAlive() const
 	return false;
 }
 
+void ANAPlayerState::SetPossessAssetName(const FName& AssetName)
+{
+	PossessAssetName = AssetName;
+	UpdatePossessAssetByName();
+}
+
+void ANAPlayerState::OnRep_PossessAssetName() const
+{
+	UpdatePossessAssetByName();
+}
+
+void ANAPlayerState::UpdatePossessAssetByName() const
+{
+	if (const TScriptInterface<INAManagedAsset> Interface = GetPawn())
+	{
+		Interface->SetAssetName(PossessAssetName);
+	}
+}
+
 void ANAPlayerState::BeginPlay()
 {
 	Super::BeginPlay();
 }
 
+void ANAPlayerState::PostNetInit()
+{
+	Super::PostNetInit();
+	
+	if (GetNetMode() == NM_Client)
+	{
+		TScriptDelegate Delegate;
+		Delegate.BindUFunction(this, "UpdatePossessAssetByName");
+		OnPawnSet.AddUnique(Delegate);
+	}
+}
+
 void ANAPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ANAPlayerState, PossessAssetName)
 }
