@@ -3,81 +3,62 @@
 
 #include "ARPG/Public/NAPlayerState.h"
 
+#include "AbilitySystemComponent.h"
+#include "NACharacter.h"
+#include "Ability/AttributeSet/NAAttributeSet.h"
 #include "Net/UnrealNetwork.h"
 
-void ANAPlayerState::SetHealth(const int32 NewHealth)
+float ANAPlayerState::GetHealth() const
 {
-	Health = FMath::Clamp(NewHealth, 0, MaxHealth);
-}
-
-void ANAPlayerState::IncreaseHealth(int32 Increment)
-{
-	if (Increment < 0)
+	// 캐릭터의 AbilitySystemComponent로부터 체력을 조회
+	if (const ANACharacter* Character = Cast<ANACharacter>(GetPlayerController()->GetCharacter()))
 	{
-		return DecreaseHealth(-Increment);
+		const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>(Character->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()));
+		return AttributeSet->GetHealth();
 	}
+
+	// todo: NPC의 경우 핸들링
+	check(false);
 	
-	if (Increment > 0 && Health > std::numeric_limits<int32>::max() - Increment)
-	{
-		Health = MaxHealth;
-	}
-	else if (Health + Increment >= MaxHealth)
-	{
-		Health = MaxHealth;
-	}
-	else
-	{
-		Health += Increment;
-	}
+	return 0.f;
 }
 
-void ANAPlayerState::DecreaseHealth(const int32 Decrement)
+int32 ANAPlayerState::GetMaxHealth() const
 {
-	if (Decrement < 0)
+	// 캐릭터의 AbilitySystemComponent로부터 체력을 조회
+	if (const ANACharacter* Character = Cast<ANACharacter>(GetPlayerController()->GetCharacter()))
 	{
-		return IncreaseHealth(-Decrement);
+		const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>(Character->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()));
+		return AttributeSet->Health.GetBaseValue();
 	}
 
-	if (Decrement > 0 && Health < std::numeric_limits<int32>::min() + Decrement)
-	{
-		Health = MaxHealth;
-	}
-	else if (Health - Decrement <= 0)
-	{
-		Health = 0;
-	}
-	else
-	{
-		Health -= Decrement;
-	}
+	// todo: NPC의 경우 핸들링
+	check(false);
+	
+	return 0.f;
 }
 
 bool ANAPlayerState::IsAlive() const
 {
-	return Health > 0;
-}
+	// 캐릭터의 AbilitySystemComponent로부터 체력을 조회
+	if (const ANACharacter* Character = Cast<ANACharacter>(GetPlayerController()->GetCharacter()))
+	{
+		const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>(Character->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()));
+		return AttributeSet->GetHealth() > 0;
+	}
 
-void ANAPlayerState::OnCharacterTakeAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
-                                              AController* InstigatedBy, AActor* DamageCauser)
-{
-	const int32 BeforeHealth = Health;
-	DecreaseHealth(static_cast<int32>(Damage));
-	OnHealthChanged.Broadcast(BeforeHealth, GetHealth());
+	// todo: NPC의 경우 핸들링
+	check(false);
+	
+	return false;
 }
 
 void ANAPlayerState::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// == 테스트 코드 ==
-	MaxHealth = 100;
-	// ===============
-	
-	Health = MaxHealth;
 }
 
-void ANAPlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+void ANAPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ANAPlayerState, Health)
 }

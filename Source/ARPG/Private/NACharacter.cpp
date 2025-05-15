@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "ARPGCharacter.h"
+#include "NACharacter.h"
+#include "AbilitySystemComponent.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -11,14 +12,17 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "NAPlayerState.h"
-#include "Kismet/GameplayStatics.h"
+#include "Ability/AttributeSet/NAAttributeSet.h"
+#include "Ability/GameInstanceSubsystem/NAAbilityGameInstanceSubsystem.h"
+#include "HP/GameplayEffect/NAGE_Damage.h"
+#include "Net/UnrealNetwork.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 //////////////////////////////////////////////////////////////////////////
 // AARPGCharacter
 
-AARPGCharacter::AARPGCharacter()
+ANACharacter::ANACharacter()
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -54,22 +58,66 @@ AARPGCharacter::AARPGCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 }
 
-void AARPGCharacter::BeginPlay()
+void ANACharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
-
+	
 	// == 테스트 코드 ==
-	UGameplayStatics::ApplyDamage(this, 10.f, GetController(), this, nullptr);
+	{
+		if (HasAuthority())
+		{
+			if (const UNAAbilityGameInstanceSubsystem* AbilityGameInstanceSubsystem = GetGameInstance()->GetSubsystem<UNAAbilityGameInstanceSubsystem>())
+			{
+				// todo?: 캐릭터의 이름에 따라 속성 초기화하기
+				AbilityGameInstanceSubsystem->InitializeAttribute(this, TEXT("Test"));
+			}
+			else
+			{
+				ensureMsgf(AbilityGameInstanceSubsystem, TEXT("Ability game instance subsystem is not initialized"));
+			}
+		
+		}
+		
+		// 데미지
+		FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+		EffectContext.AddInstigator(GetController(), this);
+
+		// Gameplay Effect CDO, 레벨?, ASC에서 부여받은 Effect Context로 적용할 효과에 대한 설명을 생성
+		const FGameplayEffectSpecHandle DamageEffectSpec = AbilitySystemComponent->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1, EffectContext);
+
+		// 설명에 따라 효과 부여 (본인에게)
+		const auto& Handle = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*DamageEffectSpec.Data.Get());
+		// 다른 대상에게...
+		//AbilitySystemComponent->ApplyGameplayEffectSpecToTarget()
+		check(Handle.WasSuccessfullyApplied());
+	}
 	// ===============
+}
+
+void ANACharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	if (HasAuthority())
+	{
+		if (AbilitySystemComponent)
+		{
+			AbilitySystemComponent->InitAbilityActorInfo(GetPlayerState(), this);
+		}
+
+		SetOwner(NewController);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
 // Input
 
-void AARPGCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	// Add Input Mapping Context
 	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
@@ -88,10 +136,10 @@ void AARPGCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
 		// Moving
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AARPGCharacter::Move);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ANACharacter::Move);
 
 		// Looking
-		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AARPGCharacter::Look);
+		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ANACharacter::Look);
 	}
 	else
 	{
@@ -99,7 +147,7 @@ void AARPGCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	}
 }
 
-void AARPGCharacter::Move(const FInputActionValue& Value)
+void ANACharacter::Move(const FInputActionValue& Value)
 {
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
@@ -122,7 +170,7 @@ void AARPGCharacter::Move(const FInputActionValue& Value)
 	}
 }
 
-void AARPGCharacter::Look(const FInputActionValue& Value)
+void ANACharacter::Look(const FInputActionValue& Value)
 {
 	// input is a Vector2D
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
@@ -135,7 +183,7 @@ void AARPGCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-bool AARPGCharacter::ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator,
+bool ANACharacter::ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator,
 	AActor* DamageCauser) const
 {
 	if (const ANAPlayerState* CastedPlayerState = GetPlayerState<ANAPlayerState>())
@@ -145,4 +193,10 @@ bool AARPGCharacter::ShouldTakeDamage(float Damage, FDamageEvent const& DamageEv
 	}
 	
 	return Super::ShouldTakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+}
+
+void ANACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ANACharacter, AbilitySystemComponent);
 }
