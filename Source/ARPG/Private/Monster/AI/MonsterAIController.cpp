@@ -2,6 +2,9 @@
 
 #include "Monster/AI/MonsterAIController.h"
 
+#include "AbilitySystemComponent.h"
+#include "Perception/AISenseConfig_Sight.h"
+
 void AMonsterAIController::BeginPlay()
 {
 
@@ -28,6 +31,38 @@ void AMonsterAIController::CheckSpawnRadius()
 	float Radius = 2000;
 
 	float Distance = FVector::Dist(FSpawnLocation, OwningPawnLocation);
-	if (Distance > Radius) { Blackboard->SetValueAsBool(TEXT("OutRangedSpawn"), true); }
+	if (Distance > Radius) 
+	{ 
+		Blackboard->SetValueAsBool(TEXT("OutRangedSpawn"), true); 
+		Blackboard->SetValueAsObject(TEXT("DetectTarget"), nullptr);
+	}
 	else { Blackboard->SetValueAsBool(TEXT("OutRangedSpawn"), false); }
+}
+
+void AMonsterAIController::FindPlayerByPerception()
+{
+	APawn* OwningPawn = GetPawn();
+	if (UAIPerceptionComponent* AIPerceptionComponent = OwningPawn->GetComponentByClass<UAIPerceptionComponent>())
+	{
+		TArray<AActor*> OutActors;
+		AIPerceptionComponent->GetCurrentlyPerceivedActors(UAISenseConfig_Sight::StaticClass(), OutActors);
+		bool bFound = false;
+		
+		// 시야에 보인 Player를 찾는 부분입니다. -> 이후 선공을 하며 
+		// 중간에 다른 사람이 공격할 경우 그 사람을 공격하려고 합니다
+		for (AActor* It : OutActors)
+		{
+			if (ACharacter* DetectedPlayer = Cast<ACharacter>(It))
+			{
+				bFound = true;
+				Blackboard->SetValueAsObject(TEXT("DetectPlayer"), Cast<UObject>(DetectedPlayer));
+				break;
+			}
+		}
+		if (!bFound)
+		{
+			Blackboard->ClearValue(TEXT("DetectPlayer"));
+		}
+	}
+
 }
