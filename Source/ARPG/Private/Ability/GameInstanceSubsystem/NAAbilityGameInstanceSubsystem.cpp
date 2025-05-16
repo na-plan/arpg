@@ -3,9 +3,6 @@
 
 #include "Ability/GameInstanceSubsystem/NAAbilityGameInstanceSubsystem.h"
 
-#include "AbilitySystemComponent.h"
-#include "AbilitySystemInterface.h"
-#include "Ability/AttributeSet/NAAttributeSet.h"
 #include "Ability/TableRow/AttributesTableRow.h"
 
 UDataTable* UNAAbilityGameInstanceSubsystem::GetAttributeDataTable(const FName& InRowName) const
@@ -23,28 +20,6 @@ UDataTable* UNAAbilityGameInstanceSubsystem::GetAttributeDataTable(const FName& 
 	}
 
 	return nullptr;
-}
-
-void UNAAbilityGameInstanceSubsystem::InitializeAttribute(const TScriptInterface<IAbilitySystemInterface>& InTarget, const FName& InRowName) const
-{
-	if (InTarget)
-	{
-		if (UAbilitySystemComponent* AbilitySystemComponent = InTarget->GetAbilitySystemComponent())
-		{
-			if (const UDataTable* RowDataTable = GetAttributeDataTable(InRowName))
-			{
-				AbilitySystemComponent->InitStats(UNAAttributeSet::StaticClass(), RowDataTable);	
-			}
-			else
-			{
-				ensureAlwaysMsgf(RowDataTable, TEXT("Unable to find the attribute with the given row"));
-			}
-		}
-		else
-		{
-			ensureAlwaysMsgf(AbilitySystemComponent, TEXT("Ability system component is not valid"));
-		}
-	}
 }
 
 void UNAAbilityGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collection)

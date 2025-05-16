@@ -25,10 +25,29 @@ public:
 	// 생존 상태 반환
 	bool IsAlive() const;
 
+	// 빙의한 Pawn의 에셋 이름 반환
+	FName GetPossessAssetName() const { return PossessAssetName; }
+
+	// 빙의한 Pawn의 에셋 이름 설정
+	void SetPossessAssetName(const FName& AssetName);
+
 protected:
+
+	// 서버에서 AssetName이 바뀐 경우 클라이언트 사이드에서 에셋 업데이트
+	UFUNCTION()
+	void OnRep_PossessAssetName() const;
+
+	// Pawn의 AssetName을 수정하는 함수
+	UFUNCTION()
+	void UpdatePossessAssetByName() const;
 
 	virtual void BeginPlay() override;
 
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void PostNetInit() override;
 	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	// 플레이어 또는 NPC의 에셋
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_PossessAssetName)
+	FName PossessAssetName = NAME_None;
 };

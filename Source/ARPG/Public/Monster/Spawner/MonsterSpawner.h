@@ -18,12 +18,17 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Class", meta = (AllowPrivateAccess = "true"))
+	FName AssetName;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Timer", meta=(AllowPrivateAccess="true"))
+	float LastSpawnTime;
+	
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	void SpawnMonster();
-	
 	
 };

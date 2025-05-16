@@ -6,6 +6,7 @@
 #include "AbilitySystemComponent.h"
 #include "NACharacter.h"
 #include "Ability/AttributeSet/NAAttributeSet.h"
+#include "Assets/Interface/NAManagedAsset.h"
 #include "Net/UnrealNetwork.h"
 
 float ANAPlayerState::GetHealth() const
@@ -17,9 +18,7 @@ float ANAPlayerState::GetHealth() const
 		return AttributeSet->GetHealth();
 	}
 
-	// todo: NPC의 경우 핸들링
 	check(false);
-	
 	return 0.f;
 }
 
@@ -32,9 +31,7 @@ int32 ANAPlayerState::GetMaxHealth() const
 		return AttributeSet->Health.GetBaseValue();
 	}
 
-	// todo: NPC의 경우 핸들링
 	check(false);
-	
 	return 0.f;
 }
 
@@ -47,10 +44,27 @@ bool ANAPlayerState::IsAlive() const
 		return AttributeSet->GetHealth() > 0;
 	}
 
-	// todo: NPC의 경우 핸들링
 	check(false);
-	
 	return false;
+}
+
+void ANAPlayerState::SetPossessAssetName(const FName& AssetName)
+{
+	PossessAssetName = AssetName;
+	UpdatePossessAssetByName();
+}
+
+void ANAPlayerState::OnRep_PossessAssetName() const
+{
+	UpdatePossessAssetByName();
+}
+
+void ANAPlayerState::UpdatePossessAssetByName() const
+{
+	if (const TScriptInterface<INAManagedAsset> Interface = GetPawn())
+	{
+		Interface->SetAssetName(PossessAssetName);
+	}
 }
 
 void ANAPlayerState::BeginPlay()
@@ -58,7 +72,22 @@ void ANAPlayerState::BeginPlay()
 	Super::BeginPlay();
 }
 
+void ANAPlayerState::PostNetInit()
+{
+	Super::PostNetInit();
+
+	// 캐릭터는 기본 클래스를 주고 블루프린트로부터 복사해서 동적으로 적용
+	// 캐릭터의 에셋이 중간에 바뀌어야 할 경우를 대비
+	if (GetNetMode() == NM_Client)
+	{
+		TScriptDelegate Delegate;
+		Delegate.BindUFunction(this, "UpdatePossessAssetByName");
+		OnPawnSet.AddUnique(Delegate);
+	}
+}
+
 void ANAPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ANAPlayerState, PossessAssetName)
 }

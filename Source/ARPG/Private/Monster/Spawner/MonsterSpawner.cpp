@@ -3,6 +3,8 @@
 
 #include "Monster/Spawner/MonsterSpawner.h"
 
+#include "Assets/AssetStatics.h"
+
 
 // Sets default values
 AMonsterSpawner::AMonsterSpawner()
@@ -10,7 +12,8 @@ AMonsterSpawner::AMonsterSpawner()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-
+	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+	
 	/* 
 	Monster Data 가지고 와서 Spawn할 대상 Spawn 하고 대상 죽으면 일정 시간후 다시 spawn하는 형식? 
 
@@ -39,11 +42,31 @@ void AMonsterSpawner::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (LastSpawnTime >= 10.f)
+	{
+		SpawnMonster();
+		LastSpawnTime = 0.f; 
+	}
+
+	LastSpawnTime += DeltaTime;
 }
 
 void AMonsterSpawner::SpawnMonster()
 {
-	GetWorld()->SpawnActor<AActor>(GetActorLocation(), FRotator::ZeroRotator);
+	const FVector& SpawnLocation = GetActorLocation();
+	const FRotator& SpawnRotation = FRotator::ZeroRotator;
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+	SpawnParameters.ObjectFlags = RF_Transient;
 
+	if (const TSubclassOf<AActor> Class = FAssetStatics::GetAssetClass(GetWorld(), AssetName))
+	{
+		AActor* Spawned = GetWorld()->SpawnActor(Class, &SpawnLocation, &SpawnRotation, SpawnParameters);
+		Spawned->SetReplicates(true);
+	}
+	else
+	{
+		ensureAlwaysMsgf(Class, TEXT("Spawning class does not defined"));
+	}
 }
 

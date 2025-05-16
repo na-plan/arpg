@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
+#include "Assets/Interface/NAManagedAsset.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
 #include "NACharacter.generated.h"
@@ -20,7 +21,7 @@ struct FInputActionValue;
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
 UCLASS(config=Game)
-class ANACharacter : public ACharacter, public IAbilitySystemInterface
+class ANACharacter : public ACharacter, public IAbilitySystemInterface, public INAManagedAsset
 {
 	GENERATED_BODY()
 	
@@ -51,20 +52,24 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* LookAction;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Asset", meta=(AllowPrivateAccess="true"))
+	FName AssetName;
+
 public:
 	ANACharacter();
-	
 
 protected:
+	virtual void SetAssetNameDerivedImplementation(const FName& InAssetName) override { AssetName = InAssetName; }
+
+	virtual FName GetAssetName() const override { return AssetName; }
+
+	virtual void RetrieveAsset(const AActor* InCDO) override;
 
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
-
-	// 데미지를 받을 여부 처리 함수
-	virtual bool ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) const override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
