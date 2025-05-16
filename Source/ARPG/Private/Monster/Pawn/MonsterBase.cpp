@@ -7,6 +7,10 @@
 #include "AbilitySystemComponent.h"
 #include "Ability/AttributeSet/NAAttributeSet.h"
 
+//Ability
+#include "Ability/GameplayAbility/AttackGameplayAbility.h"
+
+
 #include "HP/GameplayEffect/NAGE_Damage.h"
 
 
@@ -84,6 +88,54 @@ void AMonsterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AMonsterBase, AbilitySystemComponent);
+}
+
+bool AMonsterBase::OnAttack()
+{
+	//AIControllerClass에서 OnAttack하도록 호출하고 AIControllerClass에서 가지고있는 component를 가져와 공격하도록 해야하나?
+	AIControllerClass;
+
+	return false;
+}
+
+float AMonsterBase::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	//there is no Status Part so Skip Status Parts
+	//TODO:: After Create Status Data or Components  Plz Add Here
+	
+	//if (StatusComponent->IsDie()) { return 0.f; }
+
+
+	//float DamageResult = StatusComponent->TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+	//if (FMath::IsNearlyZero(DamageResult)) { return 0.0; }
+
+	if (Controller)
+	{
+		//damage 맞을때 멈칫하려고 하지 않는다면 해당 부분은 delete해주세요
+		Controller->StopMovement();
+	}
+	/*TODO:: Afeter Create StatusComponent */
+	//if (StatusComponent->IsDie() && !MonsterData->DieMontage.IsEmpty())
+	//{
+	//	if (Controller)
+	//	{
+	//		Controller->Destroy();
+	//	}
+	//	SetActorEnableCollision(false);
+
+	//	const int64 Index = FMath::RandRange(0, MonsterData->DieMontage.Num() - 1);
+	//	CurrentDieMontage = MonsterData->DieMontage[Index];
+
+	//	AnimInstance->Montage_Play(CurrentDieMontage);
+	//	UKismetSystemLibrary::K2_SetTimer(this, TEXT("OnDie"),
+	//		MonsterData->DieMontage[Index]->GetPlayLength() - 0.5f, false);
+	//}
+	//else if (!StatusComponent->IsDie() && !MonsterData->HitReactMontage.IsEmpty())
+	//{
+	//	const int64 HitReactIndex = FMath::RandRange(0, MonsterData->HitReactMontage.Num() - 1);
+	//	AnimInstance->Montage_Play(MonsterData->HitReactMontage[HitReactIndex]);
+	//}
+	return 0.0f;
 }
 
 void AMonsterBase::OnDie()
