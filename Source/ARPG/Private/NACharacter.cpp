@@ -13,12 +13,10 @@
 #include "InputActionValue.h"
 #include "InputMappingContext.h"
 #include "NAPlayerState.h"
-#include "RenderGraphResources.h"
 #include "Ability/AttributeSet/NAAttributeSet.h"
 #include "Ability/GameInstanceSubsystem/NAAbilityGameInstanceSubsystem.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
 #include "Net/UnrealNetwork.h"
-#include "UObject/PropertyIterator.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
