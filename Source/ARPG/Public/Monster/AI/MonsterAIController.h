@@ -3,6 +3,7 @@
 #pragma once
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BehaviorTree.h"
+#include "Perception/AIPerceptionComponent.h"
 
 #include "CoreMinimal.h"
 #include "AIController.h"
@@ -24,6 +25,12 @@ public:
 protected:
 	/*Spawn 위치 기준 일정 범위 나갔는지 확인하는 기능*/
 	void CheckSpawnRadius();
+
+
+	//Player 찾는 기능
+	void FindPlayerByPerception();
+
+	void IsPlayingMontage();
 
 	//Ability system 완성후에 만들어야 할거 같음
 	//UFUNCTION()
