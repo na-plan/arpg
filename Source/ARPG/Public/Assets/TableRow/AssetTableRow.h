@@ -17,5 +17,7 @@ private:
 
 public:
 	AActor* GetCDOAsset() const { return BlueprintAsset.GetDefaultObject(); }
+
+	TSubclassOf<AActor> GetAssetClass() const { return BlueprintAsset;}
 	
 };

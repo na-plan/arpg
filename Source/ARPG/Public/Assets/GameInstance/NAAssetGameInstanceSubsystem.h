@@ -34,5 +34,8 @@ protected:
 	
 public:
 	UFUNCTION()
-	void FetchAsset(AActor* InActor) const;
+	void FetchAsset(UObject* InActor) const;
+
+	UFUNCTION()
+	TSubclassOf<AActor> GetAssetClass(const FName& InAssetName) const;
 };

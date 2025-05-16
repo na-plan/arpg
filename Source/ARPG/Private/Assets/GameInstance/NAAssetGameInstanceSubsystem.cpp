@@ -52,7 +52,7 @@ void UNAAssetGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collect
 	FWorldDelegates::OnPostWorldCleanup.AddUObject(this, &UNAAssetGameInstanceSubsystem::OnPostWorldCleanup);
 }
 
-void UNAAssetGameInstanceSubsystem::FetchAsset(AActor* InActor) const
+void UNAAssetGameInstanceSubsystem::FetchAsset(UObject* InActor) const
 {
 	if (const TScriptInterface<INAManagedAsset> Interface(InActor); Interface)
 	{
@@ -69,4 +69,19 @@ void UNAAssetGameInstanceSubsystem::FetchAsset(AActor* InActor) const
 			}
 		}
 	}
+}
+
+TSubclassOf<AActor> UNAAssetGameInstanceSubsystem::GetAssetClass(const FName& InAssetName) const
+{
+	UE_LOG(LogAssetGameInstance, Log, TEXT("Loading Asset: %s"), *InAssetName.ToString());
+	if (const FAssetTableRow* Row = AssetTable->FindRow<FAssetTableRow>(InAssetName, TEXT("AssetGameInstance Query")))
+	{
+		return Row->GetAssetClass();
+	}
+	else
+	{
+		ensureMsgf(Row, TEXT("Unable to find the asset table"));
+	}
+
+	return nullptr;
 }
