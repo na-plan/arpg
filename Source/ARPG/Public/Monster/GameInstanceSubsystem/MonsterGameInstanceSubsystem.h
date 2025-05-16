@@ -14,7 +14,6 @@ class ARPG_API UMonsterGameInstanceSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 	
-
 	
 	
 	
