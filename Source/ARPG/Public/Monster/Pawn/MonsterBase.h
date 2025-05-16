@@ -16,7 +16,7 @@
 #include "MonsterBase.generated.h"
 
 
-DECLARE_LOG_CATEGORY_EXTERN(LogTemplateMonster, Log, All);
+//DECLARE_LOG_CATEGORY_EXTERN(LogTemplateMonster, Log, All);
 
 
 USTRUCT()
@@ -119,6 +119,9 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+
+	void TestCheck();
+
 	//Gas에서 호출하는 함수들은 여기에 사용하는게 좋아보임
 public:
 	FORCEINLINE UAbilitySystemComponent* GetAbilitySystemComponent() const { return AbilitySystemComponent; }
@@ -159,5 +162,7 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	UAISenseConfig_Sight* AISenseConfig_Sight;
 
+	float CheckTimer = 0;
+	float CheckHP = 0;
 
 };
