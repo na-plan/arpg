@@ -39,7 +39,6 @@ protected:
 	/* Gas 전환중 */
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
-	virtual bool OnDeath();
 	virtual bool OnAttack();
 
 	//Take damage Parts
