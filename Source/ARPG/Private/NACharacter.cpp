@@ -238,18 +238,6 @@ void ANACharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-bool ANACharacter::ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator,
-	AActor* DamageCauser) const
-{
-	if (const ANAPlayerState* CastedPlayerState = GetPlayerState<ANAPlayerState>())
-	{
-		// 플레이어가 살아있을 경우에만 데미지를 입음
-		return Super::ShouldTakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser) && CastedPlayerState->IsAlive(); 
-	}
-	
-	return Super::ShouldTakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
-}
-
 void ANACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
