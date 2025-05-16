@@ -8,9 +8,7 @@
 #include "Ability/AttributeSet/NAAttributeSet.h"
 
 //Ability
-//#include "Ability/GameplayAbility/AttackGameplayAbility.h"
-#include "Monster/Ability/GameplayAbility/GA_MonsterAttack.h"
-#include "Monster/Ability/GameplayAbility/GA_Spawning.h"
+#include "Ability/GameplayAbility/AttackGameplayAbility.h"
 
 
 #include "HP/GameplayEffect/NAGE_Damage.h"
@@ -49,7 +47,7 @@ AMonsterBase::AMonsterBase()
 	//SkillComponent = CreateDefaultSubobject<USkillComponent>(TEXT("MonsterSkillComponent"));
 	//check(SkillComponent);
 
-	
+
 	/*AI*/
 	AIPerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerceptionComponent"));
 	AISenseConfig_Sight = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("AISenseConfig_Sight"));
@@ -62,10 +60,6 @@ AMonsterBase::AMonsterBase()
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 
 	AutoPossessAI = EAutoPossessAI::Spawned;
-}
-
-void AMonsterBase::InitializeAbilities()
-{
 }
 
 void AMonsterBase::PossessedBy(AController* NewController)
@@ -88,16 +82,6 @@ void AMonsterBase::PossessedBy(AController* NewController)
 void AMonsterBase::BeginPlay()
 {
 	Super::BeginPlay();
-
-	//TSubclassOf<AAIController> MainAIControllerClass = AMonsterAIController::StaticClass();
-	//AIControllerClass = MainAIControllerClass;
-
-	if (AbilitySystemComponent) 
-	{
-		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_MonsterAttack::StaticClass(), 1, 0));
-		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_Spawning::StaticClass(), 1, 0));
-	}
-
 }
 
 void AMonsterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -105,16 +89,14 @@ void AMonsterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AMonsterBase, AbilitySystemComponent);
 }
-#pragma region Legacy
-//Gas 전환 완료
-//bool AMonsterBase::OnAttack()
-//{
-//	//AIControllerClass에서 OnAttack하도록 호출하고 AIControllerClass에서 가지고있는 component를 가져와 공격하도록 해야하나?
-//	AIControllerClass;
-//
-//	return false;
-//}
-#pragma endregion
+
+bool AMonsterBase::OnAttack()
+{
+	//AIControllerClass에서 OnAttack하도록 호출하고 AIControllerClass에서 가지고있는 component를 가져와 공격하도록 해야하나?
+	AIControllerClass;
+
+	return false;
+}
 
 float AMonsterBase::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
@@ -166,37 +148,37 @@ void AMonsterBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	//if (HasAuthority())
-	//{
-	//	CheckTimer -= DeltaTime;
+	if (HasAuthority())
+	{
+		CheckTimer -= DeltaTime;
 
-	//	//UKismetSystemLibrary::K2_SetTimer(this, TEXT("TestCheck"), 5.f, false);
-	//	if (CheckTimer < 0)
-	//	{
-	//		TestCheck();
-	//		CheckTimer = 5;
+		//UKismetSystemLibrary::K2_SetTimer(this, TEXT("TestCheck"), 5.f, false);
+		if (CheckTimer < 0)
+		{
+			TestCheck();
+			CheckTimer = 5;
 
-	//		// 데미지
-	//		FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
-	//		EffectContext.AddInstigator(GetController(), this);
+			// 데미지
+			FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+			EffectContext.AddInstigator(GetController(), this);
 
-	//		// Gameplay Effect CDO, 레벨?, ASC에서 부여받은 Effect Context로 적용할 효과에 대한 설명을 생성
-	//		const FGameplayEffectSpecHandle DamageEffectSpec = AbilitySystemComponent->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1, EffectContext);
+			// Gameplay Effect CDO, 레벨?, ASC에서 부여받은 Effect Context로 적용할 효과에 대한 설명을 생성
+			const FGameplayEffectSpecHandle DamageEffectSpec = AbilitySystemComponent->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1, EffectContext);
 
-	//		// 설명에 따라 효과 부여 (본인에게)
-	//		const auto& Handle = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*DamageEffectSpec.Data.Get());
-	//		// 다른 대상에게...
-	//		//AbilitySystemComponent->ApplyGameplayEffectSpecToTarget()
-	//		check(Handle.WasSuccessfullyApplied());
-	//	}
-	//}
+			// 설명에 따라 효과 부여 (본인에게)
+			const auto& Handle = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*DamageEffectSpec.Data.Get());
+			// 다른 대상에게...
+			//AbilitySystemComponent->ApplyGameplayEffectSpecToTarget()
+			check(Handle.WasSuccessfullyApplied());
+		}
+	}
 }
 
 void AMonsterBase::TestCheck()
 {
-	//const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>(GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()));
-	//CheckHP = AttributeSet->GetHealth();
-	//float TestCheckHP = CheckHP;
+	const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>(GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()));
+	CheckHP = AttributeSet->GetHealth();
+	float TestCheckHP = CheckHP;
 }
 
 
