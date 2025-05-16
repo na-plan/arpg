@@ -38,7 +38,13 @@ protected:
 
 	/* Gas 전환중 */
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-	
+
+	virtual bool OnDeath();
+	virtual bool OnAttack();
+
+	//Take damage Parts
+	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
 	UFUNCTION()
 	virtual void OnDie();
 public:	

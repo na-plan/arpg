@@ -6,7 +6,23 @@
 void UAttackGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+    
+    //Animinstance가지고 오는거
+    UAnimInstance* AnimInstance = ActorInfo->GetAnimInstance();
 
+    //OwnerActor 가지고 오는거 
+    AActor* OwnerActor = GetAvatarActorFromActorInfo();
+    if (!OwnerActor) return ;
+
+    // Target 대상
+    AActor* TargetCharacter = Cast<AActor>(ActorInfo->AvatarActor.Get());
+
+
+
+    //if (MontageToPlay && AnimInstance)
+    //{
+    //    float Duration = AnimInstance->Montage_Play(MontageToPlay);
+    //}
 
     /*CommitAbility()는 특정 능력을 실행하기 전에 사용됩니다. 
     이 함수는 능력 실행을 위한 다양한 조건을 확인하고, 해당 능력이 실제로 실행될 수 있도록 리소스를 소비하는 역할을 합니다. 
@@ -27,11 +43,17 @@ void UAttackGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Ha
         return;
     }
 
-
-
-
-
     float AttackRange = 200.0f; // 공격 범위 설정
+
+}
+
+void UAttackGameplayAbility::CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateCancelAbility)
+{
+
+}
+
+void UAttackGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
+{
 
 }
 

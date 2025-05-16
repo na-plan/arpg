@@ -32,6 +32,10 @@ protected:
 
 	void IsPlayingMontage();
 
+
+	void OnAttack();
+
+
 	//Ability system 완성후에 만들어야 할거 같음
 	//UFUNCTION()
 	//void OnDamaged(float CurrentHP, float MaxHP);

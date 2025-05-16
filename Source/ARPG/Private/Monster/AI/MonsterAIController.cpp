@@ -5,6 +5,10 @@
 #include "AbilitySystemComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 
+#include "Monster/Pawn/MonsterBase.h"
+#include "Ability/GameplayAbility/AttackGameplayAbility.h"
+
+
 void AMonsterAIController::BeginPlay()
 {
 	Super::BeginPlay();
@@ -117,5 +121,19 @@ void AMonsterAIController::IsPlayingMontage()
 		Blackboard->SetValueAsBool(TEXT("UsingSkill"), false);
 		Blackboard->SetValueAsBool(TEXT("OnDamage"), false);
 	}
+
+}
+
+void AMonsterAIController::OnAttack()
+{
+	if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(GetPawn()))
+	{
+		//Casting성공
+		UAbilitySystemComponent* MonsterAbilitySystemComponent = OwnerMonster->GetAbilitySystemComponent();
+
+
+	}
+
+
 
 }
