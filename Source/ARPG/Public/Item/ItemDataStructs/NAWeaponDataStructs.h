@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Item/NAItemBaseDataStructs.h"
+#include "Item/ItemDataStructs/NAItemBaseDataStructs.h"
 
 #include "NAWeaponDataStructs.generated.h"
 
@@ -43,14 +43,14 @@ struct FNAWeaponStatistics
 	float WeaponAttackSpeed = 0.0f;
 };
 
-class ANAProjectile;
+//class ANAProjectile;
 USTRUCT()
 struct FNAFirearmStatistics 
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category = "Firearm Statistics")
-	TSubclassOf<ANAProjectile> ProjectileClass;	// 발사체 클래스
+	//UPROPERTY(EditAnywhere, Category = "Firearm Statistics")
+	//TSubclassOf<ANAProjectile> ProjectileClass;	// 발사체 클래스
 
 	UPROPERTY(EditAnywhere, Category = "Firearm Statistics")
 	int32 MaxAmmo = -1;

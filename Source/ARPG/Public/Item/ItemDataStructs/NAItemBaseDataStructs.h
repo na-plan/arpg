@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
 
-#include "NAItemBaseData.generated.h"
+#include "NAItemBaseDataStructs.generated.h"
 
 UENUM(BlueprintType)
 enum class EItemType : uint8
@@ -85,6 +85,16 @@ struct FNASkeletalMeshItemAssetData
 };
 
 UENUM(BlueprintType)
+enum class EItemRootShapeType : uint8
+{
+	IRT_None		UMETA(DisplayName = "None"),
+
+	IRT_Sphere		UMETA(DisplayName = "Sphere"),
+	IRT_Square		UMETA(DisplayName = "Square"),
+	IRT_Capsule	UMETA(DisplayName = "Capsule"),
+};
+
+UENUM(BlueprintType)
 enum class EItemMeshType : uint8
 {
 	IMT_None		UMETA(DisplayName = "None"),
@@ -119,41 +129,55 @@ struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, Category = "Item Base")
+	UPROPERTY(EditAnywhere, Category = "Item Base Data")
 	TSubclassOf<ANAItemInstance> ItemClass;
 
-	UPROPERTY(EditAnywhere, Category = "Item Base")
-	uint8 bUseTriggerShpereAsRoot : 1 = true;
+	UPROPERTY(EditAnywhere, Category = "Item Base Data")
+	uint8 bIsPickable : 1 = false;
 
-	UPROPERTY(EditAnywhere, Category = "Item Base",
-		meta = (EditCondition = "bUseTriggerShpereAsRoot", EditConditionHides))
-	FTransform TriggerSphereTransform = FTransform::Identity;
+	UPROPERTY(EditAnywhere, Category = "Item Base Data")
+	EItemRootShapeType RootShapeType = EItemRootShapeType::IRT_Sphere;
 
-	UPROPERTY(EditAnywhere, Category = "Item Base",
-		meta = (EditCondition = "bUseTriggerShpereAsRoot", EditConditionHides, ClampMin = "0.0"))
-	float TriggerSphereRadius = 0.0f;
+	UPROPERTY(EditAnywhere, Category = "Item Base Data",
+		meta = (EditCondition = "MeshType==EItemMeshType::IRT_Sphere", EditConditionHides, ClampMin = "0.0"))
+	float RootSphereRadius = 20.f;
+
+	UPROPERTY(EditAnywhere, Category = "Item Base Data",
+		meta = (EditCondition = "MeshType==EItemMeshType::IRT_Square", EditConditionHides))
+	FVector RootBoxExtent = FVector(20.f, 20.f, 20.f);
+
+	UPROPERTY(EditAnywhere, Category = "Item Base Data",
+		meta = (EditCondition = "MeshType==EItemMeshType::IRT_Capsule", EditConditionHides, ClampMin = "0.0"))
+	float RootCapsuleHalfHegiht = 20.f;
+
+	UPROPERTY(EditAnywhere, Category = "Item Base Data",
+		meta = (EditCondition = "MeshType==EItemMeshType::IRT_Capsule", EditConditionHides, ClampMin = "0.0"))
+	float RootCapsuleRadius = 20.f;
+
+	UPROPERTY(EditAnywhere, Category = "Item Base Data")
+	FTransform RootShapeTransform = FTransform::Identity;
 
 	/** � Ÿ���� �޽� ������ ���� ���� �Ǻ��� */
-	UPROPERTY(EditAnywhere, Category = "Item Base")
-	EItemMeshType MeshType = EItemMeshType::IMT_None;
+	UPROPERTY(EditAnywhere, Category = "Item Base Data")
+	EItemMeshType MeshType = EItemMeshType::IMT_Static;
 
 	/** Static Mesh ���� ������ */
-	UPROPERTY(EditAnywhere, Category = "Item Base",
+	UPROPERTY(EditAnywhere, Category = "Item Base Data",
 		meta=(EditCondition="MeshType==EItemMeshType::IMT_Static", EditConditionHides/*, ShowOnlyInnerProperties*/))
 	FNAStaticMeshItemAssetData StaticMeshAssetData;
 
 	/** Skeletal  Mesh ���� ������ */
-	UPROPERTY(EditAnywhere, Category = "Item Base",
+	UPROPERTY(EditAnywhere, Category = "Item Base Data",
 		meta=(EditCondition="MeshType==EItemMeshType::IMT_Skeletal", EditConditionHides/*, ShowOnlyInnerProperties*/))
 	FNASkeletalMeshItemAssetData SkeletalMeshAssetData;
 
-	UPROPERTY(EditAnywhere, Category ="Item Base")
+	UPROPERTY(EditAnywhere, Category ="Item Base Data")
 	EItemType ItemType = EItemType::IT_None;
 
-	UPROPERTY(EditAnywhere, Category = "Item Base")
+	UPROPERTY(EditAnywhere, Category = "Item Base Data")
 	FItemTextData TextData;
 
-	UPROPERTY(EditAnywhere, Category = "Item Base")
+	UPROPERTY(EditAnywhere, Category = "Item Base Data")
 	FItemNumericData NumericData;
 };
 
