@@ -7,11 +7,16 @@
 #include "Aicontroller.h"
 #include "GameFramework/FloatingPawnMovement.h"
 #include "CoreMinimal.h"
+
+#include "AbilitySystemInterface.h"
+#include "Logging/LogMacros.h"
+
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Pawn.h"
 #include "MonsterBase.generated.h"
 
 
+DECLARE_LOG_CATEGORY_EXTERN(LogTemplateMonster, Log, All);
 
 
 USTRUCT()
@@ -70,15 +75,20 @@ public: //Type & Other Datatable
 
 };
 
+//Monster 도 경국 ability system을 사용을 해서 공격이나 다른걸 사용하니 얘도 component 붙여야 할거 같음
+class UAbilitySystemComponent;
+
 
 UCLASS()
-class ARPG_API AMonsterBase : public APawn
+class ARPG_API AMonsterBase : public APawn, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
 public:
 	// Sets default values for this pawn's properties
 	AMonsterBase();
+
+	virtual void PossessedBy(AController* NewController) override;
 	virtual void SetData(const FDataTableRowHandle& InDataTableRowHandle);
 	virtual void SetSkillData(const FDataTableRowHandle& InSkillDataTableRowHandle);
 protected:
@@ -91,6 +101,15 @@ protected:
 	virtual void BeginPlay() override;
 
 	virtual void OnConstruction(const FTransform& Transform);
+
+	/* Gas 전환중 */
+	// 데미지를 받을 여부 처리 함수
+	virtual bool ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) const override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
+
+
 	//Take damage Parts
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
@@ -100,8 +119,16 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	//Gas에서 호출하는 함수들은 여기에 사용하는게 좋아보임
+public:
+	FORCEINLINE UAbilitySystemComponent* GetAbilitySystemComponent() const { return AbilitySystemComponent; }
+
+
 
 protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = Gameplay, meta = (AllowPrivateAccess = "true"))
+	UAbilitySystemComponent* AbilitySystemComponent;
+
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneComponent> DefaultSceneRoot;
 
@@ -111,6 +138,8 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UShapeComponent> CollisionComponent;
 
+	UFloatingPawnMovement* MovementComponent;
+
 	// load Monster Data Target
 	UPROPERTY(EditAnywhere, meta = (RowType = "/Script/ARPG.MonsterBaseTableRow"))
 	FDataTableRowHandle MonsterDataTableRowHandle;
@@ -118,7 +147,6 @@ protected:
 	// Make Better to Useful 사용하기 편하게 하려고 사용할 예정입니다
 	FMonsterBaseTableRow* MonsterData;
 
-	UFloatingPawnMovement* MovementComponent;
 
 protected:
 	UPROPERTY(VisibleAnywhere)

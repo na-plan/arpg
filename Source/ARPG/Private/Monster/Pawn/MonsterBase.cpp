@@ -1,6 +1,16 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Monster/Pawn/MonsterBase.h"
+#include "Net/UnrealNetwork.h"
+
+#include "AbilitySystemComponent.h"
+#include "Ability/AttributeSet/NAAttributeSet.h"
+#include "Ability/GameInstanceSubsystem/NAAbilityGameInstanceSubsystem.h"
+
+#include "HP/GameplayEffect/NAGE_Damage.h"
+
+
+DEFINE_LOG_CATEGORY(LogTemplateMonster);
 
 // Sets default values
 AMonsterBase::AMonsterBase()
@@ -41,7 +51,26 @@ AMonsterBase::AMonsterBase()
 	AISenseConfig_Sight->PeripheralVisionAngleDegrees = 120.f;
 	AIPerceptionComponent->ConfigureSense(*AISenseConfig_Sight);
 
-	bUseControllerRotationYaw = true;
+
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+
+
+}
+
+void AMonsterBase::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	if (HasAuthority())
+	{
+		if (AbilitySystemComponent)
+		{
+			//이러면 자기 자긴이 자신의 abilitysystem 을 보유하도록 하는 기능이 되나
+			AbilitySystemComponent->InitAbilityActorInfo(this, this);
+		}
+
+		SetOwner(NewController);
+	}
 }
 
 void AMonsterBase::SetData(const FDataTableRowHandle& InDataTableRowHandle)
@@ -133,6 +162,39 @@ void AMonsterBase::BeginPlay()
 {
 	Super::BeginPlay();
 	SetData(MonsterDataTableRowHandle);
+
+	//일단 Character에서 가지고 왔음
+	{
+		if (HasAuthority())
+		{
+			//Player의 subsystem을 Initialize하니까 monster는 따로 만들어야 할거 같음
+			if (const UNAAbilityGameInstanceSubsystem* AbilityGameInstanceSubsystem = GetGameInstance()->GetSubsystem<UNAAbilityGameInstanceSubsystem>())
+			{
+				// todo?: 캐릭터의 이름에 따라 속성 초기화하기
+				AbilityGameInstanceSubsystem->InitializeAttribute(this, TEXT("Test"));
+			}
+			else
+			{
+				ensureMsgf(AbilityGameInstanceSubsystem, TEXT("Ability game instance subsystem is not initialized"));
+			}
+
+		}
+
+		// 데미지
+		FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+		EffectContext.AddInstigator(GetController(), this);
+
+		// Gameplay Effect CDO, 레벨?, ASC에서 부여받은 Effect Context로 적용할 효과에 대한 설명을 생성
+		const FGameplayEffectSpecHandle DamageEffectSpec = AbilitySystemComponent->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1, EffectContext);
+
+		// 설명에 따라 효과 부여 (본인에게)
+		const auto& Handle = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*DamageEffectSpec.Data.Get());
+		// 다른 대상에게...
+		//AbilitySystemComponent->ApplyGameplayEffectSpecToTarget()
+		check(Handle.WasSuccessfullyApplied());
+	}
+
+
 }
 
 void AMonsterBase::OnConstruction(const FTransform& Transform)
@@ -140,6 +202,18 @@ void AMonsterBase::OnConstruction(const FTransform& Transform)
 	Super::OnConstruction(Transform);
 	SetData(MonsterDataTableRowHandle);
 	SetActorTransform(Transform);
+}
+
+bool AMonsterBase::ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) const
+{
+
+	return false;
+}
+
+void AMonsterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AMonsterBase, AbilitySystemComponent);
 }
 
 float AMonsterBase::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
