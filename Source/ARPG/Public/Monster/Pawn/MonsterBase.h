@@ -53,8 +53,9 @@ public:
 	
 	//Gas에서 호출하는 함수들은 여기에 사용하는게 좋아보임
 public:
-	FORCEINLINE UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent; }
+	FORCEINLINE UAbilitySystemComponent* GetAbilitySystemComponent() const override{ return AbilitySystemComponent; }
 
+	UAnimMontage* AttackMontage() const { return TestAttackMontage; }
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = Gameplay, meta = (AllowPrivateAccess = "true"))
@@ -81,5 +82,6 @@ protected:
 
 	float CheckTimer = 0;
 	float CheckHP = 0;
+	UAnimMontage* TestAttackMontage;
 
 };
