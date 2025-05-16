@@ -37,6 +37,15 @@ void AMonsterAIController::OnPossess(APawn* InPawn)
 
 void AMonsterAIController::Tick(float DeltaTime)
 {
+	Super::Tick(DeltaTime);
+
+	//Montage play중이면 이동 멈추는거
+	IsPlayingMontage();
+	//Player 찾기
+	FindPlayerByPerception();
+
+	//Spawn 장소로 부터 일정 거리 떨어졌는지 확인하기
+	CheckSpawnRadius();
 }
 
 void AMonsterAIController::CheckSpawnRadius()
@@ -80,6 +89,33 @@ void AMonsterAIController::FindPlayerByPerception()
 		{
 			Blackboard->ClearValue(TEXT("DetectPlayer"));
 		}
+	}
+
+}
+
+void AMonsterAIController::IsPlayingMontage()
+{
+	APawn* OwningPawn = GetPawn();
+
+	// Montage가 Play 중이라면 BT 내부에서 AI 진행을 멈춘다
+	const bool bMontagePlaying = OwningPawn->GetComponentByClass<USkeletalMeshComponent>()->GetAnimInstance()->IsAnyMontagePlaying();
+
+
+	const UAnimMontage* CurrentMontage = OwningPawn->GetComponentByClass<USkeletalMeshComponent>()->GetAnimInstance()->GetCurrentActiveMontage();
+	const float CurrentPosition = OwningPawn->GetComponentByClass<USkeletalMeshComponent>()->GetAnimInstance()->Montage_GetPosition(CurrentMontage);
+	const float MontageLength = OwningPawn->GetComponentByClass<USkeletalMeshComponent>()->GetAnimInstance()->Montage_GetPlayRate(CurrentMontage);
+	bool StopAI = false;
+	//A가 사용중이면 Stop, A가 사용중인데 0.2보다 낮으면 Play가 되어야함
+	if (MontageLength > 0.2f && bMontagePlaying) { StopAI = true; }
+	else { StopAI = false; }
+
+	Blackboard->SetValueAsBool(TEXT("MontagePlaying"), StopAI);
+
+
+	if (!StopAI)
+	{
+		Blackboard->SetValueAsBool(TEXT("UsingSkill"), false);
+		Blackboard->SetValueAsBool(TEXT("OnDamage"), false);
 	}
 
 }

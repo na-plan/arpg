@@ -41,7 +41,7 @@ AMonsterBase::AMonsterBase()
 	AISenseConfig_Sight->PeripheralVisionAngleDegrees = 120.f;
 	AIPerceptionComponent->ConfigureSense(*AISenseConfig_Sight);
 
-
+	bUseControllerRotationYaw = true;
 }
 
 void AMonsterBase::SetData(const FDataTableRowHandle& InDataTableRowHandle)
@@ -58,7 +58,9 @@ void AMonsterBase::SetData(const FDataTableRowHandle& InDataTableRowHandle)
 
 	//Speed Control from Monster Data
 	/*UFloatingPawnMovement 말고 다른거 사용할 경우 MovementComponent의 해당 타입을 사용할 다른걸로 바꿔주세요*/
+	/* TODO:: UFloatingPawnMovement를 사용한다면 중력도 추가 해야 함*/
 	MovementComponent->MaxSpeed = MonsterData->MovementMaxSpeed;
+	bUseControllerRotationYaw = true;
 
 	SkeletalMeshComponent->SetSkeletalMesh(MonsterData->SkeletalMesh);
 	SkeletalMeshComponent->SetAnimClass(MonsterData->AnimClass);

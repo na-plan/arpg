@@ -30,6 +30,8 @@ protected:
 	//Player 찾는 기능
 	void FindPlayerByPerception();
 
+	void IsPlayingMontage();
+
 	//Ability system 완성후에 만들어야 할거 같음
 	//UFUNCTION()
 	//void OnDamaged(float CurrentHP, float MaxHP);
