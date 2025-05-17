@@ -1,1 +1,1 @@
-﻿#include "Ability/TableRow/AttributesTableRow.h"
+#include "Ability/TableRow/AttributesTableRow.h"
