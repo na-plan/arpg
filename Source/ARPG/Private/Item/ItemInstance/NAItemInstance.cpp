@@ -40,7 +40,7 @@ bool ANAItemInstance::InitItemInstance(const FDataTableRowHandle& InDataTableRow
 {
 	//if (!IsCompatibleDataTable(InDataTableRowHandle))
 	//{
-	//	UE_LOG(LogTemp, Warning, TEXT("[%s::SetData]  Å¬·¡½º Àü¿ë DT¸¦ ¾²¼À."), *GetClass()->GetName());
+	//	UE_LOG(LogTemp, Warning, TEXT("[%s::SetData]  í´ë˜ìŠ¤ ì „ìš© DTë¥¼ ì“°ì…ˆ."), *GetClass()->GetName());
 	//	return false;
 	//}
 
