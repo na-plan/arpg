@@ -24,6 +24,13 @@ void AMonsterAIController::BeginPlay()
 		}
 	}
 
+	if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(GetPawn()))
+	{
+		if (UAbilitySystemComponent* ASC = OwnerMonster->GetAbilitySystemComponent())
+		{
+			bool OwnAbilitySystemComponent=true;
+		}
+	}
 
 
 
