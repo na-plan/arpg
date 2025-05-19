@@ -30,10 +30,11 @@ public:
 		const FGameplayAbilityActivationInfo ActivationInfo, 
 		bool bReplicateEndAbility, bool bWasCancelled) override;
 
+
+protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GAS")
 	TObjectPtr<UAnimMontage> AttackAnimMontage;
 
-protected:
 	bool IsTargetInRange(AActor* TargetActor, float Range);
 
 
