@@ -47,7 +47,7 @@ AMonsterBase::AMonsterBase()
 	//SkillComponent = CreateDefaultSubobject<USkillComponent>(TEXT("MonsterSkillComponent"));
 	//check(SkillComponent);
 
-
+	
 	/*AI*/
 	AIPerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerceptionComponent"));
 	AISenseConfig_Sight = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("AISenseConfig_Sight"));
@@ -82,6 +82,10 @@ void AMonsterBase::PossessedBy(AController* NewController)
 void AMonsterBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	//TSubclassOf<AAIController> MainAIControllerClass = AMonsterAIController::StaticClass();
+	//AIControllerClass = MainAIControllerClass;
+
 }
 
 void AMonsterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const

@@ -2,6 +2,7 @@
 
 
 #include "Ability/GameplayAbility/AttackGameplayAbility.h"
+#include "Monster/Pawn/MonsterBase.h"
 
 void UAttackGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
@@ -11,12 +12,40 @@ void UAttackGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Ha
     UAnimInstance* AnimInstance = ActorInfo->GetAnimInstance();
 
     //OwnerActor 가지고 오는거 
-    AActor* OwnerActor = GetAvatarActorFromActorInfo();
+    AActor* OwnerActor = GetAvatarActorFromActorInfo(); // AActor* OwnerActor = Cast<AActor>(ActorInfo->OwnerActor);
     if (!OwnerActor) return ;
 
-    // Target 대상
-    AActor* TargetCharacter = Cast<AActor>(ActorInfo->AvatarActor.Get());
+    // OwnerActor의 물리적인거
+    AActor* AvatarActor = Cast<AActor>(ActorInfo->AvatarActor.Get());
 
+
+    //AvatarActor로 casting 안되면 return
+    if (!AvatarActor) { return; }
+
+
+    //서버 또는 클라이언트에서 실행 권한을 확인 -> 멀티플레이어 환경에서 클라이언트 예측(Replication) 가능 여부를 체크
+    // 서버에서 능력을 실행할 권한이 있는 경우 계속 진행
+    
+    //실행 권한 확인 
+    if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
+    {
+        //능력 실행이 가능한지 확인 (CommitAbility()) 
+        // 마나나 특정 한게 부족하면 능력을 실행하지 않고 return 
+        // 능력이 정상적으로 실행되면 다음 단계 진행
+
+        // 능력 실행 가능한지 확인
+        if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
+        {
+            //불가능하면 return
+            return;
+        }
+        AMonsterBase* OwnerMonster = CastChecked<AMonsterBase>(ActorInfo->AvatarActor.Get());
+
+
+        //ACharacter* Character = CastChecked<ACharacter>(ActorInfo->AvatarActor.Get());
+        //UAnimMontage* AttackMontage = OwnerMonster->GetAttackMontage();
+        //ActorInfo->AbilitySystemComponent->PlayMontage();
+    }
 
 
     //if (MontageToPlay && AnimInstance)
