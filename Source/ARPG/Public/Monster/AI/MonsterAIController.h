@@ -26,6 +26,7 @@ protected:
 	/*Spawn 위치 기준 일정 범위 나갔는지 확인하는 기능*/
 	void CheckSpawnRadius();
 
+	void CheckPlayerDistance();
 
 	//Player 찾는 기능
 	void FindPlayerByPerception();

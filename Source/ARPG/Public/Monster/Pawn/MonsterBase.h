@@ -20,7 +20,7 @@
 
 //Monster 도 경국 ability system을 사용을 해서 공격이나 다른걸 사용하니 얘도 component 붙여야 할거 같음
 class UAbilitySystemComponent;
-
+class UAbilityTask_PlayMontageAndWait;
 
 UCLASS()
 class ARPG_API AMonsterBase : public APawn, public IAbilitySystemInterface
@@ -54,7 +54,7 @@ public:
 public:
 	FORCEINLINE UAbilitySystemComponent* GetAbilitySystemComponent() const override{ return AbilitySystemComponent; }
 
-	UAnimMontage* AttackMontage() const { return TestAttackMontage; }
+	//UAnimMontage* GetAttackMontage() const { return TestAttackMontage; }
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = Gameplay, meta = (AllowPrivateAccess = "true"))

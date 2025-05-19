@@ -18,6 +18,11 @@ void UAttackGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Ha
     // OwnerActor의 물리적인거
     AActor* AvatarActor = Cast<AActor>(ActorInfo->AvatarActor.Get());
 
+
+    //AvatarActor로 casting 안되면 return
+    if (!AvatarActor) { return; }
+
+
     //서버 또는 클라이언트에서 실행 권한을 확인 -> 멀티플레이어 환경에서 클라이언트 예측(Replication) 가능 여부를 체크
     // 서버에서 능력을 실행할 권한이 있는 경우 계속 진행
     
@@ -36,8 +41,9 @@ void UAttackGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Ha
         }
         AMonsterBase* OwnerMonster = CastChecked<AMonsterBase>(ActorInfo->AvatarActor.Get());
 
+
         //ACharacter* Character = CastChecked<ACharacter>(ActorInfo->AvatarActor.Get());
-        UAnimMontage* AttackMontage = OwnerMonster->AttackMontage();
+        //UAnimMontage* AttackMontage = OwnerMonster->GetAttackMontage();
         //ActorInfo->AbilitySystemComponent->PlayMontage();
     }
 
