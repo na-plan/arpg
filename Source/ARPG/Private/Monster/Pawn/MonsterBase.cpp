@@ -63,6 +63,10 @@ AMonsterBase::AMonsterBase()
 	AutoPossessAI = EAutoPossessAI::Spawned;
 }
 
+void AMonsterBase::InitializeAbilities()
+{
+}
+
 void AMonsterBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);

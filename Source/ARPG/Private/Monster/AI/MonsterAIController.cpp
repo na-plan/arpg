@@ -26,6 +26,13 @@ void AMonsterAIController::BeginPlay()
 	FVector FSpawnLocation = OwningPawn->GetActorLocation();
 	Blackboard->SetValueAsVector(TEXT("SpwanPosition"), FSpawnLocation);
 
+	if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(GetPawn()))
+	{
+		if (UAbilitySystemComponent* ASC = OwnerMonster->GetAbilitySystemComponent())
+		{
+			bool OwnAbilitySystemComponent=true;
+		}
+	}
 
 
 

@@ -31,6 +31,8 @@ public:
 	// Sets default values for this pawn's properties
 	AMonsterBase();
 
+	void InitializeAbilities();
+
 	virtual void PossessedBy(AController* NewController) override;
 protected:
 	// Called when the game starts or when spawned
