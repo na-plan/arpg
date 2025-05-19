@@ -3,6 +3,7 @@
 
 #include "Ability/GameplayAbility/AttackGameplayAbility.h"
 #include "Monster/Pawn/MonsterBase.h"
+#include "AbilitySystemComponent.h"
 
 void UAttackGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
@@ -39,10 +40,32 @@ void UAttackGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Ha
             //불가능하면 return
             return;
         }
-        AMonsterBase* OwnerMonster = CastChecked<AMonsterBase>(ActorInfo->AvatarActor.Get());
 
+        //Monster
+        if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(ActorInfo->AvatarActor.Get()))
+        {
+            UAnimMontage* AttackMontage = OwnerMonster->GetAttackMontage();
 
-        //ACharacter* Character = CastChecked<ACharacter>(ActorInfo->AvatarActor.Get());
+            UAbilitySystemComponent* AbilitySystemComponent = OwnerMonster->GetAbilitySystemComponent();
+            //UGameplayAbility* GameplayAbility;
+            if (AttackMontage&& AbilitySystemComponent)
+            {
+                AbilitySystemComponent->PlayMontage(this, GetCurrentActivationInfo(), AttackMontage, 1.0f);
+            }
+        }
+
+        //Player
+        //if (ACharacter* Character = Cast<ACharacter>(ActorInfo->AvatarActor.Get()))
+        //{
+        //    UAnimMontage* AttackMontage = Character->GetAttackMontage();
+        //    UAbilitySystemComponent* AbilitySystemComponent = Character->GetAbilitySystemComponent();
+        //    //UGameplayAbility* GameplayAbility;
+        //    if (AttackMontage&& AbilitySystemComponent)
+        //    {
+        //        AbilitySystemComponent->PlayMontage(this, GetCurrentActivationInfo(), AttackMontage, 1.0f);
+        //    }
+        //}
+
         //UAnimMontage* AttackMontage = OwnerMonster->GetAttackMontage();
         //ActorInfo->AbilitySystemComponent->PlayMontage();
     }
