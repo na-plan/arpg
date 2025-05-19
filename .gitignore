@@ -72,3 +72,10 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+# Rider Setting
+.idea/*
+
+# MISC
+ARPG.sln.DotSettings.user
+Content/01_ExternalAssets/*
