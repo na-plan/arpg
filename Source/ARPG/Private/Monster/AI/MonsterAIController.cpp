@@ -50,6 +50,9 @@ void AMonsterAIController::Tick(float DeltaTime)
 
 	//Spawn 장소로 부터 일정 거리 떨어졌는지 확인하기
 	CheckSpawnRadius();
+
+	//Player와의 거리 확인
+	CheckPlayerDistance();
 }
 
 void AMonsterAIController::CheckSpawnRadius()
@@ -67,6 +70,26 @@ void AMonsterAIController::CheckSpawnRadius()
 		Blackboard->SetValueAsObject(TEXT("DetectTarget"), nullptr);
 	}
 	else { Blackboard->SetValueAsBool(TEXT("OutRangedSpawn"), false); }
+}
+
+void AMonsterAIController::CheckPlayerDistance()
+{
+	UObject* DetectedPlayer = Blackboard->GetValueAsObject(TEXT("DetectPlayer"));
+	if (DetectedPlayer != nullptr)
+	{
+		if (AActor* DetectedPlayerActor = Cast<AActor>(DetectedPlayer))
+		{
+			APawn* OwningPawn = GetPawn();
+
+			FVector OwningPawnLocation = OwningPawn->GetActorLocation();
+			FVector DetectedPlayerLocation = DetectedPlayerActor->GetActorLocation();
+	
+			float Distance = FVector::Dist(DetectedPlayerLocation, OwningPawnLocation);
+
+			Blackboard->SetValueAsFloat(TEXT("PlayerDistance"), Distance);
+		}
+	}
+
 }
 
 void AMonsterAIController::FindPlayerByPerception()
