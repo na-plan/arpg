@@ -27,7 +27,7 @@ void UNAAbilityGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Colle
 	Super::Initialize(Collection);
 
 	// CDO GameInstance 초기화 시점에 엔진 에셋 로딩 Fragment가 없는 관계로 SubObject로 만들지 않고, 동적으로 초기화
-	if (UDataTable* DataTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Script/Engine.DataTable'/Game/Ability/DataTables/AttributesTable.AttributesTable'"))))
+	if (UDataTable* DataTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Script/Engine.DataTable'/Game/00_ProjectNA/01_Blueprint/05_DataTables/Ability/AttributesTable.AttributesTable'"))))
 	{
 		AttributesDataTable = DataTable;
 	}
