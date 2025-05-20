@@ -8,7 +8,8 @@
 #include "Ability/AttributeSet/NAAttributeSet.h"
 
 //Ability
-#include "Ability/GameplayAbility/AttackGameplayAbility.h"
+//#include "Ability/GameplayAbility/AttackGameplayAbility.h"
+#include "Monster/Ability/GameplayAbility/GA_MonsterAttack.h"
 
 
 #include "HP/GameplayEffect/NAGE_Damage.h"
@@ -89,6 +90,12 @@ void AMonsterBase::BeginPlay()
 
 	//TSubclassOf<AAIController> MainAIControllerClass = AMonsterAIController::StaticClass();
 	//AIControllerClass = MainAIControllerClass;
+
+	if (AbilitySystemComponent) 
+	{
+		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_MonsterAttack::StaticClass(), 1, 0));
+		//AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGameplayAbility_Attack::StaticClass(), 1, 0));
+	}
 
 }
 
