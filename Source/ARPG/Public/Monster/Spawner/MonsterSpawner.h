@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "MonsterSpawner.generated.h"
 
+class AMonsterBase;
+
 UCLASS()
 class ARPG_API AMonsterSpawner : public AActor
 {
@@ -30,5 +32,9 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	void SpawnMonster();
-	
+public:
+	UPROPERTY(EditAnywhere)
+	AMonsterBase* SpawnTarget;
+
+
 };
