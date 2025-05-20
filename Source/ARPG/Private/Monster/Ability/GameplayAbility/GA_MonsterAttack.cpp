@@ -22,11 +22,20 @@ void UGA_MonsterAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 			UAnimMontage* MonsterAttackMontage = MonsterBase->GetAttackMontage();
 			UAbilitySystemComponent* MonsterASC =  MonsterBase->GetAbilitySystemComponent();
 
+			// 들어오는거 확인 모두 보유중
 			if (MonsterAttackMontage && MonsterASC)
 			{
-				float MontageDuration = MonsterASC->PlayMontage(this, GetCurrentActivationInfo(), MonsterAttackMontage, 1.0f);
+				// PlayMontage가 들어오긴 하는데 정작 play가 안됨...
+				UAnimInstance* AnimInstance = MonsterASC->GetAvatarActor()->FindComponentByClass<USkeletalMeshComponent>()->GetAnimInstance();
+				if (AnimInstance)
+				{
+					float PlayingMontage = MonsterASC->PlayMontage(this, ActivationInfo, MonsterAttackMontage, 1.0f);
+					
+				}
+
+				//MonsterASC->PlayMontage(this, GetCurrentActivationInfo(), MonsterAttackMontage, 1.0f);
 			}
-			EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 		}
+		//EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 	}
 }

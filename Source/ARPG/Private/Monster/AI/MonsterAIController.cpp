@@ -16,7 +16,7 @@ void AMonsterAIController::BeginPlay()
 	if (!IsValid(BrainComponent))
 	{
 		//BT로 바꾸기
-		UBehaviorTree* BehaviorTree = LoadObject<UBehaviorTree>(nullptr, TEXT("/Script/AIModule.BehaviorTree'/Game/TempResource/Monster/AI/BT_BaseMonster.BT_BaseMonster'"));
+		UBehaviorTree* BehaviorTree = LoadObject<UBehaviorTree>(nullptr, TEXT("/Script/AIModule.BehaviorTree'/Game/01_ExternalAssets/TempResource/Monster/AI/BT_BaseMonster.BT_BaseMonster'"));
 		check(BehaviorTree);
 		RunBehaviorTree(BehaviorTree);
 	}
