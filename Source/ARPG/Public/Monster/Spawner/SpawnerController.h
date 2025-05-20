@@ -6,11 +6,25 @@
 #include "GameFramework/Actor.h"
 #include "SpawnerController.generated.h"
 
+class AMonsterSpawner;
+class UBoxComponent;
+
 UCLASS()
 class ARPG_API ASpawnerController : public AActor
 {
 	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere)
+	TArray<class AMonsterSpawner*> MonsterSPawner;
 	
+
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<USceneComponent> DefaultSceneRoot;
+
+	UPROPERTY(VisibleAnywhere)
+	UBoxComponent* CollisionComponent;
+
 public:	
 	// Sets default values for this actor's properties
 	ASpawnerController();
