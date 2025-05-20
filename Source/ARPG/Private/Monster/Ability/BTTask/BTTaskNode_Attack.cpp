@@ -11,8 +11,6 @@
 UBTTaskNode_Attack::UBTTaskNode_Attack()
 {
 	NodeName = TEXT("GAS Attack");
-    //default setting
-    AttackAbilityClass = UGA_MonsterAttack::StaticClass();
 }
 
 EBTNodeResult::Type UBTTaskNode_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -36,6 +34,7 @@ EBTNodeResult::Type UBTTaskNode_Attack::ExecuteTask(UBehaviorTreeComponent& Owne
         return EBTNodeResult::Failed;
     }
 
+    //여기서 오류가 failed 로 넘어가짐     AttackAbilityClass는 잘 찾아오는데 AttackAbilityClass는 실행이 안됌
     // 실제 사용할 어빌리티 클래스
     TSubclassOf<UGameplayAbility> AbilityToActivate = UGA_MonsterAttack::StaticClass();
     bool bActivated = AbilitySystemComponent->TryActivateAbilityByClass(AbilityToActivate);
