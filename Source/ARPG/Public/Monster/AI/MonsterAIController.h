@@ -21,7 +21,7 @@ public:
 	virtual void BeginPlay() override;
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void Tick(float DeltaTime) override;
-
+	
 protected:
 	/*Spawn 위치 기준 일정 범위 나갔는지 확인하는 기능*/
 	void CheckSpawnRadius();

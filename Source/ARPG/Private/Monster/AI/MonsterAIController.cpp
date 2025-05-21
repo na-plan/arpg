@@ -13,19 +13,9 @@ void AMonsterAIController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (!IsValid(BrainComponent))
-	{
-		//BT로 바꾸기
-		UBehaviorTree* BehaviorTree = LoadObject<UBehaviorTree>(nullptr, TEXT("/Script/AIModule.BehaviorTree'/Game/01_ExternalAssets/TempResource/Monster/AI/BT_BaseMonster.BT_BaseMonster'"));
-		check(BehaviorTree);
-		RunBehaviorTree(BehaviorTree);
-	}
 
-	//Spawn 위치 기준 일정 범위 이상 못나가게 하려고 할때 사용 가능합니다
-	APawn* OwningPawn = GetPawn();
-	FVector FSpawnLocation = OwningPawn->GetActorLocation();
-	Blackboard->SetValueAsVector(TEXT("SpwanPosition"), FSpawnLocation);
 
+	// Pawn cast를 먼저 실행해서 GetPawn을 가지고 올수 있게 미리 세팅을 합니다
 	if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(GetPawn()))
 	{
 		if (UAbilitySystemComponent* ASC = OwnerMonster->GetAbilitySystemComponent())
@@ -36,6 +26,7 @@ void AMonsterAIController::BeginPlay()
 
 
 
+
 }
 
 void AMonsterAIController::OnPossess(APawn* InPawn)
@@ -43,6 +34,19 @@ void AMonsterAIController::OnPossess(APawn* InPawn)
 	Super::OnPossess(InPawn);
 	// TODO:: there is No Component right Now Plz Add Components After Create monster Components
 
+	/*AI Setting*/
+	// BeginPlay는 Pawn이 만들어지기 전에 호출함으로 해당 위치로 호출 순서를 바꿨습니다
+	if (!IsValid(BrainComponent))
+	{
+		//BT로 바꾸기
+		UBehaviorTree* BehaviorTree = LoadObject<UBehaviorTree>(nullptr, TEXT("/Script/AIModule.BehaviorTree'/Game/01_ExternalAssets/TempResource/Monster/AI/BT_BaseMonster.BT_BaseMonster'"));
+		check(BehaviorTree);
+		RunBehaviorTree(BehaviorTree);
+		//Spawn 위치 기준 일정 범위 이상 못나가게 하려고 할때 사용 가능합니다
+		APawn* OwningPawn = GetPawn();
+		FVector FSpawnLocation = OwningPawn->GetActorLocation();
+		Blackboard->SetValueAsVector(TEXT("SpwanPosition"), FSpawnLocation);
+	}
 
 }
 
