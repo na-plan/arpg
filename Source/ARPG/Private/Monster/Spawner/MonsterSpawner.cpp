@@ -121,9 +121,16 @@ void AMonsterSpawner::SpawnMonster()
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 	SpawnParameters.ObjectFlags = RF_Transient;
 
+	// AssetName 으로 있을때
 	if (const TSubclassOf<AActor> Class = FAssetStatics::GetAssetClass(GetWorld(), AssetName))
 	{
 		AActor* Spawned = GetWorld()->SpawnActor(Class, &SpawnLocation, &SpawnRotation, SpawnParameters);
+		Spawned->SetReplicates(true);
+	}
+	// AssetName이 없을때 
+	else if (const TSubclassOf<AActor> Class = PreviewSpawnTarget)
+	{
+		AActor* Spawned = GetWorld()->SpawnActor(Class, &SpawnLocation, &SpawnRotation);
 		Spawned->SetReplicates(true);
 	}
 	else
