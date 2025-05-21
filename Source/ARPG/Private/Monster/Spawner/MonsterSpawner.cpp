@@ -4,6 +4,7 @@
 #include "Monster/Spawner/MonsterSpawner.h"
 
 #include "Assets/AssetStatics.h"
+#include "Components/BoxComponent.h"
 
 
 // Sets default values
@@ -13,7 +14,14 @@ AMonsterSpawner::AMonsterSpawner()
 	PrimaryActorTick.bCanEverTick = true;
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
-	
+
+	//Trigger 만드는 과정
+	UBoxComponent* CollisionComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionComponent"));
+	CollisionComponent->SetupAttachment(RootComponent);
+	//Overlap All
+	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	CollisionComponent->SetCollisionResponseToAllChannels(ECR_Overlap);
+
 	/* 
 	Monster Data 가지고 와서 Spawn할 대상 Spawn 하고 대상 죽으면 일정 시간후 다시 spawn하는 형식? 
 
@@ -23,10 +31,12 @@ AMonsterSpawner::AMonsterSpawner()
 	4. 2에서 Player가 나가면 2가 보유한 범위안에 있는 몬스터들을 디스폰 ㄱㄱ
 	5. 1에서 spawn 시킨 몬스터가 죽으면 respawn을 작동 -> respawntime이 지나면 respawn
 
-
+	monster 여기에 넣기전 null -> monster 이름 넣고 
 	일단 몬스터 부터 만들고 spawn시키자
 	*/	
 
+	
+	
 
 }
 
@@ -41,12 +51,13 @@ void AMonsterSpawner::BeginPlay()
 void AMonsterSpawner::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
-
-	if (SpawnTarget)
+	
+	//PreView
+	if (PreviewSpawnTarget)
 	{
 		if (!PreviewActor)
 		{
-			PreviewActor = GetWorld()->SpawnActor<AActor>(SpawnTarget, GetActorLocation(), GetActorRotation());
+			PreviewActor = GetWorld()->SpawnActor<AActor>(PreviewSpawnTarget, GetActorLocation(), GetActorRotation());
 			PreviewActor->SetActorEnableCollision(false);
 			PreviewActor->SetActorHiddenInGame(true);
 		}
@@ -56,6 +67,8 @@ void AMonsterSpawner::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 			PreviewActor->SetActorRotation(GetActorRotation());
 		}
 	}
+
+
 }
 
 void AMonsterSpawner::PostEditMove(bool bFinished)
@@ -72,10 +85,6 @@ void AMonsterSpawner::PostEditMove(bool bFinished)
 void AMonsterSpawner::PostDuplicate(EDuplicateMode::Type DuplicateMode)
 {
 	Super::PostDuplicate(DuplicateMode);
-	if (DuplicateMode == EDuplicateMode::Normal) 
-	{
-		bool Dupe = false;
-	}
 }
 
 void AMonsterSpawner::PostLoad()
@@ -108,13 +117,13 @@ void AMonsterSpawner::SpawnMonster()
 	const FRotator& SpawnRotation = FRotator::ZeroRotator;
 
 	//SpawnController 쪽에서 사용 예정
-	//FActorSpawnParameters SpawnParameters;
-	//SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-	//SpawnParameters.ObjectFlags = RF_Transient;
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+	SpawnParameters.ObjectFlags = RF_Transient;
 
-	if (const TSubclassOf<AActor> Class = SpawnTarget)
+	if (const TSubclassOf<AActor> Class = FAssetStatics::GetAssetClass(GetWorld(), AssetName))
 	{
-		AActor* Spawned = GetWorld()->SpawnActor(Class, &SpawnLocation, &SpawnRotation);
+		AActor* Spawned = GetWorld()->SpawnActor(Class, &SpawnLocation, &SpawnRotation, SpawnParameters);
 		Spawned->SetReplicates(true);
 	}
 	else
