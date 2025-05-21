@@ -38,6 +38,56 @@ void AMonsterSpawner::BeginPlay()
 	SpawnMonster();
 }
 
+void AMonsterSpawner::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (SpawnTarget)
+	{
+		if (!PreviewActor)
+		{
+			PreviewActor = GetWorld()->SpawnActor<AActor>(SpawnTarget, GetActorLocation(), GetActorRotation());
+			PreviewActor->SetActorEnableCollision(false);
+			PreviewActor->SetActorHiddenInGame(true);
+		}
+		else
+		{
+			PreviewActor->SetActorLocation(GetActorLocation());
+			PreviewActor->SetActorRotation(GetActorRotation());
+		}
+	}
+}
+
+void AMonsterSpawner::PostEditMove(bool bFinished)
+{
+	Super::PostEditMove(bFinished);
+
+	if (PreviewActor)
+	{
+		PreviewActor->SetActorLocation(GetActorLocation());
+		PreviewActor->SetActorRotation(GetActorRotation());
+	}
+}
+
+void AMonsterSpawner::PostDuplicate(EDuplicateMode::Type DuplicateMode)
+{
+	Super::PostDuplicate(DuplicateMode);
+	if (DuplicateMode == EDuplicateMode::Normal) 
+	{
+		bool Dupe = false;
+	}
+}
+
+void AMonsterSpawner::PostLoad()
+{
+	Super::PostLoad();
+}
+
+void AMonsterSpawner::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
+{
+	Super::PostLoadSubobjects(OuterInstanceGraph);
+}
+
 // Called every frame
 void AMonsterSpawner::Tick(float DeltaTime)
 {
