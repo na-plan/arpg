@@ -34,7 +34,8 @@ AMonsterSpawner::AMonsterSpawner()
 void AMonsterSpawner::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	SpawnMonster();
 }
 
 // Called every frame
@@ -42,7 +43,7 @@ void AMonsterSpawner::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (LastSpawnTime >= 10.f)
+	if (LastSpawnTime >= SpawnTime)
 	{
 		SpawnMonster();
 		LastSpawnTime = 0.f; 
@@ -55,13 +56,15 @@ void AMonsterSpawner::SpawnMonster()
 {
 	const FVector& SpawnLocation = GetActorLocation();
 	const FRotator& SpawnRotation = FRotator::ZeroRotator;
-	FActorSpawnParameters SpawnParameters;
-	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-	SpawnParameters.ObjectFlags = RF_Transient;
 
-	if (const TSubclassOf<AActor> Class = FAssetStatics::GetAssetClass(GetWorld(), AssetName))
+	//SpawnController 쪽에서 사용 예정
+	//FActorSpawnParameters SpawnParameters;
+	//SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+	//SpawnParameters.ObjectFlags = RF_Transient;
+
+	if (const TSubclassOf<AActor> Class = SpawnTarget)
 	{
-		AActor* Spawned = GetWorld()->SpawnActor(Class, &SpawnLocation, &SpawnRotation, SpawnParameters);
+		AActor* Spawned = GetWorld()->SpawnActor(Class, &SpawnLocation, &SpawnRotation);
 		Spawned->SetReplicates(true);
 	}
 	else
