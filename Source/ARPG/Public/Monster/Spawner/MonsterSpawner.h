@@ -45,7 +45,7 @@ public:
 	void SpawnMonster();
 public:
 	UPROPERTY(EditAnywhere)
-	TSubclassOf<AActor> SpawnTarget;
+	TSubclassOf<AActor> PreviewSpawnTarget;
 
 	UPROPERTY(EditAnywhere)
 	float SpawnTime = 10;
