@@ -1,0 +1,230 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "Combat/ActorComponent/NACombatComponent.h"
+
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemInterface.h"
+#include "Net/UnrealNetwork.h"
+
+DEFINE_LOG_CATEGORY(LogCombatComponent);
+
+// Sets default values for this component's properties
+UNACombatComponent::UNACombatComponent()
+{
+	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
+	// off to improve performance if you don't need them.
+	PrimaryComponentTick.bCanEverTick = false;
+
+	// ...
+}
+
+
+void UNACombatComponent::SetAttackAbility(const TSubclassOf<UGameplayAbility>& InAbility)
+{
+	AttackAbility = InAbility;
+}
+
+// Called when the game starts
+void UNACombatComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// ...
+	DoStartAttack.AddUniqueDynamic(this, &UNACombatComponent::StartAttack);
+	DoStopAttack.AddUniqueDynamic(this, &UNACombatComponent::StopAttack);
+
+	bCanAttack = IsAbleToAttack();
+}
+
+void UNACombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME_CONDITION(UNACombatComponent, bCanAttack, COND_OwnerOnly)
+}
+
+bool UNACombatComponent::IsAbleToAttack()
+{
+	// Ammo, stamina, montage duration, etc...
+	return true;
+}
+
+void UNACombatComponent::SetAttack(const bool NewAttack)
+{
+	if (!bCanAttack && NewAttack)
+	{
+		return;
+	}
+
+	if (bAttacking == NewAttack)
+	{
+		return;
+	}
+
+	bAttacking = NewAttack;
+	
+	if (GetNetMode() == NM_Client)
+	{
+		// 클라이언트일 경우 서버와 동기화 요청
+		Server_SetAttack(bAttacking);
+	}
+	else if (GetNetMode() == NM_Standalone)
+	{
+		// 로컬 플레이일 경우 후처리 수행
+		PostSetAttack();
+	}
+	else
+	{
+		// 서버에서 발생한 경우 클라이언트와 동기화
+		Client_SyncAttack(bAttacking);
+	}
+}
+
+void UNACombatComponent::PostSetAttack()
+{
+	if (bAttacking)
+	{
+		if (const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner())
+		{
+			const FGameplayAbilitySpec Spec(AttackAbility, 1);
+			AbilitySpecHandle = Interface->GetAbilitySystemComponent()->GiveAbility(Spec);
+		}
+		
+		// 공격으로 변환했다면 공격 루틴 시작
+		OnAttack();
+	}
+	else
+	{
+		if (const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner())
+		{
+			Interface->GetAbilitySystemComponent()->ClearAbility(AbilitySpecHandle);
+		}
+		
+		// 아니라면 대기 초기화
+		if (AttackTimerHandler.IsValid())
+		{
+			GetWorld()->GetTimerManager().ClearTimer(AttackTimerHandler);	
+		}
+	}
+}
+
+void UNACombatComponent::Server_SetAttack_Implementation(const bool NewAttack)
+{
+	bCanAttack = IsAbleToAttack();
+
+	if (NewAttack == bAttacking)
+	{
+		return;
+	}
+	
+	if (!bCanAttack && NewAttack)
+	{
+		Client_SyncAttack(false);
+		return;
+	}
+	
+	bAttacking = NewAttack;
+	PostSetAttack();
+}
+
+bool UNACombatComponent::Server_SetAttack_Validate(const bool NewAttack)
+{
+	return true;
+}
+
+
+void UNACombatComponent::Client_SyncAttack_Implementation(const bool NewFire)
+{
+	bAttacking = NewFire;
+}
+
+void UNACombatComponent::StartAttack()
+{
+	if (bCanAttack && !bAttacking)
+	{
+		SetAttack(true);
+	}
+}
+
+void UNACombatComponent::OnAttack()
+{
+	if (GetNetMode() != NM_Client)
+	{
+		bCanAttack = IsAbleToAttack();
+
+		// 이번 회차에서 공격을 할 수 없다면 공격 중단
+		if (!bCanAttack)
+		{
+			UE_LOG(LogCombatComponent, Log, TEXT("Unable to attack, bCanAttack is false"));
+			StopAttack();
+			return;
+		}
+
+		// 공격이 가능하고 공격을 시도하는 중이라면
+		if (bCanAttack && bAttacking)
+		{
+			// 공격을 수행하고
+			if (const TScriptInterface<IAbilitySystemInterface> Interface = GetOwner();
+				Interface && Interface->GetAbilitySystemComponent()->TryActivateAbilityByClass(AttackAbility))
+			{
+				OnAttack_Implementation();
+
+				// 만약 재수행이 설정돼 있다면 Timer로 예약
+				if (bReplay)
+				{
+					FTimerDelegate TimerDelegate;
+					TimerDelegate.BindLambda([this]()
+					{
+						if (bCanAttack && bAttacking)
+						{
+							OnAttack();
+						}
+					});
+
+					GetWorld()->GetTimerManager().SetTimer(AttackTimerHandler, TimerDelegate, GetNextAttackTime(), true);
+				}
+				else
+				{
+					// 아니라면 공격을 강제 중단
+					SetAttack(false);	
+				}
+			}
+			else
+			{
+				SetAttack(false);
+			}
+			
+		}	
+	}
+}
+
+void UNACombatComponent::OnRep_CanAttack()
+{
+	if (!bCanAttack && bAttacking)
+	{
+		StopAttack();
+	}
+}
+
+TSubclassOf<UGameplayAbility> UNACombatComponent::GetAttackAbility() const
+{
+	return AttackAbility;
+}
+
+void UNACombatComponent::StopAttack()
+{
+	if (bAttacking)
+	{
+		SetAttack(false);
+	}
+}
+
+// Called every frame
+void UNACombatComponent::TickComponent(float DeltaTime, ELevelTick TickType,
+                                       FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	// ...
+}
+

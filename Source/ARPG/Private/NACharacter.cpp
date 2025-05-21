@@ -15,6 +15,7 @@
 #include "NAPlayerState.h"
 #include "Ability/AttributeSet/NAAttributeSet.h"
 #include "Ability/GameInstanceSubsystem/NAAbilityGameInstanceSubsystem.h"
+#include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
 #include "Net/UnrealNetwork.h"
 
@@ -66,6 +67,14 @@ ANACharacter::ANACharacter()
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 
 	InteractionComponent = CreateDefaultSubobject<UNAInteractionComponent>(TEXT("InteractionComponent"));
+
+	CombatComponent = CreateDefaultSubobject<UNAMontageCombatComponent>(TEXT("MontageCombatComponent"));
+
+	LeftHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("LeftHandChildActor"));
+	RightHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("RightHandChildActor"));
+
+	LeftHandChildActor->SetupAttachment(GetMesh(), LeftHandSocketName);
+	RightHandChildActor->SetupAttachment(GetMesh(), RightHandSocketName);
 }
 
 void ANACharacter::BeginPlay()
@@ -135,6 +144,9 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ANACharacter::Look);
+
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, CombatComponent, &UNAMontageCombatComponent::StartAttack);
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Completed, CombatComponent, &UNAMontageCombatComponent::StopAttack);
 	}
 	else
 	{
@@ -154,6 +166,10 @@ void ANACharacter::RetrieveAsset(const AActor* InCDO)
 
 		// 리플리케이션을 위한 Mesh Offset
 		CacheInitialMeshOffset(Transform.GetLocation(), Transform.Rotator() );
+
+		// 다시 지정된 매시 기준으로 Child actor를 재부착
+		LeftHandChildActor->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, LeftHandSocketName);
+		RightHandChildActor->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, RightHandSocketName);
 
 		if (HasAuthority())
 		{
