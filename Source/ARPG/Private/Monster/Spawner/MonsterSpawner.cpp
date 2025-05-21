@@ -128,9 +128,9 @@ void AMonsterSpawner::SpawnMonster()
 		Spawned->SetReplicates(true);
 	}
 	// AssetName이 없을때 
-	else if (const TSubclassOf<AActor> Class = PreviewSpawnTarget)
+	else if (const TSubclassOf<AActor> PreviewClass = PreviewSpawnTarget)
 	{
-		AActor* Spawned = GetWorld()->SpawnActor(Class, &SpawnLocation, &SpawnRotation);
+		AActor* Spawned = GetWorld()->SpawnActor(PreviewClass, &SpawnLocation, &SpawnRotation);
 		Spawned->SetReplicates(true);
 	}
 	else
