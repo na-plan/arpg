@@ -37,16 +37,22 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Timer", meta=(AllowPrivateAccess="true"))
 	float LastSpawnTime;
-	
+	bool IsSpawn = false;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	void SpawnMonster();
+	void SpawnMonster(bool Spawncheck);
+
+	bool GetSpawning() { return IsSpawn; }
+	bool SetSpawning(bool SetSpawn) { return IsSpawn= SetSpawn; }
+
 public:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<AActor> PreviewSpawnTarget;
 
+	UPROPERTY(EditAnywhere)
+	bool SpawnOneTime = false;
 	UPROPERTY(EditAnywhere)
 	float SpawnTime = 10;
 

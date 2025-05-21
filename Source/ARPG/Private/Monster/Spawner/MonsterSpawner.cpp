@@ -44,8 +44,10 @@ AMonsterSpawner::AMonsterSpawner()
 void AMonsterSpawner::BeginPlay()
 {
 	Super::BeginPlay();
-
-	SpawnMonster();
+	if (SpawnOneTime)
+	{
+		SpawnMonster(IsSpawn);
+	}
 }
 
 void AMonsterSpawner::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -102,37 +104,51 @@ void AMonsterSpawner::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (LastSpawnTime >= SpawnTime)
+	if (IsSpawn)
 	{
-		SpawnMonster();
-		LastSpawnTime = 0.f; 
-	}
+		if (!SpawnOneTime)
+		{
+			if (LastSpawnTime >= SpawnTime)
+			{
+				SpawnMonster(IsSpawn);
+				LastSpawnTime = 0.f; 
+			}
+			LastSpawnTime += DeltaTime;
+		}
+		else 
+		{
+			
+		}
 
-	LastSpawnTime += DeltaTime;
+	}
 }
 
-void AMonsterSpawner::SpawnMonster()
+void AMonsterSpawner::SpawnMonster(bool Spawncheck)
 {
+	//Spawn이 false면 spawn하지 못하도록
+	if (!Spawncheck) { return; }
+
 	const FVector& SpawnLocation = GetActorLocation();
-	const FRotator& SpawnRotation = FRotator::ZeroRotator;
+	//Rotation도 돌아가도록 함
+	const FRotator& SpawnRotation = GetActorRotation();
 
 	//SpawnController 쪽에서 사용 예정
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 	SpawnParameters.ObjectFlags = RF_Transient;
 
-	// AssetName 으로 있을때
+	// AssetName이 존재하지 않으면 터지는건 GetAssetClass 함수 사용해서 그런거라 지우는게 낫지 않을까? 싶기도 하고...
 	if (const TSubclassOf<AActor> Class = FAssetStatics::GetAssetClass(GetWorld(), AssetName))
 	{
 		AActor* Spawned = GetWorld()->SpawnActor(Class, &SpawnLocation, &SpawnRotation, SpawnParameters);
 		Spawned->SetReplicates(true);
 	}
-	// AssetName이 없을때 
-	else if (const TSubclassOf<AActor> PreviewClass = PreviewSpawnTarget)
-	{
-		AActor* Spawned = GetWorld()->SpawnActor(PreviewClass, &SpawnLocation, &SpawnRotation);
-		Spawned->SetReplicates(true);
-	}
+	// AssetName을 사용하지 않을 경우 해당 주석을 풀어주세요
+	//else if (const TSubclassOf<AActor> PreviewClass = PreviewSpawnTarget)
+	//{
+	//	AActor* Spawned = GetWorld()->SpawnActor(PreviewClass, &SpawnLocation, &SpawnRotation);
+	//	Spawned->SetReplicates(true);
+	//}
 	else
 	{
 		ensureAlwaysMsgf(Class, TEXT("Spawning class does not defined"));
