@@ -38,6 +38,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Timer", meta=(AllowPrivateAccess="true"))
 	float LastSpawnTime;
 	bool IsSpawn = false;
+	bool IsSpawned = false;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
