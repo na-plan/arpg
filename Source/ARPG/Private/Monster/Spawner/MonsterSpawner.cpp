@@ -117,7 +117,11 @@ void AMonsterSpawner::Tick(float DeltaTime)
 		}
 		else 
 		{
-			
+			if (!IsSpawned)
+			{
+				SpawnMonster(IsSpawn);
+				IsSpawned = true;
+			}
 		}
 
 	}

@@ -25,5 +25,13 @@ public:
 	
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData);
 
+
+
+
+	//OnCompleteCallback
+	UFUNCTION()
+	virtual void OnComplete();
+	UFUNCTION()
+	virtual void OnCancelled();
 	
 };
