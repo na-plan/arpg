@@ -51,3 +51,10 @@ bool UNAGA_Melee::CommitAbility(const FGameplayAbilitySpecHandle Handle, const F
 
 	return bResult;
 }
+
+void UNAGA_Melee::CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateCancelAbility)
+{
+	GetCurrentActorInfo()->AnimInstance->OnMontageEnded.RemoveAll(this);
+	Super::CancelAbility(Handle, ActorInfo, ActivationInfo, bReplicateCancelAbility);
+}
