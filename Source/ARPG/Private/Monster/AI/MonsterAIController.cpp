@@ -46,6 +46,8 @@ void AMonsterAIController::OnPossess(APawn* InPawn)
 		APawn* OwningPawn = GetPawn();
 		FVector FSpawnLocation = OwningPawn->GetActorLocation();
 		Blackboard->SetValueAsVector(TEXT("SpwanPosition"), FSpawnLocation);
+		Blackboard->SetValueAsBool(TEXT("Spawning"), true);
+
 	}
 
 }
