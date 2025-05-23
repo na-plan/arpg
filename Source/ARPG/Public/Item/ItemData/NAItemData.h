@@ -1,6 +1,6 @@
 #pragma once
-
 #include "Item/ItemDataStructs/NAItemBaseDataStructs.h"
+
 #include "NAItemData.generated.h"
 
 UENUM(BlueprintType)
@@ -34,8 +34,7 @@ class ARPG_API UNAItemData final : public UObject
 {
 	GENERATED_BODY()
 
-	friend class UNAItemGameInstanceSubsystem;
-	friend class UNAItemEditorSubsystem;
+	friend struct FItemManagerImpl;
 	
 public:
 	UNAItemData();
