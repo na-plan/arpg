@@ -10,6 +10,7 @@
 //Ability
 //#include "Ability/GameplayAbility/AttackGameplayAbility.h"
 #include "Monster/Ability/GameplayAbility/GA_MonsterAttack.h"
+#include "Monster/Ability/GameplayAbility/GA_Spawning.h"
 
 
 #include "HP/GameplayEffect/NAGE_Damage.h"
@@ -94,7 +95,7 @@ void AMonsterBase::BeginPlay()
 	if (AbilitySystemComponent) 
 	{
 		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_MonsterAttack::StaticClass(), 1, 0));
-		//AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGameplayAbility_Attack::StaticClass(), 1, 0));
+		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_Spawning::StaticClass(), 1, 0));
 	}
 
 }
@@ -104,14 +105,16 @@ void AMonsterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AMonsterBase, AbilitySystemComponent);
 }
-
-bool AMonsterBase::OnAttack()
-{
-	//AIControllerClass에서 OnAttack하도록 호출하고 AIControllerClass에서 가지고있는 component를 가져와 공격하도록 해야하나?
-	AIControllerClass;
-
-	return false;
-}
+#pragma region Legacy
+//Gas 전환 완료
+//bool AMonsterBase::OnAttack()
+//{
+//	//AIControllerClass에서 OnAttack하도록 호출하고 AIControllerClass에서 가지고있는 component를 가져와 공격하도록 해야하나?
+//	AIControllerClass;
+//
+//	return false;
+//}
+#pragma endregion
 
 float AMonsterBase::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {

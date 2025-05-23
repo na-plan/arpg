@@ -41,7 +41,8 @@ protected:
 	/* Gas 전환중 */
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
-	virtual bool OnAttack();
+	//Gas 전환 완료
+	//virtual bool OnAttack();
 
 	//Take damage Parts
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
@@ -60,6 +61,7 @@ public:
 	FORCEINLINE UAbilitySystemComponent* GetAbilitySystemComponent() const { return AbilitySystemComponent; }
 
 	UAnimMontage* GetAttackMontage() const { return TestAttackMontage; }
+	UAnimMontage* GetSpawnMontage() const { return SpawnMontage; }
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = Gameplay, meta = (AllowPrivateAccess = "true"))
@@ -87,8 +89,13 @@ protected:
 	float CheckTimer = 0;
 	float CheckHP = 0;
 
+	//이거 데이터화 시키고 get을 데이터테이블로 보내는게 낫지않나? 싶은데...
 public:
 	UPROPERTY(EditAnywhere)
 	UAnimMontage* TestAttackMontage;
+	UPROPERTY(EditAnywhere)
+	UAnimMontage* SpawnMontage;
+
+
 
 };
