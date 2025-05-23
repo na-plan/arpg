@@ -22,10 +22,5 @@ public class ARPG : ModuleRules
 			"AIModule",
 			"GeometryCollectionEngine"
 		});
-
-		if (Target.bBuildEditor)
-		{
-			PublicDependencyModuleNames.AddRange(new [] { "Blutility" });
-		}
 	}
 }
