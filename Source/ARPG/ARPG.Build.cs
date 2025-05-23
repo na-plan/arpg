@@ -19,7 +19,8 @@ public class ARPG : ModuleRules
 			"GameplayAbilities",
 			"GameplayTags", 
 			"GameplayTasks",
-      "AIModule"
+			"AIModule",
+			"GeometryCollectionEngine"
 		});
 	}
 }
