@@ -5,58 +5,10 @@
 
 #include "Item/ItemActor/NAItemActor.h"
 #include "Inventory/DataStructs/NAInventoryDataStructs.h"
+#include "Item/ItemDataStructs/NAItemBaseDataStructs.h"
 
-FOnItemDataCreated OnItemDataCreated;
-
-UNAItemData* UNAItemGameInstanceSubsystem::CreateItemDataBySlot(const FNAInventorySlot& InInventorySlot)
+void FItemManagerImpl::Initialize()
 {
-	UNAItemData* NewItemData = nullptr;
-
-	if (InInventorySlot.ItemMetaDataKey)
-	{
-		FDataTableRowHandle ItemMetaDTRowHandle = *(ItemMetaDataMap.Find(InInventorySlot.ItemMetaDataKey.Get()));
-		if (ItemMetaDTRowHandle.IsNull()) {
-			ensureAlwaysMsgf(false,
-				TEXT("[UNAItemGameInstanceSubsystem::CreateItemDataBySlot]  ItemMetaDataMap에 등록되지 않은 ItemActorClass임.  %s"),
-				*InInventorySlot.ItemMetaDataKey.Get()->GetName());
-			return nullptr;
-		}
-
-		NewItemData = NewObject<UNAItemData>(this, NAME_None, RF_Transient);
-		if (!NewItemData) {
-			ensureAlwaysMsgf(false, TEXT("[UNAItemGameInstanceSubsystem::CreateItemDataBySlot]  새로운 UNAItemData 객체 생성 실패"));
-			return nullptr;
-		}
-		
-		NewItemData->ItemMetaDataHandle = ItemMetaDTRowHandle;
-		FString NameStr    = ItemMetaDTRowHandle.RowName.ToString();
-		FString CountStr   = FString::FromInt(NewItemData->IDCount.GetValue());
-		FString NewItemID  = NameStr + TEXT("_") + CountStr;
-		
-		NewItemData->ID = FName(*NewItemID);
-		NewItemData->ItemState = static_cast<EItemState>(InInventorySlot.ItemState);
-
-		// 4) 아이템 데이터 추적용 Map에 새로 생성한 UNAItemData 객체의 소유권 이전
-		RuntimeItemDataMap.Emplace(NewItemData->ID, NewItemData);
-
-		return NewItemData;
-	}
-	return NewItemData;
-}
-
-UNAItemData* UNAItemGameInstanceSubsystem::GetRuntimeItemData(const FName& Key) const
-{
-	UNAItemData* Value = nullptr;
-	Value = RuntimeItemDataMap.Find(Key)->Get();
-	return Value;
-}
-
-// UItemDataTablesAsset 파일 하나 만든 다음에 주석 풀기
-void UNAItemGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collection)
-{
-	Super::Initialize(Collection);
-	OnItemDataCreated.AddUObject(this, &UNAItemGameInstanceSubsystem::UpdateRuntimeItemDataMap);
-
 	// 1) Registry 에셋 동기 로드 (나중에 실제 경로로 교체)
 	static const FString RegistryPath = TEXT("/Script/ARPG.ItemDataTablesAsset'/Game/00_ProjectNA/ItemTest/DA_ItemDataTables.DA_ItemDataTables'");
 	UItemDataTablesAsset* Registry = Cast<UItemDataTablesAsset>(StaticLoadObject(UItemDataTablesAsset::StaticClass(), nullptr, *RegistryPath));
@@ -127,13 +79,7 @@ void UNAItemGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collecti
 
 }
 
-void UNAItemGameInstanceSubsystem::Deinitialize()
-{
-	OnItemDataCreated.RemoveAll(this);
-	Super::Deinitialize();
-}
-
-void UNAItemGameInstanceSubsystem::UpdateRuntimeItemDataMap(FName InItemDataID, UNAItemData* InItemData)
+void FItemManagerImpl::UpdateRuntimeItemDataMap( FName InItemDataID, const UNAItemData* InItemData ) const
 {
 	if (!InItemDataID.IsNone()) {
 		ensureAlwaysMsgf(false, TEXT("[UNAItemGameInstanceSubsystem::UpdateRuntimeItemDataMap]  InItemDataID가 유효하지 않음."));
@@ -148,10 +94,9 @@ void UNAItemGameInstanceSubsystem::UpdateRuntimeItemDataMap(FName InItemDataID, 
 		ensureAlwaysMsgf(false, TEXT("[UNAItemGameInstanceSubsystem::UpdateRuntimeItemDataMap]  InItemDataID가 이미 존재함."));
 		return;
 	}
-
 }
 
-void UNAItemGameInstanceSubsystem::ValidateItemRow(const FNAItemBaseTableRow* RowPtr, const FName RowName)
+void FItemManagerImpl::ValidateItemRow( const FNAItemBaseTableRow* RowPtr, const FName RowName )
 {
 	const int32 Slot = RowPtr->NumericData.MaxSlotStackSize;
 	const int32 Inv  = RowPtr->NumericData.MaxInventoryStackSize;
@@ -170,4 +115,53 @@ void UNAItemGameInstanceSubsystem::ValidateItemRow(const FNAItemBaseTableRow* Ro
 			   TEXT("DataTable(%s): 오류! MaxInventoryStackSize(%d)이 0보다 큰데, MaxSlotStackSize(%d)이 0 이었음"),
 			   *RowName.ToString(), Slot, Inv);
 	}
+}
+
+UNAItemData* FItemManagerImpl::CreateItemDataBySlot( UWorld* InWorld, const FNAInventorySlot& InInventorySlot )
+{
+	UNAItemData* NewItemData = nullptr;
+
+	if (InInventorySlot.ItemMetaDataKey)
+	{
+		FDataTableRowHandle ItemMetaDTRowHandle = *(ItemMetaDataMap.Find(InInventorySlot.ItemMetaDataKey.Get()));
+		if (ItemMetaDTRowHandle.IsNull()) {
+			ensureAlwaysMsgf(false,
+				TEXT("[UNAItemGameInstanceSubsystem::CreateItemDataBySlot]  ItemMetaDataMap에 등록되지 않은 ItemActorClass임.  %s"),
+				*InInventorySlot.ItemMetaDataKey.Get()->GetName());
+			return nullptr;
+		}
+
+		NewItemData = NewObject<UNAItemData>(InWorld, NAME_None, RF_Transient);
+		if (!NewItemData) {
+			ensureAlwaysMsgf(false, TEXT("[UNAItemGameInstanceSubsystem::CreateItemDataBySlot]  새로운 UNAItemData 객체 생성 실패"));
+			return nullptr;
+		}
+		
+		NewItemData->ItemMetaDataHandle = ItemMetaDTRowHandle;
+		FString NameStr    = ItemMetaDTRowHandle.RowName.ToString();
+		FString CountStr   = FString::FromInt(NewItemData->IDCount.GetValue());
+		FString NewItemID  = NameStr + TEXT("_") + CountStr;
+		
+		NewItemData->ID = FName(*NewItemID);
+		NewItemData->ItemState = static_cast<EItemState>(InInventorySlot.ItemState);
+
+		// 4) 아이템 데이터 추적용 Map에 새로 생성한 UNAItemData 객체의 소유권 이전
+		RuntimeItemDataMap.Emplace(NewItemData->ID, NewItemData);
+
+		return NewItemData;
+	}
+	return NewItemData;
+}
+
+UNAItemData* FItemManagerImpl::GetRuntimeItemData( const FName& Key ) const
+{
+	UNAItemData* Value = nullptr;
+	Value = RuntimeItemDataMap.Find(Key)->Get();
+	return Value;
+}
+
+void UNAItemGameInstanceSubsystem::Initialize( FSubsystemCollectionBase& Collection )
+{
+	Super::Initialize( Collection );
+	ManagerImplementation.Initialize();
 }

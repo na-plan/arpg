@@ -3,6 +3,7 @@
 #include "GameFramework/Actor.h"
 #include "Item/GameInstance/NAItemGameInstanceSubsystem.h"
 #include "Interaction/NAInteractableInterface.h"
+#include "Item/ItemManagerStatics.h"
 #include "NAItemActor.generated.h"
 
 
@@ -179,16 +180,11 @@ inline bool ANAItemActor::CreateItemDataIfUnset() noexcept
 {
 	if (ItemData.IsExplicitlyNull())
 	{
-		if (UWorld* World = GetWorld()) {
-			if (UGameInstance* GI = World->GetGameInstance()) {
-				if (UNAItemGameInstanceSubsystem* ItemSubsys = GI->GetSubsystem<UNAItemGameInstanceSubsystem>()) {
-					UNAItemData* NewItemData = ItemSubsys->CreateItemDataByActor/*ItemDTRow_T>*/(this);
-					if (NewItemData) {
-						ItemData = NewItemData;
-						return true;
-					}
-				}
-			}
+		if (TWeakObjectPtr<UNAItemData> NewItemData = FItemManagerStatics::Get(GetWorld()).CreateItemDataByActor/*ItemDTRow_T>*/(this);
+			NewItemData.IsValid())
+		{
+			ItemData = NewItemData;
+			return true;
 		}
 	} // sh1t
 	else {
