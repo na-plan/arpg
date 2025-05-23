@@ -56,6 +56,7 @@ void AMonsterAIController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	
 	//Montage play중이면 이동 멈추는거
 	IsPlayingMontage();
 	//Player 찾기
