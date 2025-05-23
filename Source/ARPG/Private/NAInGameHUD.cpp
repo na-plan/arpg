@@ -12,7 +12,7 @@ ANAInGameHUD::ANAInGameHUD(): InGameWidget(nullptr)
 		UE_LOG(LogTemp, Warning, TEXT("Main In-Game widget class is not set, force overriding with default one."));
 
 		static ConstructorHelpers::FClassFinder<UUserWidget> InGameBPClass(
-			TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/BP_NAInGameWidget.BP_NAInGameWidget_C'"));
+			TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/00_ProjectNA/01_Blueprint/06_Widget/InGame/BP_NAInGameWidget.BP_NAInGameWidget_C'"));
 		if (InGameBPClass.Succeeded())
 		{
 			InGameWidgetType = InGameBPClass.Class;
