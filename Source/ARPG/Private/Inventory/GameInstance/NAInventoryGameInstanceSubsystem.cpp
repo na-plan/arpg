@@ -3,7 +3,6 @@
 
 #include "Inventory/GameInstance/NAInventoryGameInstanceSubsystem.h"
 
-#include "Item/ItemManagerStatics.h"
 #include "Item/GameInstance/NAItemGameInstanceSubsystem.h"
 
 UNAItemGameInstanceSubsystem* GetItemSubsys(const UObject* Obj)
@@ -37,7 +36,7 @@ void UNAInventoryGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Col
 		{
 			for (const FNAInventorySlot& InvSlot : Inventory)
 			{
-				const UNAItemData* NewItemData = FItemManagerStatics::Get(GetWorld()).CreateItemDataBySlot(GetWorld(), InvSlot);
+				UNAItemData* NewItemData = ItemSubsys->CreateItemDataBySlot(InvSlot);
 				if (!NewItemData)
 				{
 					UE_LOG(LogTemp, Warning, TEXT("[UNAInventoryGameInstanceSubsystem::Initialize]  인벤토리 슬롯으로 아이템 데이터 생성 실패"));
@@ -60,10 +59,13 @@ void UNAInventoryGameInstanceSubsystem::Deinitialize()
 
 bool UNAInventoryGameInstanceSubsystem::AddItemToInventory(const FName& ItemID, int32 Stack)
 {
-	if (UNAItemData* InputItem = FItemManagerStatics::Get(GetWorld()).GetRuntimeItemData(ItemID))
+	if (UNAItemGameInstanceSubsystem* ItemSubsys = GetItemSubsys(this))
 	{
-		const bool bResult = AddItemToInventory(InputItem, Stack);
-		return bResult;
+		if (UNAItemData* InputItem = ItemSubsys->GetRuntimeItemData(ItemID))
+		{
+			const bool bResult = AddItemToInventory(InputItem, Stack);
+			return bResult;
+		}
 	}
 	
 	return false;
@@ -80,7 +82,7 @@ bool UNAInventoryGameInstanceSubsystem::AddItemToInventory(UNAItemData* InItem, 
 			int32 OldStack = 0;
 			for (TPair<FName,int32>& Pair : InventoryItems)
 			{
-				if (OldItem == FItemManagerStatics::Get(GetWorld()).GetRuntimeItemData(Pair.Key))
+				if (OldItem == ItemSubsys->GetRuntimeItemData(Pair.Key))
 				{
 					if (ItemClass == OldItem->GetItemActorClass())
 					{
