@@ -54,7 +54,10 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Asset", meta=(AllowPrivateAccess="true"))
 	FName AssetName;
-
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<class UNAInteractionComponent> InteractionComponent;
+	
 public:
 	ANACharacter();
 
