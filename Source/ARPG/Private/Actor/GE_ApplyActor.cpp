@@ -27,11 +27,12 @@ void AGE_ApplyActor::SphereCollisionBeginOverlap(UPrimitiveComponent* Overlapped
 	{
 		return;
 	}
+	
 
 	//Monster가 사용시
-	if (ANACharacter* Target = Cast<ANACharacter>(OtherActor))
+	if (AMonsterBase* Owner = Cast<AMonsterBase>(GetInstigator()->GetOwner()))
 	{
-		if (Target)
+		if (ANACharacter* Target = Cast<ANACharacter>(OtherActor))
 		{
 			if (Target->GetAbilitySystemComponent())
 			{
@@ -44,23 +45,25 @@ void AGE_ApplyActor::SphereCollisionBeginOverlap(UPrimitiveComponent* Overlapped
 					// Gameplay Effect CDO, 레벨?, ASC에서 부여받은 Effect Context로 적용할 효과에 대한 설명을 생성
 					const FGameplayEffectSpecHandle DamageEffectSpec = Target->GetAbilitySystemComponent()->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1, EffectContext);
 
-					// 일단 데미지만 주면 되기 때문에 자기 자신이데미지 주는 형식으로....
-					const auto& Handle = Target->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*DamageEffectSpec.Data.Get());
+					// damage 미확인중 notify 만들고 데미지 안입힐시 위 주석 해제 ㄱㄱ
+					{
+						// 일단 데미지만 주면 되기 때문에 자기 자신이데미지 주는 형식으로....
+						const auto& Handle = Target->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*DamageEffectSpec.Data.Get());
 
-					// Target 에게 공격하도록 하고 싶으면 주석을 풀고 맨 앞에 Target을 Owner의 AbilitySystemComponent()로 수정해야됌
-					//const auto& Handle = Target->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget(*DamageEffectSpec.Data.Get(), Target->GetAbilitySystemComponent());
-
-					check(Handle.WasSuccessfullyApplied());
+						// Target 에게 공격
+						const auto& Handle = Owner->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget(*DamageEffectSpec.Data.Get(), Target->GetAbilitySystemComponent());
+						check(Handle.WasSuccessfullyApplied());
+					}
 				}
 
 			}
-		}
 
+		}
 	}
 	//Player 가 사용시
-	else if (AMonsterBase* Target = Cast<AMonsterBase>(OtherActor))
+	else if (ANACharacter* Owner = Cast<ANACharacter>(GetInstigator()->GetOwner()))
 	{
-		if (Target)
+		if (AMonsterBase* Target = Cast<AMonsterBase>(OtherActor))
 		{
 			if (Target->GetAbilitySystemComponent())
 			{
@@ -71,20 +74,26 @@ void AGE_ApplyActor::SphereCollisionBeginOverlap(UPrimitiveComponent* Overlapped
 					EffectContext.AddInstigator(GetInstigator(), Target);
 
 					// Gameplay Effect CDO, 레벨?, ASC에서 부여받은 Effect Context로 적용할 효과에 대한 설명을 생성
+					// UNAGE_Damage에도 슬슬 데미지값을 넣어주는게 맞지 않을까?
 					const FGameplayEffectSpecHandle DamageEffectSpec = Target->GetAbilitySystemComponent()->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1, EffectContext);
 
-					// 일단 데미지만 주면 되기 때문에 자기 자신이데미지 주는 형식으로....
-					const auto& Handle = Target->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*DamageEffectSpec.Data.Get());
+					// damage 미확인중 notify 만들고 데미지 안입힐시 위 주석 해제 ㄱㄱ
+					{
+						// 일단 데미지만 주면 되기 때문에 자기 자신이데미지 주는 형식으로....
+						//const auto& Handle = Target->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*DamageEffectSpec.Data.Get());
 
-					// Target 에게 공격하도록 하고 싶으면 주석을 풀고 맨 앞에 Target을 Owner의 AbilitySystemComponent()로 수정해야됌
-					//const auto& Handle = Target->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget(*DamageEffectSpec.Data.Get(), Target->GetAbilitySystemComponent());
+						// Target 에게 공격
+						const auto& Handle = Owner->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget(*DamageEffectSpec.Data.Get(), Target->GetAbilitySystemComponent());
+						check(Handle.WasSuccessfullyApplied());
+					}
 
-					check(Handle.WasSuccessfullyApplied());
 				}
 
 			}
 		}
 	}
+
+	
 }
 
 // Called when the game starts or when spawned
