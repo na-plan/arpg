@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
+#include "NAMontage.h"
 #include "Assets/Interface/NAManagedAsset.h"
 #include "Combat/Interface/NAHandActor.h"
 #include "GameFramework/Character.h"
@@ -23,7 +24,7 @@ struct FInputActionValue;
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
 UCLASS(config=Game)
-class ANACharacter : public ACharacter, public IAbilitySystemInterface, public INAManagedAsset, public INAHandActor
+class ANACharacter : public ACharacter, public IAbilitySystemInterface, public INAManagedAsset, public INAHandActor, public INAMontage
 {
 	GENERATED_BODY()
 	
@@ -71,7 +72,10 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UNAInteractionComponent> InteractionComponent;
-	
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Montage", meta=(AllowPrivateAccess="true"))
+	UAnimMontage* AttackMontage;
+
 public:
 	ANACharacter();
 
@@ -98,6 +102,9 @@ protected:
 	virtual void BeginPlay() override;
 
 	virtual void PossessedBy(AController* NewController) override;
+
+protected:
+	virtual UAnimMontage* GetAttackMontage() const override { return AttackMontage; }
 
 public:
 	/** Returns CameraBoom subobject **/

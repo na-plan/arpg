@@ -6,6 +6,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "Net/UnrealNetwork.h"
+#include "ARPG/ARPG.h"
 
 DEFINE_LOG_CATEGORY(LogCombatComponent);
 
@@ -46,7 +47,7 @@ void UNACombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 bool UNACombatComponent::IsAbleToAttack()
 {
 	// Ammo, stamina, montage duration, etc...
-	return true;
+	return AttackAbility != nullptr;
 }
 
 void UNACombatComponent::SetAttack(const bool NewAttack)
@@ -61,6 +62,13 @@ void UNACombatComponent::SetAttack(const bool NewAttack)
 		return;
 	}
 
+	if (!AttackAbility)
+	{
+		return;
+	}
+
+	
+	UE_LOG(LogCombatComponent, Log, TEXT("%hs: Attack from %d to %d by %d"), __FUNCTION__, bAttacking, NewAttack, GetNetMode());
 	bAttacking = NewAttack;
 	
 	if (GetNetMode() == NM_Client)
@@ -97,7 +105,10 @@ void UNACombatComponent::PostSetAttack()
 	{
 		if (const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner())
 		{
-			Interface->GetAbilitySystemComponent()->ClearAbility(AbilitySpecHandle);
+			if (AbilitySpecHandle.IsValid())
+			{
+				Interface->GetAbilitySystemComponent()->ClearAbility(AbilitySpecHandle);	
+			}
 		}
 		
 		// 아니라면 대기 초기화
@@ -111,7 +122,6 @@ void UNACombatComponent::PostSetAttack()
 void UNACombatComponent::Server_SetAttack_Implementation(const bool NewAttack)
 {
 	bCanAttack = IsAbleToAttack();
-
 	if (NewAttack == bAttacking)
 	{
 		return;
@@ -140,6 +150,9 @@ void UNACombatComponent::Client_SyncAttack_Implementation(const bool NewFire)
 
 void UNACombatComponent::StartAttack()
 {
+	UE_LOG(LogCombatComponent, Log, TEXT("%hs: Try attack"), __FUNCTION__);
+
+	bCanAttack = IsAbleToAttack();
 	if (bCanAttack && !bAttacking)
 	{
 		SetAttack(true);
@@ -191,9 +204,9 @@ void UNACombatComponent::OnAttack()
 			}
 			else
 			{
+				// Commit Ability에서 실패할 경우에도 공격을 중단
 				SetAttack(false);
 			}
-			
 		}	
 	}
 }

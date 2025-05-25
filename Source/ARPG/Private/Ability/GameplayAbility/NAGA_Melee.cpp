@@ -4,6 +4,7 @@
 #include "Ability/GameplayAbility/NAGA_Melee.h"
 
 #include "AbilitySystemComponent.h"
+#include "NAMontage.h"
 #include "Ability/AttributeSet/NAAttributeSet.h"
 #include "Combat/GameplayEffect/NAGE_UseActivePoint.h"
 
@@ -21,14 +22,21 @@ void UNAGA_Melee::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 	{
 		if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
 		{
-			EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+			EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
 		}
 
-		// todo: Melee Montage, Handling the effect from AnimNotify
-		ActorInfo->AbilitySystemComponent->PlayMontage(this, ActivationInfo, nullptr, 1.f);
-
-		// 효과는 몽타주가 끝나는 시점에 종료 판정이 남
-		ActorInfo->AnimInstance->OnMontageEnded.AddUniqueDynamic(this, &UNAGA_Melee::OnMontageEnded);
+		if ( const TScriptInterface<INAMontage> Interface = ActorInfo->AvatarActor.Get())
+		{
+			ActorInfo->AbilitySystemComponent->PlayMontage(this, ActivationInfo, Interface->GetAttackMontage(), 1.f);
+			// 효과는 몽타주가 끝나는 시점에 종료 판정이 남
+			ActorInfo->AnimInstance->OnMontageEnded.AddUniqueDynamic(this, &UNAGA_Melee::OnMontageEnded);
+		}
+		else
+		{
+			// 몽타주가 없음
+			check(false);
+			EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
+		}
 	}
 }
 
