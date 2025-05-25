@@ -4,8 +4,8 @@
 #include "Ability/GameplayAbility/NAGA_Melee.h"
 
 #include "AbilitySystemComponent.h"
-#include "NAMontage.h"
 #include "Ability/AttributeSet/NAAttributeSet.h"
+#include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "Combat/GameplayEffect/NAGE_UseActivePoint.h"
 
 void UNAGA_Melee::OnMontageEnded(UAnimMontage* /*Montage*/, bool /*bInterrupted*/)
@@ -25,9 +25,9 @@ void UNAGA_Melee::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 			EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
 		}
 
-		if ( const TScriptInterface<INAMontage> Interface = ActorInfo->AvatarActor.Get())
+		if ( const UNAMontageCombatComponent* CombatComponent = ActorInfo->AvatarActor->GetComponentByClass<UNAMontageCombatComponent>() )
 		{
-			ActorInfo->AbilitySystemComponent->PlayMontage(this, ActivationInfo, Interface->GetAttackMontage(), 1.f);
+			ActorInfo->AbilitySystemComponent->PlayMontage( this, ActivationInfo, CombatComponent->GetMontage(), CombatComponent->GetMontagePlayRate() );
 			// 효과는 몽타주가 끝나는 시점에 종료 판정이 남
 			ActorInfo->AnimInstance->OnMontageEnded.AddUniqueDynamic(this, &UNAGA_Melee::OnMontageEnded);
 		}

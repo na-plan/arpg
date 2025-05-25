@@ -6,9 +6,9 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "Net/UnrealNetwork.h"
-#include "ARPG/ARPG.h"
+#include "Combat/Interface/NAHandActor.h"
 
-DEFINE_LOG_CATEGORY(LogCombatComponent);
+DEFINE_LOG_CATEGORY( LogCombatComponent );
 
 // Sets default values for this component's properties
 UNACombatComponent::UNACombatComponent()
@@ -92,7 +92,7 @@ void UNACombatComponent::PostSetAttack()
 {
 	if (bAttacking)
 	{
-		if (const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner())
+		if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker() )
 		{
 			const FGameplayAbilitySpec Spec(AttackAbility, 1);
 			AbilitySpecHandle = Interface->GetAbilitySystemComponent()->GiveAbility(Spec);
@@ -103,7 +103,7 @@ void UNACombatComponent::PostSetAttack()
 	}
 	else
 	{
-		if (const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner())
+		if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker() )
 		{
 			if (AbilitySpecHandle.IsValid())
 			{
@@ -159,6 +159,16 @@ void UNACombatComponent::StartAttack()
 	}
 }
 
+APawn* UNACombatComponent::GetAttacker() const
+{
+	if ( bConsiderChildActor )
+	{
+		Cast<APawn>( GetOwner()->GetParentActor() );
+	}
+	
+	return Cast<APawn>( GetOwner() );
+}
+
 void UNACombatComponent::OnAttack()
 {
 	if (GetNetMode() != NM_Client)
@@ -177,8 +187,8 @@ void UNACombatComponent::OnAttack()
 		if (bCanAttack && bAttacking)
 		{
 			// 공격을 수행하고
-			if (const TScriptInterface<IAbilitySystemInterface> Interface = GetOwner();
-				Interface && Interface->GetAbilitySystemComponent()->TryActivateAbilityByClass(AttackAbility))
+			if ( const TScriptInterface<IAbilitySystemInterface> Interface = GetAttacker();
+				 Interface && Interface->GetAbilitySystemComponent()->TryActivateAbilityByClass( AttackAbility ) )
 			{
 				OnAttack_Implementation();
 

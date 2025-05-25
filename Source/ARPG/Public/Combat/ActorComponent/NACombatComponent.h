@@ -16,6 +16,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogCombatComponent, Log, All);
 /*
  * 캐릭터의 전투 수행 관련 추상 부모 컴포넌트
  * 몽타주, 히트 스캔 등의 상황에 따라 자식을 만들어 사용
+ * 실제로 전투의 기능을 수행하는 객체에서 사용 (무기)
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Abstract)
 class ARPG_API UNACombatComponent : public UActorComponent
@@ -30,14 +31,18 @@ class ARPG_API UNACombatComponent : public UActorComponent
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_CanAttack, meta=(AllowPrivateAccess="true"))
 	bool bCanAttack = false;
 
+	// 공격을 시전하는 객체가 부모 객체인가?
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
+	bool bConsiderChildActor = false;
+
 	// 공격이 끝나면 자동으로 다시 공격해야 하는가?
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
 	bool bReplay = true;
 	
 	// 다음 자동 공격을 대기하는 타이머 핸들
 	FTimerHandle AttackTimerHandler;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
 	TSubclassOf<UGameplayAbility> AttackAbility;
 
 	FGameplayAbilitySpecHandle AbilitySpecHandle;
@@ -60,18 +65,27 @@ public:
 	UFUNCTION()
 	virtual void StartAttack();
 
+	UFUNCTION()
+	virtual APawn* GetAttacker() const;
+
 	// 공격을 중단
 	UFUNCTION()
 	void StopAttack();
+	
+	// 공격이 가능한 상태인지 확인
+	virtual bool IsAbleToAttack();
 
+	bool IsAttacking() const { return bAttacking; }
+
+	void SetConsiderChildActor( const bool InConsiderChildActor ) { bConsiderChildActor = InConsiderChildActor; }
+
+	TSubclassOf<UGameplayAbility> GetAttackAbility() const;
+	
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
-
+	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
-	// 공격이 가능한 상태인지 확인
-	virtual bool IsAbleToAttack();
 
 	// 공격 상태로 변환하는 함수
 	void SetAttack(bool NewAttack);
@@ -102,8 +116,6 @@ protected:
 	// 클라이언트가 bCanAttack의 변화를 발견했을 경우
 	UFUNCTION()
 	virtual void OnRep_CanAttack();
-
-	TSubclassOf<UGameplayAbility> GetAttackAbility() const;
 	
 public:
 	// Called every frame

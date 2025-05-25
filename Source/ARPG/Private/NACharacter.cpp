@@ -13,8 +13,8 @@
 #include "InputActionValue.h"
 #include "InputMappingContext.h"
 #include "NAPlayerState.h"
-#include "Ability/AttributeSet/NAAttributeSet.h"
 #include "Ability/GameInstanceSubsystem/NAAbilityGameInstanceSubsystem.h"
+#include "ARPG/ARPG.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
 #include "Net/UnrealNetwork.h"
@@ -26,6 +26,41 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 //////////////////////////////////////////////////////////////////////////
 // AARPGCharacter
+
+// 공격시 반복되는 함수 패턴
+bool TryAttack( const AActor* Hand )
+{
+	if ( Hand )
+	{
+		if ( UNAMontageCombatComponent* CombatComponent = Hand->GetComponentByClass<UNAMontageCombatComponent>() )
+		{
+			if ( CombatComponent->IsAbleToAttack() )
+			{
+				CombatComponent->StartAttack();
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool TryStopAttack( const AActor* Hand )
+{
+	if ( Hand )
+	{
+		if ( UNAMontageCombatComponent* CombatComponent = Hand->GetComponentByClass<UNAMontageCombatComponent>() )
+		{
+			if ( CombatComponent->IsAttacking() )
+			{
+				CombatComponent->StopAttack();
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
 
 ANACharacter::ANACharacter()
 {
@@ -65,14 +100,11 @@ ANACharacter::ANACharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
-
+	DefaultCombatComponent = CreateDefaultSubobject<UNAMontageCombatComponent>( TEXT( "DefaultCombatComponent" ) );
 	InteractionComponent = CreateDefaultSubobject<UNAInteractionComponent>(TEXT("InteractionComponent"));
-
-	CombatComponent = CreateDefaultSubobject<UNAMontageCombatComponent>(TEXT("MontageCombatComponent"));
 
 	LeftHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("LeftHandChildActor"));
 	RightHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("RightHandChildActor"));
-
 	LeftHandChildActor->SetupAttachment(GetMesh(), LeftHandSocketName);
 	RightHandChildActor->SetupAttachment(GetMesh(), RightHandSocketName);
 }
@@ -81,6 +113,9 @@ void ANACharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
+
+	// 기본 공격이 정의되어있지 않음!
+	check( DefaultCombatComponent->GetMontage() && DefaultCombatComponent->GetAttackAbility() );
 	
 	// == 테스트 코드 ==
 	{
@@ -145,8 +180,8 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ANACharacter::Look);
 
-		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, CombatComponent, &UNAMontageCombatComponent::StartAttack);
-		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Completed, CombatComponent, &UNAMontageCombatComponent::StopAttack);
+		EnhancedInputComponent->BindAction(LeftMouseAttackAction, ETriggerEvent::Started, this, &ANACharacter::StartLeftMouseAttack);
+		EnhancedInputComponent->BindAction(LeftMouseAttackAction, ETriggerEvent::Completed, this, &ANACharacter::StopLeftMouseAttack);
 	}
 	else
 	{
@@ -197,27 +232,8 @@ void ANACharacter::RetrieveAsset(const AActor* InCDO)
 		
 		}
 
-		for (TFieldIterator<FObjectProperty> It(StaticClass()); It; ++It)
-		{
-			const FObjectProperty* Property = *It;
-
-			if (!Property)
-			{
-				continue;
-			}
-			
-			if (Property->PropertyClass->IsChildOf(UInputMappingContext::StaticClass()))
-			{
-				const auto* Other = Cast<UInputMappingContext>(Property->GetObjectPropertyValue_InContainer(DefaultAsset));
-				Property->SetObjectPropertyValue_InContainer(this, const_cast<UInputMappingContext*>(Other));
-			}
-
-			if (Property->PropertyClass->IsChildOf(UInputAction::StaticClass()))
-			{
-				const auto* Other = Cast<UInputAction>(Property->GetObjectPropertyValue_InContainer(DefaultAsset));
-				Property->SetObjectPropertyValue_InContainer(this, const_cast<UInputAction*>(Other));
-			}			 
-		}
+		FObjectPropertyUtility::CopyClassPropertyIfTypeEquals<ANACharacter, UInputMappingContext, UInputAction>( this, DefaultAsset );
+		FObjectPropertyUtility::CopyClassPropertyIfTypeEquals<UNAMontageCombatComponent, UAnimMontage, TSubclassOf<UGameplayAbility>>( DefaultCombatComponent, DefaultAsset->GetComponentByClass<UNAMontageCombatComponent>() );
 	}
 }
 
@@ -254,6 +270,28 @@ void ANACharacter::Look(const FInputActionValue& Value)
 		// add yaw and pitch input to controller
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
+	}
+}
+
+void ANACharacter::StartLeftMouseAttack()
+{
+	if ( !TryAttack( RightHandChildActor->GetChildActor() ) )
+	{
+		if ( DefaultCombatComponent->IsAbleToAttack() && !DefaultCombatComponent->IsAttacking() )
+		{
+			DefaultCombatComponent->StartAttack();	
+		}
+	}
+}
+
+void ANACharacter::StopLeftMouseAttack()
+{
+	if ( !TryStopAttack( RightHandChildActor->GetChildActor() ) )
+	{
+		if ( DefaultCombatComponent->IsAttacking() )
+		{
+			DefaultCombatComponent->StopAttack();	
+		}
 	}
 }
 

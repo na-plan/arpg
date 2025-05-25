@@ -30,13 +30,12 @@ void UNAMontageCombatComponent::BeginPlay()
 bool UNAMontageCombatComponent::IsAbleToAttack()
 {
 	bool bResult = true;
-	
-	if (APawn* Pawn = Cast<APawn>(GetOwner()))
+
+	// 캐릭터가 몽타주를 실행중이지 않을 경우
+	// todo: 캐릭터가 공격중이지 않은 경우로?
+	if (const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker())
 	{
-		if (const TScriptInterface<IAbilitySystemInterface>& Interface = Pawn)
-		{
-			bResult &= Interface->GetAbilitySystemComponent()->GetCurrentMontage() == nullptr;
-		}
+		bResult &= Interface->GetAbilitySystemComponent()->GetCurrentMontage() == nullptr;
 	}
 	
 	return bResult;
@@ -45,6 +44,7 @@ bool UNAMontageCombatComponent::IsAbleToAttack()
 void UNAMontageCombatComponent::OnAttack_Implementation()
 {
 	// note: 몽타주 재생 및 전파는 GAS의 Ability를 통해 수행!
+	// Ability에서 Montage Combat Component가 들고 있는 데이터를 가지고서 수행해야 작동이 맞음
 	
 	if (AttackSound)
 	{
@@ -55,12 +55,6 @@ void UNAMontageCombatComponent::OnAttack_Implementation()
 		{
 			Multi_PlaySound();
 		}
-	}
-
-	if (const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner())
-	{
-		CachedAttackMontage = Interface->GetAbilitySystemComponent()->GetCurrentMontage();
-		CachedAttackMontagePlayRate = Interface->GetAbilitySystemComponent()->AbilityActorInfo->GetAnimInstance()->Montage_GetPlayRate(CachedAttackMontage);
 	}
 }
 
@@ -74,7 +68,7 @@ void UNAMontageCombatComponent::Multi_PlaySound_Implementation() const
 
 float UNAMontageCombatComponent::GetNextAttackTime()
 {
-	return CachedAttackMontage->GetPlayLength() * CachedAttackMontagePlayRate;
+	return AttackMontage->GetPlayLength() * MontagePlayRate;
 }
 
 // Called every frame
