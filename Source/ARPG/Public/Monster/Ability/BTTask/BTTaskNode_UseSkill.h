@@ -4,29 +4,25 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
-#include "BTTaskNode_Attack.generated.h"
+#include "BTTaskNode_UseSkill.generated.h"
 
-class UGA_MonsterAttack;
 /**
  * 
  */
 UCLASS()
-class ARPG_API UBTTaskNode_Attack : public UBTTaskNode
+class ARPG_API UBTTaskNode_UseSkill : public UBTTaskNode
 {
 	GENERATED_BODY()
 	
 public:
-	UBTTaskNode_Attack();
+	UBTTaskNode_UseSkill();
 
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
-
 protected:
 	/* 호출할 어빌리티 클래스 */
-	//UAttackGameplayAbility
 	UPROPERTY(EditAnywhere, Category = "GAS")
-	TSubclassOf<class UGameplayAbility> AttackAbilityClass;
-
-
-
+	TSubclassOf<class UGameplayAbility> SkillAbilityClass;
+	
+	
 };
