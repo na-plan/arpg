@@ -1,4 +1,5 @@
-﻿#include "Item/ItemManagerStatics.h"
+#include "Item/ItemManagerStatics.h"
+#include "Item/GameInstance/NAItemGameInstanceSubsystem.h"
 
 FItemManagerImpl& FItemManagerStatics::Get( const UWorld* InWorld )
 {
