@@ -39,33 +39,32 @@ void UNAGA_Melee::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 		{
 			EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		}
-		
-		if (UNAMontageCombatComponent* CombatComponent = ActorInfo->AvatarActor->GetComponentByClass<UNAMontageCombatComponent>())
-		{
-			ActorInfo->AbilitySystemComponent->PlayMontage
-			(
-				this,
-				ActivationInfo,
-				CombatComponent->GetMontage(),
-				CombatComponent->GetMontagePlayRate()
-			);
+	}
 
-			if (UAnimInstance* AnimInstance = ActorInfo->AbilitySystemComponent->AbilityActorInfo->GetAnimInstance())
+	if (UNAMontageCombatComponent* CombatComponent = ActorInfo->AvatarActor->GetComponentByClass<UNAMontageCombatComponent>())
+	{
+		ActorInfo->AbilitySystemComponent->PlayMontage
+		(
+			this,
+			ActivationInfo,
+			CombatComponent->GetMontage(),
+			CombatComponent->GetMontagePlayRate()
+		);
+
+		if ( HasAuthority( &ActivationInfo ) )
+		{
+			if ( UAnimInstance* AnimInstance = ActorInfo->AbilitySystemComponent->AbilityActorInfo->GetAnimInstance() )
 			{
 				// 효과는 몽타주가 끝나는 시점에 종료 판정이 남
 				AnimInstance->OnMontageEnded.AddUniqueDynamic(this, &UNAGA_Melee::OnMontageEnded);	
 			}
-			else
-			{
-				// 무슨 이유인지는 몰라도 AnimInstance가 없는걸로 나올때가 있음
-				check( false );
-			}
 		}
-		else
-		{
-			// Combat Component가 없음
-			check( false );
-		}
+		
+	}
+	else
+	{
+		// Combat Component가 없음
+		check( false );
 	}
 }
 
@@ -93,19 +92,22 @@ void UNAGA_Melee::CancelAbility(const FGameplayAbilitySpecHandle Handle, const F
 	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateCancelAbility)
 {
 	// 추적하던 몽타주를 해제
-	if ( HasAuthority(&ActivationInfo) )
+	if ( HasAuthority( &ActivationInfo ) )
 	{
-		if ( const UAbilitySystemComponent* AbilitySystemComponent = GetCurrentActorInfo()->AbilitySystemComponent.Get())
+		if ( ActorInfo )
 		{
-			if (UAnimInstance* AnimInstance = AbilitySystemComponent->AbilityActorInfo->GetAnimInstance())
+			if ( const UAbilitySystemComponent* AbilitySystemComponent = ActorInfo->AbilitySystemComponent.Get())
 			{
-				AnimInstance->OnMontageEnded.RemoveAll(this);	
+				if (UAnimInstance* AnimInstance = AbilitySystemComponent->AbilityActorInfo->GetAnimInstance())
+				{
+					AnimInstance->OnMontageEnded.RemoveAll(this);	
+				}
+				else
+				{
+					// 무슨 이유인지는 몰라도 AnimInstance가 없는걸로 나올때가 있음
+					check( false );
+				}	
 			}
-			else
-			{
-				// 무슨 이유인지는 몰라도 AnimInstance가 없는걸로 나올때가 있음
-				check( false );
-			}	
 		}
 	}
 	
