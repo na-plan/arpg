@@ -5,8 +5,12 @@
 #include "Monster/AI/MonsterAIController.h"
 #include "AbilitySystemGlobals.h"
 #include "AbilitySystemComponent.h"
+<<<<<<< HEAD
 #include "Monster/Pawn/MonsterBase.h"
 #include "Monster/Ability/GameplayAbility/GA_MonsterAttack.h"
+=======
+
+>>>>>>> 93b5625 (33)
 
 UBTTaskNode_Attack::UBTTaskNode_Attack()
 {
@@ -21,11 +25,15 @@ EBTNodeResult::Type UBTTaskNode_Attack::ExecuteTask(UBehaviorTreeComponent& Owne
     APawn* AIPawn = AIController->GetPawn();
     if (!AIPawn) return EBTNodeResult::Failed;
 
+<<<<<<< HEAD
     AMonsterBase* Monster = Cast<AMonsterBase>(AIPawn);
 
     //Monster 에서 하지 않고 FindComponentByClass로 해서 찾아와도 될거 같음
     UAbilitySystemComponent* AbilitySystemComponent = AIPawn->FindComponentByClass<UAbilitySystemComponent>();
 
+=======
+    UAbilitySystemComponent* AbilitySystemComponent = AIPawn->FindComponentByClass<UAbilitySystemComponent>();
+>>>>>>> 93b5625 (33)
     if (!AbilitySystemComponent) return EBTNodeResult::Failed;
 
     if (!AttackAbilityClass)
@@ -35,9 +43,18 @@ EBTNodeResult::Type UBTTaskNode_Attack::ExecuteTask(UBehaviorTreeComponent& Owne
     }
 
     //여기서 오류가 failed 로 넘어가짐     AttackAbilityClass는 잘 찾아오는데 AttackAbilityClass는 실행이 안됌
+<<<<<<< HEAD
     // 실제 사용할 어빌리티 클래스
     TSubclassOf<UGameplayAbility> AbilityToActivate = UGA_MonsterAttack::StaticClass();
     bool bActivated = AbilitySystemComponent->TryActivateAbilityByClass(AbilityToActivate);
 
     return bActivated ? EBTNodeResult::Succeeded : EBTNodeResult::Failed;
+=======
+    if (AbilitySystemComponent->TryActivateAbilityByClass(AttackAbilityClass))
+    {
+        return EBTNodeResult::Succeeded;
+    }
+
+    return EBTNodeResult::Failed;
+>>>>>>> 93b5625 (33)
 }

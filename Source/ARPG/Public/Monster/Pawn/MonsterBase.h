@@ -66,11 +66,15 @@ public:
 	FORCEINLINE UAbilitySystemComponent* GetAbilitySystemComponent() const { return AbilitySystemComponent; }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 	UAnimMontage* GetAttackMontage() const { return TestAttackMontage; }
 	UAnimMontage* GetSpawnMontage() const { return SpawnMontage; }
 =======
 	//UAnimMontage* GetAttackMontage() const { return TestAttackMontage; }
 >>>>>>> 6efa875 (22)
+=======
+	UAnimMontage* GetAttackMontage() const { return TestAttackMontage; }
+>>>>>>> 93b5625 (33)
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = Gameplay, meta = (AllowPrivateAccess = "true"))
@@ -98,7 +102,10 @@ protected:
 	float CheckTimer = 0;
 	float CheckHP = 0;
 
+<<<<<<< HEAD
 	//이거 데이터화 시키고 get을 데이터테이블로 보내는게 낫지않나? 싶은데...
+=======
+>>>>>>> 93b5625 (33)
 public:
 	UPROPERTY(EditAnywhere)
 	UAnimMontage* TestAttackMontage;
