@@ -79,4 +79,6 @@ DerivedDataCache/*
 # MISC
 ARPG.sln.DotSettings.user
 Content/01_ExternalAssets/*
-Content/ParagonRiktor/
+Content/StarterContent/*
+
+Plugins/Developer/RiderLink/*
