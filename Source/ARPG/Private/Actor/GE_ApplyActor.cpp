@@ -30,7 +30,7 @@ void AGE_ApplyActor::SphereCollisionBeginOverlap(UPrimitiveComponent* Overlapped
 	
 
 	//Monster가 사용시
-	if (AMonsterBase* Owner = Cast<AMonsterBase>(GetInstigator()->GetOwner()))
+	if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(GetInstigator()->GetOwner()))
 	{
 		if (ANACharacter* Target = Cast<ANACharacter>(OtherActor))
 		{
@@ -48,10 +48,10 @@ void AGE_ApplyActor::SphereCollisionBeginOverlap(UPrimitiveComponent* Overlapped
 					// damage 미확인중 notify 만들고 데미지 안입힐시 위 주석 해제 ㄱㄱ
 					{
 						// 일단 데미지만 주면 되기 때문에 자기 자신이데미지 주는 형식으로....
-						const auto& Handle = Target->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*DamageEffectSpec.Data.Get());
+						//const auto& Handle = Target->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*DamageEffectSpec.Data.Get());
 
 						// Target 에게 공격
-						const auto& Handle = Owner->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget(*DamageEffectSpec.Data.Get(), Target->GetAbilitySystemComponent());
+						const auto& Handle = OwnerMonster->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget(*DamageEffectSpec.Data.Get(), Target->GetAbilitySystemComponent());
 						check(Handle.WasSuccessfullyApplied());
 					}
 				}
@@ -61,7 +61,7 @@ void AGE_ApplyActor::SphereCollisionBeginOverlap(UPrimitiveComponent* Overlapped
 		}
 	}
 	//Player 가 사용시
-	else if (ANACharacter* Owner = Cast<ANACharacter>(GetInstigator()->GetOwner()))
+	else if (ANACharacter* OwnerCharacter = Cast<ANACharacter>(GetInstigator()->GetOwner()))
 	{
 		if (AMonsterBase* Target = Cast<AMonsterBase>(OtherActor))
 		{
@@ -83,7 +83,7 @@ void AGE_ApplyActor::SphereCollisionBeginOverlap(UPrimitiveComponent* Overlapped
 						//const auto& Handle = Target->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*DamageEffectSpec.Data.Get());
 
 						// Target 에게 공격
-						const auto& Handle = Owner->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget(*DamageEffectSpec.Data.Get(), Target->GetAbilitySystemComponent());
+						const auto& Handle = OwnerCharacter->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget(*DamageEffectSpec.Data.Get(), Target->GetAbilitySystemComponent());
 						check(Handle.WasSuccessfullyApplied());
 					}
 
