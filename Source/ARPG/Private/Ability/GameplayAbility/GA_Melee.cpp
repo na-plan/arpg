@@ -24,15 +24,23 @@ bool UGA_Melee::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 	UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance();
 	if (AnimInstance)
 	{
+<<<<<<< HEAD
 		return !AnimInstance->Montage_IsPlaying(MeleeAttackMontageToPlay);
 	}
 
+=======
+		return !AnimInstance->Montage_IsPlaying(MontageToPlay);
+	}
+
+	//AnimInstance 없음 추가 ㄱㄱ
+>>>>>>> 6640ccb (44)
 
 	return false;
 }
 
 void UGA_Melee::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
+<<<<<<< HEAD
 	if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
 	{
 		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
@@ -56,6 +64,18 @@ void UGA_Melee::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 	//Task->EventReceived.AddDynamic(this, &UGA_Melee::EventReceived);
 	//// ReadyForActivation() is how you activate the AbilityTask in C++. Blueprint has magic from K2Node_LatentGameplayTaskCall that will automatically call ReadyForActivation().
 	//Task->ReadyForActivation();
+=======
+	ACharacter* Character = Cast<ACharacter>(ActorInfo->AvatarActor.Get());
+	if (Character)
+	{
+	}
+	AMonsterBase* OwnerMonster = Cast<AMonsterBase>(ActorInfo->AvatarActor.Get());
+	if (OwnerMonster)
+	{
+
+	}
+
+>>>>>>> 6640ccb (44)
 }
 
 void UGA_Melee::OnCancelled(FGameplayTag EventTag, FGameplayEventData EventData)
