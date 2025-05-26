@@ -18,6 +18,9 @@
 #include "HP/GameplayEffect/NAGE_Damage.h"
 #include "Net/UnrealNetwork.h"
 
+#include "Interaction/NAInteractionComponent.h"
+
+
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 //////////////////////////////////////////////////////////////////////////
@@ -61,6 +64,8 @@ ANACharacter::ANACharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+
+	InteractionComponent = CreateDefaultSubobject<UNAInteractionComponent>(TEXT("InteractionComponent"));
 }
 
 void ANACharacter::BeginPlay()
