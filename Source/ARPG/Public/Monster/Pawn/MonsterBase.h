@@ -65,8 +65,12 @@ public:
 public:
 	FORCEINLINE UAbilitySystemComponent* GetAbilitySystemComponent() const { return AbilitySystemComponent; }
 
+<<<<<<< HEAD
 	UAnimMontage* GetAttackMontage() const { return TestAttackMontage; }
 	UAnimMontage* GetSpawnMontage() const { return SpawnMontage; }
+=======
+	//UAnimMontage* GetAttackMontage() const { return TestAttackMontage; }
+>>>>>>> 6efa875 (22)
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = Gameplay, meta = (AllowPrivateAccess = "true"))

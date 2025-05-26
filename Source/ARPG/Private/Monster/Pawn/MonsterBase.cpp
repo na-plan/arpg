@@ -96,12 +96,15 @@ void AMonsterBase::BeginPlay()
 	//TSubclassOf<AAIController> MainAIControllerClass = AMonsterAIController::StaticClass();
 	//AIControllerClass = MainAIControllerClass;
 
+<<<<<<< HEAD
 	if (AbilitySystemComponent) 
 	{
 		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_MonsterAttack::StaticClass(), 1, 0));
 		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_Spawning::StaticClass(), 1, 0));
 	}
 
+=======
+>>>>>>> 6efa875 (22)
 }
 
 void AMonsterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const

@@ -31,10 +31,13 @@ public:
 		bool bReplicateEndAbility, bool bWasCancelled) override;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GAS")
 	TObjectPtr<UAnimMontage> AttackAnimMontage;
 >>>>>>> d34d6c1 (11)
+=======
+>>>>>>> 6efa875 (22)
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GAS")

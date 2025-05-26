@@ -42,6 +42,7 @@ void UAttackGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Ha
             return;
         }
 
+<<<<<<< HEAD
         //Monster
         if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(ActorInfo->AvatarActor.Get()))
         {
@@ -67,6 +68,10 @@ void UAttackGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Ha
         //    }
         //}
 
+=======
+
+        //ACharacter* Character = CastChecked<ACharacter>(ActorInfo->AvatarActor.Get());
+>>>>>>> 6efa875 (22)
         //UAnimMontage* AttackMontage = OwnerMonster->GetAttackMontage();
         //ActorInfo->AbilitySystemComponent->PlayMontage();
     }
