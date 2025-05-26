@@ -13,6 +13,16 @@ void AMonsterAIController::BeginPlay()
 {
 	Super::BeginPlay();
 
+<<<<<<< HEAD
+=======
+	if (!IsValid(BrainComponent))
+	{
+		//BT로 바꾸기
+		UBehaviorTree* BehaviorTree = LoadObject<UBehaviorTree>(nullptr, TEXT("/Script/AIModule.BehaviorTree'/Game/01_ExternalAssets/TempResource/Monster/AI/BT_BaseMonster.BT_BaseMonster'"));
+		check(BehaviorTree);
+		RunBehaviorTree(BehaviorTree);
+	}
+>>>>>>> 1bae758 (66)
 
 
 	// Pawn cast를 먼저 실행해서 GetPawn을 가지고 올수 있게 미리 세팅을 합니다
