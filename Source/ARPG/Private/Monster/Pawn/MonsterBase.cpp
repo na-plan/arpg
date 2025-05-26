@@ -9,12 +9,17 @@
 
 //Ability
 <<<<<<< HEAD
+<<<<<<< HEAD
 //#include "Ability/GameplayAbility/AttackGameplayAbility.h"
 #include "Monster/Ability/GameplayAbility/GA_MonsterAttack.h"
 #include "Monster/Ability/GameplayAbility/GA_Spawning.h"
 =======
 #include "Ability/GameplayAbility/AttackGameplayAbility.h"
 >>>>>>> d34d6c1 (11)
+=======
+//#include "Ability/GameplayAbility/AttackGameplayAbility.h"
+#include "Monster/Ability/GameplayAbility/GA_MonsterAttack.h"
+>>>>>>> 9b538d7 (44)
 
 
 #include "HP/GameplayEffect/NAGE_Damage.h"
@@ -97,6 +102,7 @@ void AMonsterBase::BeginPlay()
 	//AIControllerClass = MainAIControllerClass;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 	if (AbilitySystemComponent) 
 	{
 		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_MonsterAttack::StaticClass(), 1, 0));
@@ -105,6 +111,14 @@ void AMonsterBase::BeginPlay()
 
 =======
 >>>>>>> 6efa875 (22)
+=======
+	if (AbilitySystemComponent) 
+	{
+		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_MonsterAttack::StaticClass(), 1, 0));
+		//AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGameplayAbility_Attack::StaticClass(), 1, 0));
+	}
+
+>>>>>>> 9b538d7 (44)
 }
 
 void AMonsterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const

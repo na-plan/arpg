@@ -5,7 +5,10 @@
 
 #include "Monster/Pawn/MonsterBase.h"
 #include "AbilitySystemComponent.h"
+<<<<<<< HEAD
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+=======
+>>>>>>> 9b538d7 (44)
 
 
 void UGA_MonsterAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
@@ -23,6 +26,7 @@ void UGA_MonsterAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 			UAnimMontage* MonsterAttackMontage = MonsterBase->GetAttackMontage();
 			UAbilitySystemComponent* MonsterASC =  MonsterBase->GetAbilitySystemComponent();
 
+<<<<<<< HEAD
 			// 들어오는거 확인 모두 보유중
 			if (MonsterAttackMontage && MonsterASC)
 			{
@@ -65,3 +69,13 @@ void UGA_MonsterAttack::OnCancelled()
 
 
 }
+=======
+			if (MonsterAttackMontage && MonsterASC)
+			{
+				float MontageDuration = MonsterASC->PlayMontage(this, GetCurrentActivationInfo(), MonsterAttackMontage, 1.0f);
+			}
+			EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+		}
+	}
+}
+>>>>>>> 9b538d7 (44)

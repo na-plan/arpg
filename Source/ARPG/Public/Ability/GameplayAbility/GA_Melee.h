@@ -19,14 +19,20 @@ class ARPG_API UGA_Melee : public UGameplayAbility
 public:
 	UPROPERTY(EditDefaultsOnly)
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 9b538d7 (44)
 	UAnimMontage* MeleeAttackMontageToPlay;
 
 	//	Damage UGameplayEffect를 추가해주세요
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
 	TSubclassOf<UGameplayEffect> DamageGameplayEffect;
+<<<<<<< HEAD
 =======
 	UAnimMontage* MontageToPlay;
 >>>>>>> 6640ccb (44)
+=======
+>>>>>>> 9b538d7 (44)
 
 	UPROPERTY()
 	UAbilityTask_PlayMontageAndWait* MontageTask;
@@ -34,14 +40,20 @@ public:
 	UGA_Melee();
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 9b538d7 (44)
 	// 실행 가능한지 확인용
 	virtual bool CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags = nullptr, const FGameplayTagContainer* TargetTags = nullptr, OUT FGameplayTagContainer* OptionalRelevantTags = nullptr) const;
 
 	/** Actually activate ability, do not call this directly. We'll call it from APAHeroCharacter::ActivateAbilitiesWithTags(). */
+<<<<<<< HEAD
 =======
 	virtual bool CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags = nullptr, const FGameplayTagContainer* TargetTags = nullptr, OUT FGameplayTagContainer* OptionalRelevantTags = nullptr) const;
 
 >>>>>>> 6640ccb (44)
+=======
+>>>>>>> 9b538d7 (44)
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData);
 
 protected:

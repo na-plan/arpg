@@ -25,6 +25,7 @@ public:
 	
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData);
 
+<<<<<<< HEAD
 
 
 
@@ -33,5 +34,7 @@ public:
 	virtual void OnComplete();
 	UFUNCTION()
 	virtual void OnCancelled();
+=======
+>>>>>>> 9b538d7 (44)
 	
 };
