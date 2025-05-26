@@ -6,6 +6,17 @@
 #include "BehaviorTree/BTTaskNode.h"
 #include "BTTaskNode_UseSkill.generated.h"
 
+
+USTRUCT()
+struct ARPG_API FNAMonsterOwnSkillTableRow : public FTableRowBase
+{
+	GENERATED_BODY()
+public:
+	//각 몬스터별 보유하고 있는 스킬 목록
+
+
+};
+
 /**
  * 
  */
