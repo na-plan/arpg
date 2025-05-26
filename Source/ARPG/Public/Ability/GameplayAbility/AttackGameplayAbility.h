@@ -30,6 +30,11 @@ public:
 		const FGameplayAbilityActivationInfo ActivationInfo, 
 		bool bReplicateEndAbility, bool bWasCancelled) override;
 
+<<<<<<< HEAD
+=======
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GAS")
+	TObjectPtr<UAnimMontage> AttackAnimMontage;
+>>>>>>> d34d6c1 (11)
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GAS")

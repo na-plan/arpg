@@ -13,6 +13,7 @@ void UAttackGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Ha
     UAnimInstance* AnimInstance = ActorInfo->GetAnimInstance();
 
     //OwnerActor 가지고 오는거 
+<<<<<<< HEAD
     AActor* OwnerActor = GetAvatarActorFromActorInfo(); // AActor* OwnerActor = Cast<AActor>(ActorInfo->OwnerActor);
     if (!OwnerActor) return ;
 
@@ -70,6 +71,15 @@ void UAttackGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Ha
         //ActorInfo->AbilitySystemComponent->PlayMontage();
     }
 
+=======
+    AActor* OwnerActor = GetAvatarActorFromActorInfo();
+    if (!OwnerActor) return ;
+
+    // Target 대상
+    AActor* TargetCharacter = Cast<AActor>(ActorInfo->AvatarActor.Get());
+
+
+>>>>>>> d34d6c1 (11)
 
     //if (MontageToPlay && AnimInstance)
     //{
