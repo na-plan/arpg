@@ -23,7 +23,30 @@ UNACombatComponent::UNACombatComponent()
 
 void UNACombatComponent::SetAttackAbility(const TSubclassOf<UGameplayAbility>& InAbility)
 {
-	AttackAbility = InAbility;
+	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker() )
+	{
+		if ( AttackAbility && GetNetMode() != NM_Client )
+		{
+			Interface->GetAbilitySystemComponent()->ClearAbility( AbilitySpecHandle );
+		}
+		
+		AttackAbility = InAbility;
+
+		if ( AttackAbility && GetNetMode() != NM_Client )
+		{
+			AbilitySpecHandle = Interface->GetAbilitySystemComponent()->GiveAbility( AttackAbility );		
+		}
+	}
+}
+
+void UNACombatComponent::ReplayAttack()
+{
+	bCanAttack = IsAbleToAttack();
+	
+	if (bCanAttack && bAttacking)
+	{
+		OnAttack();
+	}
 }
 
 // Called when the game starts
@@ -34,8 +57,18 @@ void UNACombatComponent::BeginPlay()
 	// ...
 	DoStartAttack.AddUniqueDynamic(this, &UNACombatComponent::StartAttack);
 	DoStopAttack.AddUniqueDynamic(this, &UNACombatComponent::StopAttack);
-
 	bCanAttack = IsAbleToAttack();
+
+	// 에디터 실행 방어 구문
+	SetAttackAbility( AttackAbility );	
+}
+
+void UNACombatComponent::EndPlay( const EEndPlayReason::Type EndPlayReason )
+{
+	Super::EndPlay( EndPlayReason );
+
+	// 기존 소유자로부터 공격 능력을 뺏어옴
+	SetAttackAbility( nullptr );	
 }
 
 void UNACombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -92,25 +125,11 @@ void UNACombatComponent::PostSetAttack()
 {
 	if (bAttacking)
 	{
-		if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker() )
-		{
-			const FGameplayAbilitySpec Spec(AttackAbility, 1);
-			AbilitySpecHandle = Interface->GetAbilitySystemComponent()->GiveAbility(Spec);
-		}
-		
 		// 공격으로 변환했다면 공격 루틴 시작
 		OnAttack();
 	}
 	else
 	{
-		if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker() )
-		{
-			if (AbilitySpecHandle.IsValid())
-			{
-				Interface->GetAbilitySystemComponent()->ClearAbility(AbilitySpecHandle);	
-			}
-		}
-		
 		// 아니라면 대기 초기화
 		if (AttackTimerHandler.IsValid())
 		{
@@ -195,16 +214,15 @@ void UNACombatComponent::OnAttack()
 				// 만약 재수행이 설정돼 있다면 Timer로 예약
 				if (bReplay)
 				{
-					FTimerDelegate TimerDelegate;
-					TimerDelegate.BindLambda([this]()
-					{
-						if (bCanAttack && bAttacking)
-						{
-							OnAttack();
-						}
-					});
-
-					GetWorld()->GetTimerManager().SetTimer(AttackTimerHandler, TimerDelegate, GetNextAttackTime(), true);
+					const float NextTime = GetNextAttackTime();
+					GetWorld()->GetTimerManager().SetTimer
+					(
+						AttackTimerHandler,
+						this,
+						&UNACombatComponent::ReplayAttack,
+						NextTime,
+						true
+					);
 				}
 				else
 				{
@@ -227,6 +245,19 @@ void UNACombatComponent::OnRep_CanAttack()
 	{
 		StopAttack();
 	}
+}
+
+void UNACombatComponent::SetConsiderChildActor(const bool InConsiderChildActor)
+{
+	// 기존에 대상으로 바라보던 액터로부터 Ability를 뺏어옴
+	if ( InConsiderChildActor != bConsiderChildActor )
+	{
+		SetAttackAbility( nullptr );
+	}
+	
+	bConsiderChildActor = InConsiderChildActor;
+	// 새로 지정된 액터에게 Ability를 부여함
+	SetAttackAbility( AttackAbility );
 }
 
 TSubclassOf<UGameplayAbility> UNACombatComponent::GetAttackAbility() const

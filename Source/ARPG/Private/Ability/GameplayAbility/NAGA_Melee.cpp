@@ -5,13 +5,14 @@
 
 #include "AbilitySystemComponent.h"
 #include "Ability/AttributeSet/NAAttributeSet.h"
+#include "Combat/ActorComponent/NACombatComponent.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "Combat/GameplayEffect/NAGE_UseActivePoint.h"
 
 void UNAGA_Melee::OnMontageEnded(UAnimMontage* /*Montage*/, bool /*bInterrupted*/)
 {
 	// 델레게이션을 지우고, 효과를 종료함 (가정: 어빌리티가 인스턴싱 되는 경우)
-	GetCurrentActorInfo()->AnimInstance->OnMontageEnded.RemoveAll(this);
+	GetCurrentActorInfo()->AbilitySystemComponent->AbilityActorInfo->GetAnimInstance()->OnMontageEnded.RemoveAll(this);
 	EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false);
 }
 
@@ -22,20 +23,34 @@ void UNAGA_Melee::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 	{
 		if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
 		{
-			EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
+			EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		}
 
-		if ( const UNAMontageCombatComponent* CombatComponent = ActorInfo->AvatarActor->GetComponentByClass<UNAMontageCombatComponent>() )
+		if (UNAMontageCombatComponent* CombatComponent = ActorInfo->AvatarActor->GetComponentByClass<UNAMontageCombatComponent>())
 		{
-			ActorInfo->AbilitySystemComponent->PlayMontage( this, ActivationInfo, CombatComponent->GetMontage(), CombatComponent->GetMontagePlayRate() );
-			// 효과는 몽타주가 끝나는 시점에 종료 판정이 남
-			ActorInfo->AnimInstance->OnMontageEnded.AddUniqueDynamic(this, &UNAGA_Melee::OnMontageEnded);
+			ActorInfo->AbilitySystemComponent->PlayMontage
+			(
+				this,
+				ActivationInfo,
+				CombatComponent->GetMontage(),
+				CombatComponent->GetMontagePlayRate()
+			);
+			
+			if (UAnimInstance* AnimInstance = ActorInfo->AbilitySystemComponent->AbilityActorInfo->GetAnimInstance())
+			{
+				// 효과는 몽타주가 끝나는 시점에 종료 판정이 남
+				AnimInstance->OnMontageEnded.AddUniqueDynamic(this, &UNAGA_Melee::OnMontageEnded);	
+			}
+			else
+			{
+				// 무슨 이유인지는 몰라도 AnimInstance가 없는걸로 나올때가 있음
+				check( false );
+			}
 		}
 		else
 		{
-			// 몽타주가 없음
-			check(false);
-			EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
+			// Combat Component가 없음
+			check( false );
 		}
 	}
 }
@@ -63,6 +78,15 @@ bool UNAGA_Melee::CommitAbility(const FGameplayAbilitySpecHandle Handle, const F
 void UNAGA_Melee::CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateCancelAbility)
 {
-	GetCurrentActorInfo()->AnimInstance->OnMontageEnded.RemoveAll(this);
+	if (UAnimInstance* AnimInstance = GetCurrentActorInfo()->AbilitySystemComponent->AbilityActorInfo->GetAnimInstance())
+	{
+		AnimInstance->OnMontageEnded.RemoveAll(this);	
+	}
+	else
+	{
+		// 무슨 이유인지는 몰라도 AnimInstance가 없는걸로 나올때가 있음
+		check( false );
+	}
+	
 	Super::CancelAbility(Handle, ActorInfo, ActivationInfo, bReplicateCancelAbility);
 }

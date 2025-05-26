@@ -3,6 +3,7 @@
 
 #include "HP/GameplayEffect/NAGE_Damage.h"
 
+#include "AbilitySystemLog.h"
 #include "Ability/AttributeSet/NAAttributeSet.h"
 
 UNAGE_Damage::UNAGE_Damage()
@@ -15,7 +16,8 @@ UNAGE_Damage::UNAGE_Damage()
 	DamageModifier.Attribute = UNAAttributeSet::GetHealthAttribute();
 	DamageModifier.ModifierOp = EGameplayModOp::Additive;
 	DamageModifier.ModifierMagnitude = FScalableFloat(-10.f);
-
 	Modifiers.Add(DamageModifier);
+
+	UE_LOG(LogGameplayEffects, Log, TEXT( "[%hs]: Damage %s will try to be applied" ), __FUNCTION__, *DamageModifier.ModifierMagnitude.GetValueForEditorDisplay().ToString() );
 	
 }

@@ -68,7 +68,7 @@ void UNAMontageCombatComponent::Multi_PlaySound_Implementation() const
 
 float UNAMontageCombatComponent::GetNextAttackTime()
 {
-	return AttackMontage->GetPlayLength() * MontagePlayRate;
+	return AttackMontage->GetPlayLength() * (1 / AttackMontage->RateScale) * MontagePlayRate;
 }
 
 // Called every frame

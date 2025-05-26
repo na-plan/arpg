@@ -61,6 +61,9 @@ public:
 
 	void SetAttackAbility(const TSubclassOf<UGameplayAbility>& InAbility);
 
+	UFUNCTION()
+	void ReplayAttack();
+
 	// 공격을 수행
 	UFUNCTION()
 	virtual void StartAttack();
@@ -77,13 +80,15 @@ public:
 
 	bool IsAttacking() const { return bAttacking; }
 
-	void SetConsiderChildActor( const bool InConsiderChildActor ) { bConsiderChildActor = InConsiderChildActor; }
+	void SetConsiderChildActor( const bool InConsiderChildActor );
 
 	TSubclassOf<UGameplayAbility> GetAttackAbility() const;
 	
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
