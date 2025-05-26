@@ -6,6 +6,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "Engine/OverlapResult.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
 
 void UNAAnimNotifyState_SphereOverlapTest::NotifyBegin( USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
@@ -33,6 +34,10 @@ void UNAAnimNotifyState_SphereOverlapTest::NotifyBegin( USkeletalMeshComponent* 
 		ContextHandle.AddSourceObject( this );
 
 		SpecHandle = SourceInterface->GetAbilitySystemComponent()->MakeOutgoingSpec( UNAGE_Damage::StaticClass(), 1.f, ContextHandle );
+
+		MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->bUseControllerDesiredRotation = false;
+		MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->StopMovementImmediately();
+		MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->DisableMovement();
 	}
 }
 
@@ -46,6 +51,9 @@ void UNAAnimNotifyState_SphereOverlapTest::NotifyEnd( USkeletalMeshComponent* Me
 		SpecHandle.Clear();
 		ContextHandle.Clear();
 		AppliedActors.Empty();
+
+		MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->bUseControllerDesiredRotation = true;
+		MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->SetMovementMode(MOVE_Walking);
 	}
 }
 
