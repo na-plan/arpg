@@ -118,6 +118,7 @@ void UNACombatComponent::SetAttack(const bool NewAttack)
 	{
 		// 서버에서 발생한 경우 클라이언트와 동기화
 		Client_SyncAttack(bAttacking);
+		PostSetAttack();
 	}
 }
 

@@ -108,20 +108,24 @@ ANACharacter::ANACharacter()
 	RightHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("RightHandChildActor"));
 	LeftHandChildActor->SetupAttachment(GetMesh(), LeftHandSocketName);
 	RightHandChildActor->SetupAttachment(GetMesh(), RightHandSocketName);
+
+	GetMesh()->SetIsReplicated( true );
+	bReplicates = true;
+	ACharacter::SetReplicateMovement( true );
 }
 
 void ANACharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
-
-	// 기본 공격이 정의되어있지 않음!
-	check( DefaultCombatComponent->GetMontage() && DefaultCombatComponent->GetAttackAbility() );
 	
 	// == 테스트 코드 ==
 	{
 		if (HasAuthority())
 		{
+			// 기본 공격이 정의되어있지 않음!
+			check( DefaultCombatComponent->GetMontage() && DefaultCombatComponent->GetAttackAbility() );
+			
 			// 데미지
 			FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
 			EffectContext.AddInstigator(GetController(), this);
@@ -137,6 +141,11 @@ void ANACharacter::BeginPlay()
 		}
 	}
 	// ===============
+}
+
+void ANACharacter::PostNetInit()
+{
+	Super::PostNetInit();
 }
 
 void ANACharacter::PossessedBy(AController* NewController)
@@ -299,5 +308,6 @@ void ANACharacter::StopLeftMouseAttack()
 void ANACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ANACharacter, AbilitySystemComponent);
+	DOREPLIFETIME( ANACharacter, AbilitySystemComponent );
+	DOREPLIFETIME( ANACharacter, DefaultCombatComponent );
 }

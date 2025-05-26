@@ -14,6 +14,8 @@ class ARPG_API UNAGA_Melee : public UGameplayAbility
 {
 	GENERATED_BODY()
 
+	UNAGA_Melee();
+
 protected:
 	UFUNCTION()
 	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);

@@ -9,23 +9,37 @@
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "Combat/GameplayEffect/NAGE_UseActivePoint.h"
 
+UNAGA_Melee::UNAGA_Melee()
+{	
+	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateYes;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
+}
+
 void UNAGA_Melee::OnMontageEnded(UAnimMontage* /*Montage*/, bool /*bInterrupted*/)
 {
 	// 델레게이션을 지우고, 효과를 종료함 (가정: 어빌리티가 인스턴싱 되는 경우)
-	GetCurrentActorInfo()->AbilitySystemComponent->AbilityActorInfo->GetAnimInstance()->OnMontageEnded.RemoveAll(this);
+	const FGameplayAbilityActivationInfo Info = GetCurrentActivationInfo();
+
+	// 추적하던 몽타주를 해제
+	if ( HasAuthority( &Info ) )
+	{
+		GetCurrentActorInfo()->AbilitySystemComponent->AbilityActorInfo->GetAnimInstance()->OnMontageEnded.RemoveAll(this);
+	}
+	
 	EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false);
 }
 
 void UNAGA_Melee::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
                                   const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
-	if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
+	// 실행 가능 여부 확인은 서버로
+	if ( HasAuthority(&ActivationInfo) )
 	{
 		if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
 		{
 			EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		}
-
+		
 		if (UNAMontageCombatComponent* CombatComponent = ActorInfo->AvatarActor->GetComponentByClass<UNAMontageCombatComponent>())
 		{
 			ActorInfo->AbilitySystemComponent->PlayMontage
@@ -35,7 +49,7 @@ void UNAGA_Melee::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 				CombatComponent->GetMontage(),
 				CombatComponent->GetMontagePlayRate()
 			);
-			
+
 			if (UAnimInstance* AnimInstance = ActorInfo->AbilitySystemComponent->AbilityActorInfo->GetAnimInstance())
 			{
 				// 효과는 몽타주가 끝나는 시점에 종료 판정이 남
@@ -78,14 +92,21 @@ bool UNAGA_Melee::CommitAbility(const FGameplayAbilitySpecHandle Handle, const F
 void UNAGA_Melee::CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateCancelAbility)
 {
-	if (UAnimInstance* AnimInstance = GetCurrentActorInfo()->AbilitySystemComponent->AbilityActorInfo->GetAnimInstance())
+	// 추적하던 몽타주를 해제
+	if ( HasAuthority(&ActivationInfo) )
 	{
-		AnimInstance->OnMontageEnded.RemoveAll(this);	
-	}
-	else
-	{
-		// 무슨 이유인지는 몰라도 AnimInstance가 없는걸로 나올때가 있음
-		check( false );
+		if ( const UAbilitySystemComponent* AbilitySystemComponent = GetCurrentActorInfo()->AbilitySystemComponent.Get())
+		{
+			if (UAnimInstance* AnimInstance = AbilitySystemComponent->AbilityActorInfo->GetAnimInstance())
+			{
+				AnimInstance->OnMontageEnded.RemoveAll(this);	
+			}
+			else
+			{
+				// 무슨 이유인지는 몰라도 AnimInstance가 없는걸로 나올때가 있음
+				check( false );
+			}	
+		}
 	}
 	
 	Super::CancelAbility(Handle, ActorInfo, ActivationInfo, bReplicateCancelAbility);

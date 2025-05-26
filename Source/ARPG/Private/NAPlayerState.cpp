@@ -54,16 +54,23 @@ void ANAPlayerState::SetPossessAssetName(const FName& AssetName)
 	UpdatePossessAssetByName();
 }
 
-void ANAPlayerState::OnRep_PossessAssetName() const
+void ANAPlayerState::OnRep_PossessAssetName()
 {
 	UpdatePossessAssetByName();
 }
 
-void ANAPlayerState::UpdatePossessAssetByName() const
+void ANAPlayerState::UpdatePossessAssetByName()
 {
-	if (const TScriptInterface<INAManagedAsset> Interface = GetPawn())
+	if ( const TScriptInterface<INAManagedAsset> Interface = GetPawn() )
 	{
-		Interface->SetAssetName(PossessAssetName);
+		Interface->SetAssetName( PossessAssetName );
+	}
+
+	// FIXME: ACS 재초기화를 수행해야하는데 OwnerActor가 PlayerState이다보니 Character와 PlayerState 둘 다 있는 상황에서
+	// 초기화를 하려고 여기에 넣어둠
+	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetPawn() )
+	{
+		Interface->GetAbilitySystemComponent()->InitAbilityActorInfo( this, GetPawn() );
 	}
 }
 

@@ -70,7 +70,7 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	TObjectPtr<class UNAInteractionComponent> InteractionComponent;
 
 	// 양손에 무기가 없을때 사용되는 전투 컴포넌트
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta=(AllowPrivateAccess="true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Combat", meta=(AllowPrivateAccess="true"))
 	UNAMontageCombatComponent* DefaultCombatComponent;
 
 public:
@@ -105,6 +105,8 @@ protected:
 	
 	// To add mapping context
 	virtual void BeginPlay() override;
+
+	virtual void PostNetInit() override;
 
 	virtual void PossessedBy(AController* NewController) override;
 

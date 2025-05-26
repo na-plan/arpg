@@ -35,11 +35,11 @@ protected:
 
 	// 서버에서 AssetName이 바뀐 경우 클라이언트 사이드에서 에셋 업데이트
 	UFUNCTION()
-	void OnRep_PossessAssetName() const;
+	void OnRep_PossessAssetName();
 
 	// Pawn의 AssetName을 수정하는 함수
 	UFUNCTION()
-	void UpdatePossessAssetByName() const;
+	void UpdatePossessAssetByName();
 
 	virtual void BeginPlay() override;
 
