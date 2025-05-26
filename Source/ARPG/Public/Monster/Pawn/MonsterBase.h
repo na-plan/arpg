@@ -60,6 +60,7 @@ public:
 	FORCEINLINE UAbilitySystemComponent* GetAbilitySystemComponent() const { return AbilitySystemComponent; }
 
 	UAnimMontage* GetAttackMontage() const { return TestAttackMontage; }
+	UAnimMontage* GetSpawnMontage() const { return SpawnMontage; }
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = Gameplay, meta = (AllowPrivateAccess = "true"))
@@ -90,5 +91,7 @@ protected:
 public:
 	UPROPERTY(EditAnywhere)
 	UAnimMontage* TestAttackMontage;
+	UPROPERTY(EditAnywhere)
+	UAnimMontage* SpawnMontage;
 
 };
