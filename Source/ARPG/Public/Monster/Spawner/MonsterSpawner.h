@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "MonsterSpawner.generated.h"
 
+class AMonsterBase;
+
 UCLASS()
 class ARPG_API AMonsterSpawner : public AActor
 {
@@ -18,17 +20,41 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	
+
+#if WITH_EDITOR
+protected:
+	//Editor Proxy
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditMove(bool bFinished) override;
+	//Duplacte In Editor
+	virtual void PostDuplicate(EDuplicateMode::Type DuplicateMode) override;
+	virtual void PostLoad() override;
+	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;
+	AActor* PreviewActor;
+#endif
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Class", meta = (AllowPrivateAccess = "true"))
 	FName AssetName;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Timer", meta=(AllowPrivateAccess="true"))
 	float LastSpawnTime;
-	
+	bool IsSpawn = false;
+	bool IsSpawned = false;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	void SpawnMonster();
-	
+	void SpawnMonster(bool Spawncheck);
+
+	bool GetSpawning() { return IsSpawn; }
+	bool SetSpawning(bool SetSpawn) { return IsSpawn= SetSpawn; }
+
+public:
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<AActor> PreviewSpawnTarget;
+
+	UPROPERTY(EditAnywhere)
+	bool SpawnOneTime = false;
+	UPROPERTY(EditAnywhere)
+	float SpawnTime = 10;
+
 };

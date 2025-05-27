@@ -5,23 +5,32 @@
 #include "AbilitySystemComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 
+#include "Monster/Pawn/MonsterBase.h"
+#include "Ability/GameplayAbility/AttackGameplayAbility.h"
+
+
 void AMonsterAIController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (!IsValid(BrainComponent))
+
+
+	// Pawn cast를 먼저 실행해서 GetPawn을 가지고 올수 있게 미리 세팅을 합니다
+	if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(GetPawn()))
 	{
-		//BT로 바꾸기
-		UBehaviorTree* BehaviorTree = LoadObject<UBehaviorTree>(nullptr, TEXT("/Script/AIModule.BehaviorTree'/Game/TempResource/Monster/AI/BT_BaseMonster.BT_BaseMonster'"));
-		check(BehaviorTree);
-		RunBehaviorTree(BehaviorTree);
+		if (UAbilitySystemComponent* ASC = OwnerMonster->GetAbilitySystemComponent())
+		{
+			bool OwnAbilitySystemComponent=true;
+		}
 	}
 
-	//Spawn 위치 기준 일정 범위 이상 못나가게 하려고 할때 사용 가능합니다
-	APawn* OwningPawn = GetPawn();
-	FVector FSpawnLocation = OwningPawn->GetActorLocation();
-	Blackboard->SetValueAsVector(TEXT("SpwanPosition"), FSpawnLocation);
-
+	if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(GetPawn()))
+	{
+		if (UAbilitySystemComponent* ASC = OwnerMonster->GetAbilitySystemComponent())
+		{
+			bool OwnAbilitySystemComponent=true;
+		}
+	}
 
 
 
@@ -32,6 +41,21 @@ void AMonsterAIController::OnPossess(APawn* InPawn)
 	Super::OnPossess(InPawn);
 	// TODO:: there is No Component right Now Plz Add Components After Create monster Components
 
+	/*AI Setting*/
+	// BeginPlay는 Pawn이 만들어지기 전에 호출함으로 해당 위치로 호출 순서를 바꿨습니다
+	if (!IsValid(BrainComponent))
+	{
+		//BT로 바꾸기
+		UBehaviorTree* BehaviorTree = LoadObject<UBehaviorTree>(nullptr, TEXT("/Script/AIModule.BehaviorTree'/Game/01_ExternalAssets/TempResource/Monster/AI/BT_BaseMonster.BT_BaseMonster'"));
+		check(BehaviorTree);
+		RunBehaviorTree(BehaviorTree);
+		//Spawn 위치 기준 일정 범위 이상 못나가게 하려고 할때 사용 가능합니다
+		APawn* OwningPawn = GetPawn();
+		FVector FSpawnLocation = OwningPawn->GetActorLocation();
+		Blackboard->SetValueAsVector(TEXT("SpwanPosition"), FSpawnLocation);
+		Blackboard->SetValueAsBool(TEXT("Spawning"), true);
+
+	}
 
 }
 
@@ -39,6 +63,7 @@ void AMonsterAIController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	
 	//Montage play중이면 이동 멈추는거
 	IsPlayingMontage();
 	//Player 찾기
@@ -46,6 +71,9 @@ void AMonsterAIController::Tick(float DeltaTime)
 
 	//Spawn 장소로 부터 일정 거리 떨어졌는지 확인하기
 	CheckSpawnRadius();
+
+	//Player와의 거리 확인
+	CheckPlayerDistance();
 }
 
 void AMonsterAIController::CheckSpawnRadius()
@@ -63,6 +91,26 @@ void AMonsterAIController::CheckSpawnRadius()
 		Blackboard->SetValueAsObject(TEXT("DetectTarget"), nullptr);
 	}
 	else { Blackboard->SetValueAsBool(TEXT("OutRangedSpawn"), false); }
+}
+
+void AMonsterAIController::CheckPlayerDistance()
+{
+	UObject* DetectedPlayer = Blackboard->GetValueAsObject(TEXT("DetectPlayer"));
+	if (DetectedPlayer != nullptr)
+	{
+		if (AActor* DetectedPlayerActor = Cast<AActor>(DetectedPlayer))
+		{
+			APawn* OwningPawn = GetPawn();
+
+			FVector OwningPawnLocation = OwningPawn->GetActorLocation();
+			FVector DetectedPlayerLocation = DetectedPlayerActor->GetActorLocation();
+	
+			float Distance = FVector::Dist(DetectedPlayerLocation, OwningPawnLocation);
+
+			Blackboard->SetValueAsFloat(TEXT("PlayerDistance"), Distance);
+		}
+	}
+
 }
 
 void AMonsterAIController::FindPlayerByPerception()
@@ -117,5 +165,19 @@ void AMonsterAIController::IsPlayingMontage()
 		Blackboard->SetValueAsBool(TEXT("UsingSkill"), false);
 		Blackboard->SetValueAsBool(TEXT("OnDamage"), false);
 	}
+
+}
+
+void AMonsterAIController::OnAttack()
+{
+	if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(GetPawn()))
+	{
+		//Casting성공
+		UAbilitySystemComponent* MonsterAbilitySystemComponent = OwnerMonster->GetAbilitySystemComponent();
+
+
+	}
+
+
 
 }

@@ -18,9 +18,23 @@
 
 //DECLARE_LOG_CATEGORY_EXTERN(LogTemplateMonster, Log, All);
 
+
+
+UENUM(BlueprintType)
+enum class MonsterRate : uint8
+{
+	MR_None			UMETA(DisplayName = "None"),		//	초기화
+	MR_Normal		UMETA(DisplayName = "Normal"),		//	일반몹
+	MR_Named		UMETA(DisplayName = "Named"),		//	아이템 드랍할 정도는 되는 몹
+	MR_Seed			UMETA(DisplayName = "Seed"),		//	SubBoss 정도? 간단한 스킬 하나 정도?
+	MR_Boss			UMETA(DisplayName = "Boss"),		//	보스
+
+
+};
+
 //Monster 도 경국 ability system을 사용을 해서 공격이나 다른걸 사용하니 얘도 component 붙여야 할거 같음
 class UAbilitySystemComponent;
-
+class UAbilityTask_PlayMontageAndWait;
 
 UCLASS()
 class ARPG_API AMonsterBase : public APawn, public IAbilitySystemInterface
@@ -31,6 +45,8 @@ public:
 	// Sets default values for this pawn's properties
 	AMonsterBase();
 
+	void InitializeAbilities();
+
 	virtual void PossessedBy(AController* NewController) override;
 protected:
 	// Called when the game starts or when spawned
@@ -38,7 +54,13 @@ protected:
 
 	/* Gas 전환중 */
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-	
+
+	//Gas 전환 완료
+	//virtual bool OnAttack();
+
+	//Take damage Parts
+	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
 	UFUNCTION()
 	virtual void OnDie();
 public:	
@@ -47,8 +69,11 @@ public:
 	
 	//Gas에서 호출하는 함수들은 여기에 사용하는게 좋아보임
 public:
-	FORCEINLINE UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent; }
+	FORCEINLINE UAbilitySystemComponent* GetAbilitySystemComponent() const override{ return AbilitySystemComponent; }
 
+	UAnimMontage* GetAttackMontage() const { return TestAttackMontage; }
+	TArray<UAnimMontage*> GetAttackMontageCombo() const { return AttackComboMontage; }
+	UAnimMontage* GetSpawnMontage() const { return SpawnMontage; }
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = Gameplay, meta = (AllowPrivateAccess = "true"))
@@ -75,5 +100,20 @@ protected:
 
 	float CheckTimer = 0;
 	float CheckHP = 0;
+
+	//이거 데이터화 시키고 get을 데이터테이블로 보내는게 낫지않나? 싶은데...
+public:
+	//ComboAttack
+	UPROPERTY(EditAnywhere)
+	TArray<UAnimMontage*> AttackComboMontage;
+
+	UPROPERTY(EditAnywhere)
+	UAnimMontage* TestAttackMontage;
+	UPROPERTY(EditAnywhere)
+	UAnimMontage* SpawnMontage;
+
+	UPROPERTY(EditAnywhere, meta = (RowType = "/Script/ARPG.OwnSkillTable"))
+	FDataTableRowHandle OwnSkills;
+
 
 };

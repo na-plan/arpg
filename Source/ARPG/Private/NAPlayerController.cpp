@@ -41,10 +41,20 @@ void ANAPlayerController::OnPossess(APawn* InPawn)
 void ANAPlayerController::AcknowledgePossession(APawn* P)
 {
 	Super::AcknowledgePossession(P);
-	
-	if (const TScriptInterface<IAbilitySystemInterface> Interface(P); Interface)
+}
+
+void ANAPlayerController::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+
+	if ( const TScriptInterface<IAbilitySystemInterface> Interface( GetPawn() );
+		 Interface )
 	{
-		Interface->GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState<ANAPlayerState>(), P);
+		Interface->GetAbilitySystemComponent()->InitAbilityActorInfo
+		(
+			GetPlayerState<ANAPlayerState>(),
+			GetPawn()
+		);
 	}
 }
 
