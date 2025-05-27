@@ -20,17 +20,17 @@ class ARPG_API USkillAttributeSet : public UAttributeSet
 public:
 	// Cooltime
 	UPROPERTY(VisibleAnywhere, Replicated)
-	FGameplayAttributeData SkillCooldownTime;
+	FGameplayAttributeData CoolTime;
 	// Damage
 	UPROPERTY(VisibleAnywhere, Replicated)
-	FGameplayAttributeData SkillDamage;
+	FGameplayAttributeData Damage;
 	// mana 있으면 사용
 	UPROPERTY(VisibleAnywhere, Replicated)
-	FGameplayAttributeData SkillCost;
+	FGameplayAttributeData Cost;
 
-	ATTRIBUTE_ACCESSORS(USkillAttributeSet, SkillCooldownTime);
-	ATTRIBUTE_ACCESSORS(USkillAttributeSet, SkillDamage);
-	ATTRIBUTE_ACCESSORS(USkillAttributeSet, SkillCost);
+	ATTRIBUTE_ACCESSORS(USkillAttributeSet , CoolTime);
+	ATTRIBUTE_ACCESSORS(USkillAttributeSet , Damage);
+	ATTRIBUTE_ACCESSORS(USkillAttributeSet , Cost);
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 

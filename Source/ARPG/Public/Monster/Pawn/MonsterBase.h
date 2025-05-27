@@ -18,6 +18,20 @@
 
 //DECLARE_LOG_CATEGORY_EXTERN(LogTemplateMonster, Log, All);
 
+
+
+UENUM(BlueprintType)
+enum class MonsterRate : uint8
+{
+	MR_None			UMETA(DisplayName = "None"),		//	초기화
+	MR_Normal		UMETA(DisplayName = "Normal"),		//	일반몹
+	MR_Named		UMETA(DisplayName = "Named"),		//	아이템 드랍할 정도는 되는 몹
+	MR_Seed			UMETA(DisplayName = "Seed"),		//	SubBoss 정도? 간단한 스킬 하나 정도?
+	MR_Boss			UMETA(DisplayName = "Boss"),		//	보스
+
+
+};
+
 //Monster 도 경국 ability system을 사용을 해서 공격이나 다른걸 사용하니 얘도 component 붙여야 할거 같음
 class UAbilitySystemComponent;
 class UAbilityTask_PlayMontageAndWait;
@@ -93,6 +107,8 @@ public:
 	UPROPERTY(EditAnywhere)
 	UAnimMontage* SpawnMontage;
 
+	UPROPERTY(EditAnywhere, meta = (RowType = "/Script/ARPG.OwnSkillTable"))
+	FDataTableRowHandle OwnSkills;
 
 
 };

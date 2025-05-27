@@ -7,9 +7,9 @@
 void USkillAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(USkillAttributeSet, SkillCooldownTime);
-	DOREPLIFETIME(USkillAttributeSet, SkillDamage);
-	DOREPLIFETIME(USkillAttributeSet, SkillCost);
+	DOREPLIFETIME(USkillAttributeSet, CoolTime);
+	DOREPLIFETIME(USkillAttributeSet, Damage);
+	DOREPLIFETIME(USkillAttributeSet, Cost);
 
 
 }
