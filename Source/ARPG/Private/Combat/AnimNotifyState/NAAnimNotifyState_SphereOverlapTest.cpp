@@ -14,32 +14,35 @@ void UNAAnimNotifyState_SphereOverlapTest::NotifyBegin( USkeletalMeshComponent* 
 {
 	Super::NotifyBegin( MeshComp, Animation, TotalDuration, EventReference );
 
-	if ( MeshComp->GetWorld()->IsGameWorld() && MeshComp->GetOwner()->HasAuthority() )
+	if ( MeshComp->GetWorld()->IsGameWorld() )
 	{
-		const TScriptInterface<IAbilitySystemInterface>& SourceInterface = MeshComp->GetOwner();
-
-		if ( !SourceInterface )
+		if (  MeshComp->GetOwner()->HasAuthority() )
 		{
-			// GAS가 없는 객체로부터 시도됨
-			check( false );
-			return;
+			const TScriptInterface<IAbilitySystemInterface>& SourceInterface = MeshComp->GetOwner();
+
+			if ( !SourceInterface )
+			{
+				// GAS가 없는 객체로부터 시도됨
+				check( false );
+				return;
+			}
+
+			const FVector SocketLocation = MeshComp->GetSocketLocation( SocketName );
+	
+			ContextHandle = SourceInterface->GetAbilitySystemComponent()->MakeEffectContext();
+			ContextHandle.AddOrigin( SocketLocation );
+			ContextHandle.AddInstigator( MeshComp->GetOwner()->GetInstigatorController(), MeshComp->GetOwner() );
+			ContextHandle.SetAbility( SourceInterface->GetAbilitySystemComponent()->GetAnimatingAbility() );
+			ContextHandle.AddSourceObject( this );
+
+			SpecHandle = SourceInterface->GetAbilitySystemComponent()->MakeOutgoingSpec( UNAGE_Damage::StaticClass(), 1.f, ContextHandle );
 		}
 
-		const FVector SocketLocation = MeshComp->GetSocketLocation( SocketName );
-	
-		ContextHandle = SourceInterface->GetAbilitySystemComponent()->MakeEffectContext();
-		ContextHandle.AddOrigin( SocketLocation );
-		ContextHandle.AddInstigator( MeshComp->GetOwner()->GetInstigatorController(), MeshComp->GetOwner() );
-		ContextHandle.SetAbility( SourceInterface->GetAbilitySystemComponent()->GetAnimatingAbility() );
-		ContextHandle.AddSourceObject( this );
-
-		SpecHandle = SourceInterface->GetAbilitySystemComponent()->MakeOutgoingSpec( UNAGE_Damage::StaticClass(), 1.f, ContextHandle );
+		// 서버와 클라이언트 간 플레이어 컨트롤러 설정 동기화
+		MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->bUseControllerDesiredRotation = false;
+		MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->StopMovementImmediately();
+		MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->DisableMovement();
 	}
-
-	// 서버와 클라이언트 간 플레이어 컨트롤러 설정 동기화
-	MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->bUseControllerDesiredRotation = false;
-	MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->StopMovementImmediately();
-	MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->DisableMovement();
 }
 
 void UNAAnimNotifyState_SphereOverlapTest::NotifyEnd( USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
@@ -47,16 +50,19 @@ void UNAAnimNotifyState_SphereOverlapTest::NotifyEnd( USkeletalMeshComponent* Me
 {
 	Super::NotifyEnd( MeshComp, Animation, EventReference );
 
-	if ( MeshComp->GetWorld()->IsGameWorld() && MeshComp->GetOwner()->HasAuthority() )
+	if ( MeshComp->GetWorld()->IsGameWorld() )
 	{
-		SpecHandle.Clear();
-		ContextHandle.Clear();
-		AppliedActors.Empty();
-	}
+		if ( MeshComp->GetOwner()->HasAuthority() )
+		{
+			SpecHandle.Clear();
+			ContextHandle.Clear();
+			AppliedActors.Empty();
+		}
 
-	// 서버와 클라이언트 간 플레이어 컨트롤러 설정 동기화
-	MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->bUseControllerDesiredRotation = true;
-	MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->SetMovementMode(MOVE_Walking);
+		// 서버와 클라이언트 간 플레이어 컨트롤러 설정 동기화
+		MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->bUseControllerDesiredRotation = true;
+		MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->SetMovementMode(MOVE_Walking);
+	}
 }
 
 void UNAAnimNotifyState_SphereOverlapTest::NotifyTick( USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
@@ -87,7 +93,14 @@ void UNAAnimNotifyState_SphereOverlapTest::NotifyTick( USkeletalMeshComponent* M
 			);
 
 #if WITH_EDITOR || UE_BUILD_DEBUG
-			DrawDebugSphere( MeshComp->GetWorld(), SocketLocation, SphereRadius, 16, bOverlap ? FColor::Green : FColor::Red );
+			DrawDebugSphere
+			(
+				MeshComp->GetWorld(),
+				SocketLocation,
+				SphereRadius,
+				8,
+				bOverlap || !OverlapResults.IsEmpty() ? FColor::Green : FColor::Red
+			);
 #endif
 
 			if ( !OverlapResults.IsEmpty() && MeshComp->GetWorld()->IsGameWorld() )
