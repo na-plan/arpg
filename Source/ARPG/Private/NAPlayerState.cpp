@@ -50,8 +50,12 @@ bool ANAPlayerState::IsAlive() const
 
 void ANAPlayerState::SetPossessAssetName(const FName& AssetName)
 {
-	PossessAssetName = AssetName;
-	UpdatePossessAssetByName();
+	// 수정은 서버에서 가능하도록
+	if ( HasAuthority() )
+	{
+		PossessAssetName = AssetName;
+		UpdatePossessAssetByName();
+	}
 }
 
 void ANAPlayerState::OnRep_PossessAssetName()
@@ -66,8 +70,7 @@ void ANAPlayerState::UpdatePossessAssetByName()
 		Interface->SetAssetName( PossessAssetName );
 	}
 
-	// FIXME: ACS 재초기화를 수행해야하는데 OwnerActor가 PlayerState이다보니 Character와 PlayerState 둘 다 있는 상황에서
-	// 초기화를 하려고 여기에 넣어둠
+	// 중간에 에셋이 바뀐 경우이니, 다시 ASC를 업데이트
 	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetPawn() )
 	{
 		Interface->GetAbilitySystemComponent()->InitAbilityActorInfo( this, GetPawn() );
