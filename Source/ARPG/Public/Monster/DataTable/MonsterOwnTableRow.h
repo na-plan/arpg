@@ -21,46 +21,6 @@ public:
 	
 };
 
-//Player도 사용 가능하게 할까?
-USTRUCT()
-struct FSkillTable : public FTableRowBase
-{
-	GENERATED_BODY()
-public:
-	//Skill Montage
-	UPROPERTY(EditAnywhere)
-	UAnimMontage* SkillMontage;
 
-	UPROPERTY(EditAnywhere)
-	float Damage;
-	UPROPERTY(EditAnywhere)
-	float Cooltime;
-	UPROPERTY(EditAnywhere)
-	float Cost;
-
-	// Monster가 사용시 사용 가능한 사거리
-	UPROPERTY(EditAnywhere)
-	float Range;
-
-	//SpawnProjectile (Projectile Data를 만들고 Spawn시키도록 해야함 -> 그런데 쓸지 안쓸지를 모르겠어어 일단 주석)
-
-};
-
-// 하나의 Pawn(Character)가 보유중인 Skill
-USTRUCT()
-struct FOwnSkillTable : public FTableRowBase
-{
-	GENERATED_BODY()
-public:
-	//Array로 가지고 갈 스킬들을 가져가기
-	//UPROPERTY(EditAnywhere, meta = (RowType = "/Script/ARPG.SkillTable"))
-	//TArray<FDataTableRowHandle> OwnSkillArray;
-	
-	// 여기서 Array로 만들어가지고 monster한테 전달하는 방식으로 ㄱㄱ
-	UPROPERTY(EditAnywhere)
-	TArray<FSkillTable> OwnSkillArray;
-
-
-};
 
 

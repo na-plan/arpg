@@ -72,6 +72,7 @@ public:
 	FORCEINLINE UAbilitySystemComponent* GetAbilitySystemComponent() const override{ return AbilitySystemComponent; }
 
 	UAnimMontage* GetAttackMontage() const { return TestAttackMontage; }
+	TArray<UAnimMontage*> GetAttackMontageCombo() const { return AttackComboMontage; }
 	UAnimMontage* GetSpawnMontage() const { return SpawnMontage; }
 
 protected:
@@ -102,6 +103,10 @@ protected:
 
 	//이거 데이터화 시키고 get을 데이터테이블로 보내는게 낫지않나? 싶은데...
 public:
+	//ComboAttack
+	UPROPERTY(EditAnywhere)
+	TArray<UAnimMontage*> AttackComboMontage;
+
 	UPROPERTY(EditAnywhere)
 	UAnimMontage* TestAttackMontage;
 	UPROPERTY(EditAnywhere)
