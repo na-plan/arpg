@@ -26,7 +26,7 @@ protected:
 	class UPawnMovementComponent* MovementComponent;
 
 	UPROPERTY(BlueprintReadOnly)
-	double Horizontal;
+	double Vertical;
 	
 	UPROPERTY(BlueprintReadOnly)
 	double Speed = 0.0;

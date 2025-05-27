@@ -29,7 +29,7 @@ void UDefaultAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	if (!MovementComponent) { return; }
 
-	Horizontal = MovementComponent->Velocity.Y;
+	Vertical = MovementComponent->Velocity.Z;
 
 	Speed = UKismetMathLibrary::VSizeXY(MovementComponent->Velocity);
 
