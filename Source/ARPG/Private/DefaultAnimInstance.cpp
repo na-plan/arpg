@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "DefaultAnimInstance.h"
+
+#include "Combat/Interface/NAHandActor.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -27,6 +29,8 @@ void UDefaultAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	if (!MovementComponent) { return; }
 
+	Vertical = MovementComponent->Velocity.Z;
+
 	Speed = UKismetMathLibrary::VSizeXY(MovementComponent->Velocity);
 
 	bShoudMove = !FMath::IsNearlyZero(Speed);
@@ -36,8 +40,13 @@ void UDefaultAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	//
 	Direction = CalculateDirection(MovementComponent->Velocity, Rotation);
 
+	if (const TScriptInterface<INAHandActor>& HandActor = Pawn)
+	{
+		bLeftHandEmpty = HandActor->GetLeftHandChildActorComponent()->GetChildActor() == nullptr;
+		bRightHandEmpty = HandActor->GetRightHandChildActorComponent()->GetChildActor() == nullptr;
+	}
 
-
+	
 	//Player controller 부분입니다 필요시 해당 주석을 모두 풀고 사용하거나 필요 없을 경우 지워주세요
 	//this is Player controller Parts 
 	// if someone need this delete this Commets And Used it plz or someone do not need this delete all this codes
@@ -57,7 +66,8 @@ void UDefaultAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	
 	
 	//쓸지 안쓸지 고민중 + fall anim not exist
-	//bIsCrouch = MovementComponent->IsCrouching();	
-	//bIsFalling = MovementComponent->IsFalling();
+	//bIsCrouch = MovementComponent->IsCrouching();
 	*/
+	
+	bIsFalling = MovementComponent->IsFalling();
 }

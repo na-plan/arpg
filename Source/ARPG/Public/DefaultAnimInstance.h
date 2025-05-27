@@ -26,6 +26,9 @@ protected:
 	class UPawnMovementComponent* MovementComponent;
 
 	UPROPERTY(BlueprintReadOnly)
+	double Vertical;
+	
+	UPROPERTY(BlueprintReadOnly)
 	double Speed = 0.0;
 
 	UPROPERTY(BlueprintReadOnly)
@@ -33,6 +36,12 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bShoudMove = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bLeftHandEmpty = true;
+	
+	UPROPERTY(BlueprintReadOnly)
+	bool bRightHandEmpty = true;
 
 	/*쓸지 안쓸지 고민중 + fall anim not exist */
 	UPROPERTY(BlueprintReadOnly)

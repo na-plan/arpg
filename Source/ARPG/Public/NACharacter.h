@@ -5,10 +5,12 @@
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
 #include "Assets/Interface/NAManagedAsset.h"
+#include "Combat/Interface/NAHandActor.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
 #include "NACharacter.generated.h"
 
+class UNAMontageCombatComponent;
 class UNAAttributeSet;
 class UGameplayEffect;
 class USpringArmComponent;
@@ -21,7 +23,7 @@ struct FInputActionValue;
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
 UCLASS(config=Game)
-class ANACharacter : public ACharacter, public IAbilitySystemInterface, public INAManagedAsset
+class ANACharacter : public ACharacter, public IAbilitySystemInterface, public INAManagedAsset, public INAHandActor
 {
 	GENERATED_BODY()
 	
@@ -35,6 +37,12 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = Gameplay, meta=(AllowPrivateAccess = "true"))
 	UAbilitySystemComponent* AbilitySystemComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
+	UChildActorComponent* LeftHandChildActor;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
+	UChildActorComponent* RightHandChildActor;
 	
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -52,12 +60,19 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* LookAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* LeftMouseAttackAction;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Asset", meta=(AllowPrivateAccess="true"))
 	FName AssetName;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UNAInteractionComponent> InteractionComponent;
-	
+
+	// 양손에 무기가 없을때 사용되는 전투 컴포넌트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Combat", meta=(AllowPrivateAccess="true"))
+	UNAMontageCombatComponent* DefaultCombatComponent;
+
 public:
 	ANACharacter();
 
@@ -74,22 +89,36 @@ protected:
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	// 왼쪽 클릭으로 공격을 시작할 경우
+	UFUNCTION()
+	void StartLeftMouseAttack();
 
+	// 오른 클릭으로 공격을 시작할 경우
+	UFUNCTION()
+	void StopLeftMouseAttack();
+	
 protected:
 	// APawn interface
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	// To add mapping context
 	virtual void BeginPlay() override;
 
+	virtual void PostNetInit() override;
+
 	virtual void PossessedBy(AController* NewController) override;
 
+protected:
+	virtual UChildActorComponent* GetLeftHandChildActorComponent() const override { return LeftHandChildActor; }
+	virtual UChildActorComponent* GetRightHandChildActorComponent() const override { return RightHandChildActor; }
+	
 public:
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-	FORCEINLINE UAbilitySystemComponent* GetAbilitySystemComponent() const { return AbilitySystemComponent; }
+	FORCEINLINE virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent; }
 };
 

@@ -44,14 +44,10 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
-
-	void TestCheck();
-
+	
 	//Gas에서 호출하는 함수들은 여기에 사용하는게 좋아보임
 public:
-	FORCEINLINE UAbilitySystemComponent* GetAbilitySystemComponent() const { return AbilitySystemComponent; }
-
+	FORCEINLINE UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent; }
 
 
 protected:
