@@ -33,6 +33,7 @@ protected:
 
 	void IsPlayingMontage();
 
+	void SelectSkill();
 
 	void OnAttack();
 

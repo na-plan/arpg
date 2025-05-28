@@ -7,30 +7,12 @@
 
 #include "Monster/Pawn/MonsterBase.h"
 #include "Ability/GameplayAbility/AttackGameplayAbility.h"
+#include "Skill/DataTable/SkillTableRow.h"
 
 
 void AMonsterAIController::BeginPlay()
 {
 	Super::BeginPlay();
-
-
-
-	// Pawn cast를 먼저 실행해서 GetPawn을 가지고 올수 있게 미리 세팅을 합니다
-	if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(GetPawn()))
-	{
-		if (UAbilitySystemComponent* ASC = OwnerMonster->GetAbilitySystemComponent())
-		{
-			bool OwnAbilitySystemComponent=true;
-		}
-	}
-
-	if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(GetPawn()))
-	{
-		if (UAbilitySystemComponent* ASC = OwnerMonster->GetAbilitySystemComponent())
-		{
-			bool OwnAbilitySystemComponent=true;
-		}
-	}
 
 
 
@@ -40,6 +22,15 @@ void AMonsterAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
 	// TODO:: there is No Component right Now Plz Add Components After Create monster Components
+
+
+	if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(GetPawn()))
+	{
+		if (UAbilitySystemComponent* ASC = OwnerMonster->GetAbilitySystemComponent())
+		{
+			bool OwnAbilitySystemComponent = true;
+		}
+	}
 
 	/*AI Setting*/
 	// BeginPlay는 Pawn이 만들어지기 전에 호출함으로 해당 위치로 호출 순서를 바꿨습니다
@@ -167,6 +158,38 @@ void AMonsterAIController::IsPlayingMontage()
 	}
 
 }
+//임시 확인용 입니다
+class UGA_UseSkill;
+
+void AMonsterAIController::SelectSkill()
+{
+	if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(GetPawn()))
+	{
+		UAbilitySystemComponent* MonsterASC = OwnerMonster->GetAbilitySystemComponent();
+
+		FDataTableRowHandle OwnSkillData =OwnerMonster->GetSkillData();
+		FOwnSkillTable* Data = OwnSkillData.GetRow<FOwnSkillTable>(TEXT("MonsterSkillData"));
+		//보유한 스킬들
+		//0번 1개 있을때 1이 됩니다.
+		uint8 MonsterOwnskillNum = Data->OwnSkillArray.Num();
+
+		// 임시 0번 스킬
+		float SkillRange = Data->OwnSkillArray[0].Range;
+		float Distance = Blackboard->GetValueAsFloat(TEXT("PlayerDistance"));
+		// 선택한 skill의 data를 가지고 와서 distance가 playerdistance 보다 적으면 사용 하도록 설정하면 ㄱㅊ을거 같음
+		if (Distance < SkillRange)
+		{
+			Blackboard->SetValueAsBool(TEXT("CanUseSkill"), true);
+		}
+
+		// gas로 쿨타임 관리를 하고 사용을 하고
+		if (MonsterOwnskillNum > 0)
+		{
+			
+		}
+
+	}
+}
 
 void AMonsterAIController::OnAttack()
 {
@@ -174,7 +197,6 @@ void AMonsterAIController::OnAttack()
 	{
 		//Casting성공
 		UAbilitySystemComponent* MonsterAbilitySystemComponent = OwnerMonster->GetAbilitySystemComponent();
-
 
 	}
 
