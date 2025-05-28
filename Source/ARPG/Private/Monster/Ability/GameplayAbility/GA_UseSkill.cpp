@@ -15,6 +15,20 @@ UGA_UseSkill::UGA_UseSkill()
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
 }
 
+//void UGA_UseSkill::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+//{
+//
+//}
+//
+//void UGA_UseSkill::OnMontageStarted(UAnimMontage* Montage)
+//{
+//	//여기에서 스킬 선택을 하면 어떨까? -> 이미 선택된걸 가지고 와서 start하기 때문에 안됌
+//	FGameplayAbilityActorInfo OwnerActorInfo = GetActorInfo();
+//	AMonsterBase* MonsterBase = CastChecked<AMonsterBase>(OwnerActorInfo.AvatarActor.Get());
+//	AMonsterAIController* MonsterAI = CastChecked<AMonsterAIController>(MonsterBase->GetController());
+//	MonsterAI->UsedSkill();
+//}
+
 void UGA_UseSkill::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	if (HasAuthority(&ActivationInfo))
@@ -34,6 +48,9 @@ void UGA_UseSkill::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 			if (UAnimMontage* SkillMontage = MonsterBase->GetSelectSkillMontage())
 			{
 				ASC->PlayMontage(this, CurrentActivationInfo, SkillMontage, 1.0f);
+				//UAnimInstance* AnimInstance = ASC->AbilityActorInfo->GetAnimInstance();
+				//AnimInstance->OnMontageEnded.AddUniqueDynamic(this, &UGA_UseSkill::OnMontageEnded);
+				//AnimInstance->OnMontageStarted.AddUniqueDynamic(this, &UGA_UseSkill::OnMontageStarted);
 
 			}
 		}
@@ -41,3 +58,4 @@ void UGA_UseSkill::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 	}
 
 }
+
