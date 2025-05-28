@@ -65,6 +65,8 @@ void AMonsterAIController::Tick(float DeltaTime)
 
 	//Player와의 거리 확인
 	CheckPlayerDistance();
+
+	SelectSkill();
 }
 
 void AMonsterAIController::CheckSpawnRadius()
@@ -176,18 +178,28 @@ void AMonsterAIController::SelectSkill()
 		// 임시 0번 스킬
 		float SkillRange = Data->OwnSkillArray[0].Range;
 		float Distance = Blackboard->GetValueAsFloat(TEXT("PlayerDistance"));
-		// 선택한 skill의 data를 가지고 와서 distance가 playerdistance 보다 적으면 사용 하도록 설정하면 ㄱㅊ을거 같음
+
+		// 선택한 skill의 data를 가지고 와서 distance가 playerdistance 보다 적으면 사용 하도록 함
 		if (Distance < SkillRange)
 		{
 			Blackboard->SetValueAsBool(TEXT("CanUseSkill"), true);
 		}
+		else
+		{
+			Blackboard->SetValueAsBool(TEXT("CanUseSkill"), false);
+		}
 
+		//random 한번 돌리는 과정입니다
 		// gas로 쿨타임 관리를 하고 사용을 하고
 		if (MonsterOwnskillNum > 0)
 		{
 			
+			
 		}
+		/* 일단 생략*/
 
+		//선택된 몽타주 전달
+		OwnerMonster->SetSelectSkillMontage(Data->OwnSkillArray[0].SkillMontage);
 	}
 }
 

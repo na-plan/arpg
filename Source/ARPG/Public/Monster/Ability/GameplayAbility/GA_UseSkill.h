@@ -14,9 +14,14 @@ class ARPG_API UGA_UseSkill : public UGameplayAbility
 {
 	GENERATED_BODY()
 	
+	UGA_UseSkill();
+
 public:
 	//UPROPERTY(EditDefaultsOnly)
 	//FSkillDataRow* SkillData;
+
+	UPROPERTY(EditDefaultsOnly)
+	UAnimMontage* PlayingMontage;
 
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData);
 

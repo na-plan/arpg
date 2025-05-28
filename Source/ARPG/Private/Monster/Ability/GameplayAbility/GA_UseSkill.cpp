@@ -8,34 +8,36 @@
 #include "Skill/DataTable/SkillTableRow.h"
 
 
+UGA_UseSkill::UGA_UseSkill()
+{
+	//Network 동기화 + client 반영
+	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateYes;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
+}
+
 void UGA_UseSkill::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
-	if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
+	if (HasAuthority(&ActivationInfo))
 	{
 		if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
 		{
 			EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-			return;
-		}
-
-		if (AMonsterBase* MonsterBase = CastChecked<AMonsterBase>(ActorInfo->AvatarActor.Get()))
-		{
-			//UAnimMontage* MonsterSpawnMontage = MonsterBase->GetSpawnMontage();
-			FDataTableRowHandle OwnSkillData = MonsterBase->GetSkillData();
-			FOwnSkillTable* Data = OwnSkillData.GetRow<FOwnSkillTable>(TEXT("MonsterSkillData"));
-
-			uint8 MonsterOwnskillnum = Data->OwnSkillArray.Num();
-			UAbilitySystemComponent* MonsterASC = MonsterBase->GetAbilitySystemComponent();
-
-			if (MonsterASC && MonsterOwnskillnum > 0)
-			{
-				//Num 가져오는 과정
-				FSkillTableRow CurrentData = Data->OwnSkillArray[MonsterOwnskillnum];
-
-				//ability에 parry를 던지고
-
-			}
-
 		}
 	}
+
+	
+	if (UAbilitySystemComponent* ASC = ActorInfo->AvatarActor.Get()->FindComponentByClass<UAbilitySystemComponent>()) 
+	{ 
+		bool FindComponentSuc = true; 
+		if (AMonsterBase* MonsterBase = CastChecked<AMonsterBase>(ActorInfo->AvatarActor.Get()))
+		{
+			if (UAnimMontage* SkillMontage = MonsterBase->GetSelectSkillMontage())
+			{
+				ASC->PlayMontage(this, CurrentActivationInfo, SkillMontage, 1.0f);
+
+			}
+		}
+
+	}
+
 }

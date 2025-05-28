@@ -77,7 +77,10 @@ public:
 	UAnimMontage* GetSpawnMontage() const { return SpawnMontage; }
 
 	FDataTableRowHandle GetSkillData() const { return OwnSkills; }
-	void SetSelectSkillNum(int InSelectSkillNum) { SelectedSkillNum = InSelectSkillNum; }
+
+	void SetSelectSkillMontage(UAnimMontage* SelectSkillMontage) { CurrentSkillMontage = SelectSkillMontage; }
+	UAnimMontage* GetSelectSkillMontage() const { return CurrentSkillMontage; }
+
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = Gameplay, meta = (AllowPrivateAccess = "true"))
@@ -119,6 +122,8 @@ public:
 	UAnimMontage* TestAttackMontage;
 	UPROPERTY(EditAnywhere)
 	UAnimMontage* SpawnMontage;
+	UPROPERTY(EditAnywhere)
+	UAnimMontage* CurrentSkillMontage;
 
 	UPROPERTY(EditAnywhere, meta = (RowType = "/Script/ARPG.OwnSkillTable"))
 	FDataTableRowHandle OwnSkills;

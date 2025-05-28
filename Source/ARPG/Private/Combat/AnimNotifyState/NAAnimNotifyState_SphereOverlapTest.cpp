@@ -39,9 +39,19 @@ void UNAAnimNotifyState_SphereOverlapTest::NotifyBegin( USkeletalMeshComponent* 
 		}
 
 		// 서버와 클라이언트 간 플레이어 컨트롤러 설정 동기화
-		MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->bUseControllerDesiredRotation = false;
-		MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->StopMovementImmediately();
-		MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->DisableMovement();
+		if (MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>())
+		{
+			MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->bUseControllerDesiredRotation = false;
+			MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->StopMovementImmediately();
+			MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->DisableMovement();
+		}
+		else if (MeshComp->GetOwner()->GetComponentByClass<UPawnMovementComponent>())
+		{
+			//MeshComp->GetOwner()->GetComponentByClass<UPawnMovementComponent>()->bUseControllerDesiredRotation = false;
+			MeshComp->GetOwner()->GetComponentByClass<UPawnMovementComponent>()->StopMovementImmediately();
+			//MeshComp->GetOwner()->GetComponentByClass<UPawnMovementComponent>()->DisableMovement();
+		}
+
 	}
 }
 
@@ -60,8 +70,11 @@ void UNAAnimNotifyState_SphereOverlapTest::NotifyEnd( USkeletalMeshComponent* Me
 		}
 
 		// 서버와 클라이언트 간 플레이어 컨트롤러 설정 동기화
-		MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->bUseControllerDesiredRotation = true;
-		MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->SetMovementMode(MOVE_Walking);
+		if (MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>())
+		{
+			MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->bUseControllerDesiredRotation = true;
+			MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->SetMovementMode(MOVE_Walking);
+		}
 	}
 }
 
