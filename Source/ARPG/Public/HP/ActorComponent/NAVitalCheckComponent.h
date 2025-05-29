@@ -33,8 +33,6 @@ class ARPG_API UNAVitalCheckComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-	
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Material", meta=(AllowPrivateAccess="true"))
 	UMaterialInstance* GreenMaterial;
 
@@ -58,6 +56,8 @@ public:
 	// Sets default values for this component's properties
 	UNAVitalCheckComponent();
 
+	ECharacterStatus GetCharacterStatus() const;
+
 protected:
 	// 매시에서 체력 구분 단위
 	constexpr static float MeshHealthStep = 0.25f;
@@ -65,11 +65,20 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
+	void SetState( ECharacterStatus NewStatus );
+
+	ANACharacter* GetCharacter() const;
+
+	void UpdateGameplayTag( const ECharacterStatus NewState );
+
 	// 캐릭터가 쓰러졌을때 캐릭터 속성 관리
-	void HandleKnockDown( const ANACharacter* Character );
+	void HandleKnockDown( const ANACharacter* Character, const float NewHealth );
 
 	// 캐릭터가 죽었을때 캐릭터 속성 관리
-	void HandleDead( const ANACharacter* Character );
+	void HandleDead( const ANACharacter* Character, const float NewHealth );
+
+	// 캐릭터가 살아있는 경우 캐릭터 속성 관리
+	void HandleAlive( const ANACharacter* Character, const float NewHealth );
 	
 	// 캐릭터의 체력이 변화할 경우
 	void OnHealthChanged( const FOnAttributeChangeData& OnAttributeChangeData );

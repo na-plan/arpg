@@ -181,6 +181,11 @@ void UNACombatComponent::StartAttack()
 {
 	UE_LOG(LogCombatComponent, Log, TEXT("%hs: Try attack"), __FUNCTION__);
 
+	if ( !IsActive() )
+	{
+		return;
+	}
+	
 	bCanAttack = IsAbleToAttack();
 	if (bCanAttack && !bAttacking)
 	{
@@ -279,7 +284,7 @@ void UNACombatComponent::StopAttack()
 {
 	if (bAttacking)
 	{
-		SetAttack(false);
+		SetAttack( false );
 	}
 }
 

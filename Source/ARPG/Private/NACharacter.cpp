@@ -17,6 +17,7 @@
 #include "ARPG/ARPG.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "HP/ActorComponent/NAVitalCheckComponent.h"
+#include "HP/GameplayAbility/NAGA_Revive.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
 #include "Net/UnrealNetwork.h"
 
@@ -123,6 +124,10 @@ void ANACharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
+
+	// 부활 기능 추가
+	const FGameplayAbilitySpec SpecHandle( UNAGA_Revive::StaticClass(), 1.f );
+	AbilitySystemComponent->GiveAbility( SpecHandle );
 	
 	// == 테스트 코드 ==
 	{

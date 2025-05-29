@@ -5,7 +5,6 @@
 
 #include "AbilitySystemComponent.h"
 #include "NACharacter.h"
-#include "NAPlayerState.h"
 #include "Ability/AttributeSet/NAAttributeSet.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -34,6 +33,10 @@ UNAVitalCheckComponent::UNAVitalCheckComponent()
 	FIND_MATERIAL( UMaterial, BlankMaterial, "/Script/Engine.Material'/Game/00_ProjectNA/05_Resource/01_Material/Issac/BlankMaterial.BlankMaterial'" )
 }
 
+ECharacterStatus UNAVitalCheckComponent::GetCharacterStatus() const
+{
+	return CharacterState;
+}
 
 // Called when the game starts
 void UNAVitalCheckComponent::BeginPlay()
@@ -42,84 +45,142 @@ void UNAVitalCheckComponent::BeginPlay()
 
 	if ( GetNetMode() != NM_DedicatedServer )
 	{
-		check( Cast<ANACharacter>(GetOwner()) ); // 체력 매쉬 등을 바꿔야 하므로 캐릭터만 호환 가능
-
+		const ANACharacter* Character = GetCharacter(); // 체력 매쉬 등을 바꿔야 하므로 캐릭터만 호환 가능
+		check( Character );
+		
 		// ASC의 체력 변화를 감지, 클라이언트 모두 업데이트
-		if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner() )
-		{
-			Interface->GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate( UNAAttributeSet::GetHealthAttribute() ).AddUObject( this, &UNAVitalCheckComponent::OnHealthChanged );
+		Character->GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate( UNAAttributeSet::GetHealthAttribute() ).AddUObject( this, &UNAVitalCheckComponent::OnHealthChanged );
 
-			// 초기 업데이트
-			if (const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>( Interface->GetAbilitySystemComponent()->GetAttributeSet( UNAAttributeSet::StaticClass() ) ) )
-			{
-				ChangeHealthMesh( AttributeSet->GetHealth(), AttributeSet->Health.GetBaseValue() );	
-			}
+		// 초기 업데이트
+		if (const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>( Character->GetAbilitySystemComponent()->GetAttributeSet( UNAAttributeSet::StaticClass() ) ) )
+		{
+			ChangeHealthMesh( AttributeSet->GetHealth(), AttributeSet->Health.GetBaseValue() );
+			HandleAlive( Character, AttributeSet->GetHealth() );
+			HandleKnockDown( Character, AttributeSet->GetHealth()  );
+			HandleDead( Character, AttributeSet->GetHealth()  );
 		}
 	}
 }
 
-void UNAVitalCheckComponent::HandleKnockDown( const ANACharacter* Character )
+void UNAVitalCheckComponent::SetState( const ECharacterStatus NewStatus )
 {
-	if ( const ANAPlayerState* PlayerState = Character->GetPlayerState<ANAPlayerState>() )
+	UpdateGameplayTag( NewStatus );
+}
+
+ANACharacter* UNAVitalCheckComponent::GetCharacter() const
+{
+	return Cast<ANACharacter>( GetOwner() );
+}
+
+void UNAVitalCheckComponent::UpdateGameplayTag( const ECharacterStatus NewState )
+{
+	if ( GetNetMode() != NM_Client )
 	{
-		if ( UNAMontageCombatComponent* CombatComponent = Character->GetComponentByClass<UNAMontageCombatComponent>() )
+		FGameplayTagContainer NewTags;
+		FGameplayTagContainer OldTags;
+
+		UAbilitySystemComponent* AbilitySystemComponent = GetCharacter()->GetAbilitySystemComponent();
+		check( AbilitySystemComponent );
+
+		switch ( CharacterState )
 		{
-			CombatComponent->SetActive( !PlayerState->IsKnockDown() );
+		case ECharacterStatus::Alive:
+			OldTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Alive" ) );
+			break;
+		case ECharacterStatus::KnockDown:
+			OldTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Alive" ) );
+			OldTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.KnockDown" ) );
+			break;
+		case ECharacterStatus::Dead:
+			OldTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Dead" ) );
+			break;
 		}
 
+		AbilitySystemComponent->RemoveReplicatedLooseGameplayTags( OldTags );
+	
+		switch ( NewState )
+		{
+		case ECharacterStatus::Alive:
+			NewTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Alive" ) );
+			break;
+		case ECharacterStatus::KnockDown:
+			NewTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Alive" ) );
+			NewTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.KnockDown" ) );
+			break;
+		case ECharacterStatus::Dead:
+			NewTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Dead" ) );
+			break;
+		}
+	
+		AbilitySystemComponent->AddReplicatedLooseGameplayTags( NewTags );
+	}
+
+	// 클라이언트와 서버 개별로 업데이트 (리플리케이션에 의존하지 않음)
+	CharacterState = NewState;
+}
+
+void UNAVitalCheckComponent::HandleKnockDown( const ANACharacter* Character, const float NewHealth )
+{
+	UNAMontageCombatComponent* CombatComponent = Character->GetComponentByClass<UNAMontageCombatComponent>();
+	check( CombatComponent );
+
+	if ( UCharacterMovementComponent* MovementComponent = Cast<UCharacterMovementComponent>( Character->GetMovementComponent() ) )
+	{
+		// 캐릭터가 쓰러졌었다가 다시 일어난 경우
+		if ( CharacterState == ECharacterStatus::KnockDown && NewHealth > 0.f )
+		{
+			MovementComponent->MaxWalkSpeed = 600.f;
+			SetState( ECharacterStatus::Alive );
+			CombatComponent->SetActive( true );
+		}
+
+		// 캐릭터가 녹다운이 된 경우
+		if ( NewHealth <= 0.f )
+		{
+			MovementComponent->MaxWalkSpeed = 150.f;
+			SetState( ECharacterStatus::KnockDown );
+			CombatComponent->SetActive( false );
+		}
+	}
+}
+
+void UNAVitalCheckComponent::HandleDead( const ANACharacter* Character, const float NewHealth )
+{
+	// 캐릭터가 녹다운 상태에서 사망 상태로 변한 경우
+	if ( CharacterState == ECharacterStatus::KnockDown && NewHealth < -100.f )
+	{
 		if ( UCharacterMovementComponent* MovementComponent = Cast<UCharacterMovementComponent>( Character->GetMovementComponent() ) )
 		{
-			// 캐릭터가 쓰러졌었다가 다시 일어난 경우
-			if ( CharacterState == ECharacterStatus::KnockDown && !PlayerState->IsKnockDown() )
-			{
-				MovementComponent->MaxWalkSpeed = 600.f;
-				CharacterState = ECharacterStatus::Alive;
-			}
-
-			// 캐릭터가 녹다운이 된 경우
-			if ( PlayerState->IsKnockDown() )
-			{
-				MovementComponent->MaxWalkSpeed = 150.f;
-				CharacterState = ECharacterStatus::KnockDown;
-			}
+			MovementComponent->StopMovementImmediately();
+			MovementComponent->DisableMovement();
+			SetState( ECharacterStatus::Dead );
+			// todo: 플레이어 관전자 모드로 전환
 		}
-	}
-	else
-	{
-		UE_LOG( LogVitalComponent, Warning, TEXT("%hs: PlayerState cannot be reached"), __FUNCTION__ );	
 	}
 }
 
-void UNAVitalCheckComponent::HandleDead( const ANACharacter* Character )
+void UNAVitalCheckComponent::HandleAlive( const ANACharacter* Character, const float NewHealth )
 {
-	if ( const ANAPlayerState* PlayerState = Character->GetPlayerState<ANAPlayerState>() )
+	UNAMontageCombatComponent* CombatComponent = Character->GetComponentByClass<UNAMontageCombatComponent>();
+	check( CombatComponent );
+	
+	if ( NewHealth > 0.f )
 	{
-		// 캐릭터가 녹다운 상태에서 사망 상태로 변한 경우
-		if ( CharacterState == ECharacterStatus::KnockDown && !PlayerState->IsAlive() )
-		{
-			if ( UCharacterMovementComponent* MovementComponent = Cast<UCharacterMovementComponent>( Character->GetMovementComponent() ) )
-			{
-				MovementComponent->StopMovementImmediately();
-				MovementComponent->DisableMovement();
-				CharacterState = ECharacterStatus::Dead;
-				// todo: 플레이어 관전자 모드로 전환
-			}
-		}
+		SetState( ECharacterStatus::Alive );
+		CombatComponent->SetActive( true );	
 	}
 }
 
 void UNAVitalCheckComponent::OnHealthChanged( const FOnAttributeChangeData& OnAttributeChangeData )
 {
-	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner() )
+	if ( const ANACharacter* Character = Cast<ANACharacter>( GetCharacter() ) )
 	{
 		// 클라이언트 + 서버 동기화 (클라이언트가 요청해도 서버쪽에서 컴포넌트가 꺼져있기 때문에 공격 불가 판정)
-		if ( const ANACharacter* Character = Cast<ANACharacter>( GetOwner() ) )
-		{
-			HandleKnockDown( Character );
-			HandleDead( Character );
-		}
+		HandleAlive( Character, OnAttributeChangeData.NewValue );
+		HandleKnockDown( Character, OnAttributeChangeData.NewValue );
+		HandleDead( Character, OnAttributeChangeData.NewValue );
 		
-		if ( const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>( Interface->GetAbilitySystemComponent()->GetAttributeSet( UNAAttributeSet::StaticClass() ) ) )
+		if ( const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>( Character->GetAbilitySystemComponent()->GetAttributeSet( UNAAttributeSet::StaticClass() ) ) )
 		{
 			ChangeHealthMesh
 			(
@@ -192,7 +253,7 @@ void UNAVitalCheckComponent::ChangeHealthMesh( const float NewValue, const float
 		check( false );
 	}
 
-	if ( USkeletalMeshComponent* SkeletalMeshComponent = GetOwner()->GetComponentByClass<USkeletalMeshComponent>() )
+	if ( USkeletalMeshComponent* SkeletalMeshComponent = GetCharacter()->GetComponentByClass<USkeletalMeshComponent>() )
 	{
 		constexpr int32 BottomIndex = 6;
 		
