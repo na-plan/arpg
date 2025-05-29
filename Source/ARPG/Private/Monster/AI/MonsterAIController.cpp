@@ -45,6 +45,7 @@ void AMonsterAIController::OnPossess(APawn* InPawn)
 		FVector FSpawnLocation = OwningPawn->GetActorLocation();
 		Blackboard->SetValueAsVector(TEXT("SpwanPosition"), FSpawnLocation);
 		Blackboard->SetValueAsBool(TEXT("Spawning"), true);
+		
 
 	}
 
@@ -183,6 +184,7 @@ void AMonsterAIController::IsPlayingMontage()
 }
 //임시 확인용 입니다
 class UGA_UseSkill;
+class UBTDecorator_TagCooldown;
 
 void AMonsterAIController::SelectSkill()
 {
