@@ -3,15 +3,14 @@
 #include "Item/ItemActor/NAItemActor.h"
 #include "NAPlaceableItemActor.generated.h"
 
-UCLASS()
+UCLASS(Abstract)
 class ARPG_API ANAPlaceableItemActor : public ANAItemActor
 {
 	GENERATED_BODY()
-	
-	// Macro Hooks
-	IMPLEMENT_MACROHOOK_GetInitInteractableDataParams(ENAInteractableType::Placeable, 0.f, 1);
 
 public:
+	ANAPlaceableItemActor(const FObjectInitializer& ObjectInitializer);
+	
 	virtual void PostRegisterAllComponents() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void PostInitializeComponents() override;

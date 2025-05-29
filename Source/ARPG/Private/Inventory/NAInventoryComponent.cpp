@@ -29,7 +29,9 @@ UNAInventoryComponent::UNAInventoryComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
-	// ...
+	static ConstructorHelpers::FClassFinder<UNAInventoryWidget> InventoryWidgetClass(TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/00_ProjectNA/Inventory/BP_NAInventoryWidget.BP_NAInventoryWidget_C'"));
+	check(InventoryWidgetClass.Class);
+	SetWidgetClass(InventoryWidgetClass.Class);
 }
 
 

@@ -1,5 +1,10 @@
 #include "Item/ItemActor/NAPlaceableItemActor.h"
 
+ANAPlaceableItemActor::ANAPlaceableItemActor(const FObjectInitializer& ObjectInitializer)
+	:Super(ObjectInitializer)
+{
+}
+
 void ANAPlaceableItemActor::PostRegisterAllComponents()
 {
 	Super::PostRegisterAllComponents();

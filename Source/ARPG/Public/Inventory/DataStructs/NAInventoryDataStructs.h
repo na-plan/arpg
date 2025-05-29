@@ -18,8 +18,11 @@ struct FNAInventorySlot
 	TSubclassOf<class ANAItemActor> ItemMetaDataKey = nullptr;
 
 	UPROPERTY()
-	uint8							ItemState;
+	FName							SlotID			= NAME_None;
+
+	UPROPERTY()
+	uint8							ItemState		= 0;
 	
 	UPROPERTY()
-	int32							ItemSlotStack;
+	int32							ItemSlotStack	= -1;
 };

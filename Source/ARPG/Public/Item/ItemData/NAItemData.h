@@ -3,6 +3,20 @@
 
 #include "NAItemData.generated.h"
 
+UENUM()
+enum class EItemMetaDirtyFlags : uint8
+{
+	MF_None	= (0x0),
+	
+	MF_RootShape		= (1<<0),
+	MF_Mesh				= (1<<1),
+	MF_MeshAsset		= (1<<2),
+	MF_MeshAnim			= (1<<3),
+	MF_IxButton			= (1<<4),
+	MF_IxButtonText		= (1<<5),
+};
+ENUM_CLASS_FLAGS(EItemMetaDirtyFlags)
+
 UENUM(BlueprintType)
 enum class EItemState : uint8
 {
@@ -29,13 +43,12 @@ enum class EItemState : uint8
  * @TODO: 2) 아이템 객체 생성 순서가 Data → Actor인 경우에는? (ex. 플레이어의 인벤토리에 소지된 아이템(: Data로서 존재)... 인벤토리에서 꺼내질 때 Actor가 필요함) [...]
  * @TODO: 3) 월드에서 리젠되는 아이템(채집 아이템 또는 스포너에 의해 동적 스폰되는 몬스터가 소지한 아이템 등)은 생성 당시에 Actor가 필요 없음 → 즉 아이템 Data만 생성되어야 하는 경우 [...]
  */
-UCLASS()
+UCLASS(Transient, BlueprintType)
 class ARPG_API UNAItemData final : public UObject
 {
 	GENERATED_BODY()
 
-	friend struct FItemManagerImpl;
-	
+	friend class UNAItemEngineSubsystem;
 public:
 	UNAItemData();
 
@@ -110,8 +123,8 @@ public:
 	FDataTableRowHandle ItemMetaDataHandle;
 
 	// @TODO: 아이템 소유주(플레이어) 추적
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Ownership")
-	TWeakObjectPtr<AActor> CurrentOwner = nullptr;
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Ownership")
+	//TWeakObjectPtr<AActor> CurrentOwner = nullptr;
 };
 
 template<typename ItemDataStructT> requires TIsDerivedFrom<ItemDataStructT, FNAItemBaseTableRow>::IsDerived

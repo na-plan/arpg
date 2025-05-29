@@ -4,7 +4,7 @@
 #include "Interaction/NAInteractableInterface.h"
 
 #include "Interaction/NAInteractionComponent.h"
-#include "Item/ItemActor/NAItemActor.h"
+#include "Item/ItemDataStructs/NAItemBaseDataStructs.h"
 
 // Add default functionality here for any INAInteractionInterface functions that are not pure virtual.
 

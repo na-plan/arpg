@@ -2,6 +2,11 @@
 
 #include "Interaction/NAInteractionComponent.h"
 
+ANAPickableItemActor::ANAPickableItemActor(const FObjectInitializer& ObjectInitializer)
+	:Super(ObjectInitializer)
+{
+}
+
 void ANAPickableItemActor::PostRegisterAllComponents()
 {
 	Super::PostRegisterAllComponents();

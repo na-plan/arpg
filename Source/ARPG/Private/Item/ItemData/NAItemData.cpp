@@ -1,5 +1,6 @@
 #include "Item/ItemData/NAItemData.h"
 #include "Item/ItemActor/NAItemActor.h"
+#include "Item/Subsystem/NAItemEngineSubsystem.h"
 #include "Inventory/GameInstance/NAInventoryGameInstanceSubsystem.h"
 
 // 프로그램 시작 시 0 에서 시작
@@ -10,27 +11,50 @@ UNAItemData::UNAItemData()
 	if (!HasAnyFlags(RF_ClassDefaultObject)) {
 		IDNumber = IDCount.Increment();
 	}
+	ID = NAME_None;
 }
 
 void UNAItemData::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	if (!HasAnyFlags(RF_ClassDefaultObject)) {
-		if (UWorld* World = GetWorld()) {
-			if (UGameInstance* GI = World->GetGameInstance()) {
-				if (UNAItemGameInstanceSubsystem* ItemSubsys = GI->GetSubsystem<UNAItemGameInstanceSubsystem>()) {
-					if (ID.IsNone()) {
-						UE_LOG(LogTemp, Warning, TEXT("[UNAItemData::PostInitProperties]  UNAItemData[%s]의 ID가 초기화되지 않았음. 어째서야"), *GetName());
-					}
-					if (GetOuter() != ItemSubsys) {
-						UE_LOG(LogTemp, Warning, TEXT("[UNAItemData::PostInitProperties]  UNAItemData[%s]의 Outer[%s]가 UNAItemGameInstanceSubsystem이 아니었음. 어째서야 "), *GetName(), *GetOuter()->GetName());
-					}
-				}
-			}
+	if (HasAnyFlags(RF_ClassDefaultObject))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UNAItemData CDO 생성) %s"), *GetName());
+		
+		if (ID.IsNone())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("UNAItemData CDO 생성) %s's ID is none."),*GetName());
+		}
+		// if (GetOuter() != UNAItemEngineSubsystem::Get())
+		// {
+		// 	UE_LOG(LogTemp, Warning,
+		// 		   TEXT(
+		// 			   "[UNAItemData::PostInitProperties]  CDO) %s's Outer[%s] is NOT UNAItemEngineSubsystem. 억덕계 이런 일이"
+		// 		   ), *GetName(), *GetOuter()->GetName());
+		// }
+	}
+	else if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[UNAItemData::생성자]  일반) %s"), *GetName());
+		if (ID.IsNone())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[UNAItemData::생성자]  일반) %s's ID is none."),*GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[UNAItemData::생성자]  일반) %s's ID: %s."), *GetName(), *ID.ToString());
+			// 예상) 레벨에 배치된 아이템 액터가 에디터 켜질때 처음 로드되는 경우: UNAItemEngineSubsystem의 CreateItemDataByActor를 호출하지 않음
+		}
+		if (GetOuter() != UNAItemEngineSubsystem::Get())
+		{
+			UE_LOG(LogTemp, Warning,
+				   TEXT(
+					   "[UNAItemData::생성자]  일반) %s's Outer[%s] is NOT UNAItemEngineSubsystem. 억덕계 이런 일이"
+				   ), *GetName(), *GetOuter()->GetName());
 		}
 	}
-	// sh1t
+	
 }
 
 void UNAItemData::SetQuantity(const int32 NewQuantity)
