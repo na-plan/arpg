@@ -12,7 +12,7 @@
 float ANAPlayerState::GetHealth() const
 {
 	// 캐릭터의 AbilitySystemComponent로부터 체력을 조회
-	if (const ANACharacter* Character = Cast<ANACharacter>(GetPlayerController()->GetCharacter()))
+	if (const ANACharacter* Character = Cast<ANACharacter>( GetPawn() ))
 	{
 		const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>(Character->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()));
 		return AttributeSet->GetHealth();
@@ -25,7 +25,7 @@ float ANAPlayerState::GetHealth() const
 int32 ANAPlayerState::GetMaxHealth() const
 {
 	// 캐릭터의 AbilitySystemComponent로부터 체력을 조회
-	if (const ANACharacter* Character = Cast<ANACharacter>(GetPlayerController()->GetCharacter()))
+	if (const ANACharacter* Character = Cast<ANACharacter>( GetPawn() ))
 	{
 		const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>(Character->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()));
 		return AttributeSet->Health.GetBaseValue();
@@ -38,10 +38,24 @@ int32 ANAPlayerState::GetMaxHealth() const
 bool ANAPlayerState::IsAlive() const
 {
 	// 캐릭터의 AbilitySystemComponent로부터 체력을 조회
-	if (const ANACharacter* Character = Cast<ANACharacter>(GetPlayerController()->GetCharacter()))
+	if (const ANACharacter* Character = Cast<ANACharacter>( GetPawn() ))
 	{
 		const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>(Character->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()));
 		return AttributeSet->GetHealth() > 0;
+	}
+
+	check(false);
+	return false;
+}
+
+bool ANAPlayerState::IsKnockDown() const
+{
+	// 캐릭터의 AbilitySystemComponent로부터 체력을 조회
+	// Alive vs KnockDown = Health가 음수로 가면 녹다운, 그렇지 않다면 Alive
+	if (const ANACharacter* Character = Cast<ANACharacter>( GetPawn() ))
+	{
+		const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>(Character->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()));
+		return AttributeSet->GetHealth() <= 0;
 	}
 
 	check(false);

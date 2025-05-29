@@ -24,6 +24,9 @@ public:
 
 	// 생존 상태 반환
 	bool IsAlive() const;
+	
+	// 녹다운 상태 반환
+	bool IsKnockDown() const;
 
 	// 빙의한 Pawn의 에셋 이름 반환
 	FName GetPossessAssetName() const { return PossessAssetName; }
