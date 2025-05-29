@@ -53,7 +53,7 @@ public:
 	TSubclassOf<AActor> PreviewSpawnTarget;
 
 	UPROPERTY(EditAnywhere)
-	bool SpawnOneTime = false;
+	bool SpawnOneTime = true;
 	UPROPERTY(EditAnywhere)
 	float SpawnTime = 10;
 

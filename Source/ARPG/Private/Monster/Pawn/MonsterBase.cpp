@@ -11,10 +11,11 @@
 //#include "Ability/GameplayAbility/AttackGameplayAbility.h"
 #include "Monster/Ability/GameplayAbility/GA_MonsterAttack.h"
 #include "Monster/Ability/GameplayAbility/GA_Spawning.h"
+#include "Monster/Ability/GameplayAbility/GA_UseSkill.h"
 
+#include "Combat/ActorComponent/NAMontageCombatComponent.h"
 
 #include "HP/GameplayEffect/NAGE_Damage.h"
-
 
 //DEFINE_LOG_CATEGORY(LogTemplateMonster);
 
@@ -61,6 +62,7 @@ AMonsterBase::AMonsterBase()
 	AIPerceptionComponent->ConfigureSense(*AISenseConfig_Sight);
 	
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	DefaultCombatComponent = CreateDefaultSubobject<UNAMontageCombatComponent>(TEXT("DefaultCombatComponent"));
 
 	AutoPossessAI = EAutoPossessAI::Spawned;
 }
@@ -97,6 +99,8 @@ void AMonsterBase::BeginPlay()
 	{
 		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_MonsterAttack::StaticClass(), 1, 0));
 		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_Spawning::StaticClass(), 1, 0));
+		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_UseSkill::StaticClass(), 1, 0));
+
 	}
 
 }

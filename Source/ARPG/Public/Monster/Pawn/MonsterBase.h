@@ -35,6 +35,7 @@ enum class MonsterRate : uint8
 //Monster 도 경국 ability system을 사용을 해서 공격이나 다른걸 사용하니 얘도 component 붙여야 할거 같음
 class UAbilitySystemComponent;
 class UAbilityTask_PlayMontageAndWait;
+class UNAMontageCombatComponent;
 
 UCLASS()
 class ARPG_API AMonsterBase : public APawn, public IAbilitySystemInterface
@@ -66,7 +67,7 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	
+
 	//Gas에서 호출하는 함수들은 여기에 사용하는게 좋아보임
 public:
 	FORCEINLINE UAbilitySystemComponent* GetAbilitySystemComponent() const override{ return AbilitySystemComponent; }
@@ -75,9 +76,18 @@ public:
 	TArray<UAnimMontage*> GetAttackMontageCombo() const { return AttackComboMontage; }
 	UAnimMontage* GetSpawnMontage() const { return SpawnMontage; }
 
+	FDataTableRowHandle GetSkillData() const { return OwnSkills; }
+
+	void SetSelectSkillMontage(UAnimMontage* SelectSkillMontage) { CurrentSkillMontage = SelectSkillMontage; }
+	UAnimMontage* GetSelectSkillMontage() const { return CurrentSkillMontage; }
+
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = Gameplay, meta = (AllowPrivateAccess = "true"))
 	UAbilitySystemComponent* AbilitySystemComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Combat", meta = (AllowPrivateAccess = "true"))
+	UNAMontageCombatComponent* DefaultCombatComponent;
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneComponent> DefaultSceneRoot;
@@ -100,6 +110,7 @@ protected:
 
 	float CheckTimer = 0;
 	float CheckHP = 0;
+	int	SelectedSkillNum = 0;
 
 	//이거 데이터화 시키고 get을 데이터테이블로 보내는게 낫지않나? 싶은데...
 public:
@@ -111,6 +122,8 @@ public:
 	UAnimMontage* TestAttackMontage;
 	UPROPERTY(EditAnywhere)
 	UAnimMontage* SpawnMontage;
+	UPROPERTY(EditAnywhere)
+	UAnimMontage* CurrentSkillMontage;
 
 	UPROPERTY(EditAnywhere, meta = (RowType = "/Script/ARPG.OwnSkillTable"))
 	FDataTableRowHandle OwnSkills;

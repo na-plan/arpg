@@ -142,20 +142,20 @@ void AMonsterSpawner::SpawnMonster(bool Spawncheck)
 	SpawnParameters.ObjectFlags = RF_Transient;
 
 	// AssetName이 존재하지 않으면 터지는건 GetAssetClass 함수 사용해서 그런거라 지우는게 낫지 않을까? 싶기도 하고...
-	if (const TSubclassOf<AActor> Class = FAssetStatics::GetAssetClass(GetWorld(), AssetName))
-	{
-		AActor* Spawned = GetWorld()->SpawnActor(Class, &SpawnLocation, &SpawnRotation, SpawnParameters);
-		Spawned->SetReplicates(true);
-	}
-	// AssetName을 사용하지 않을 경우 해당 주석을 풀어주세요
-	//else if (const TSubclassOf<AActor> PreviewClass = PreviewSpawnTarget)
+	//if (const TSubclassOf<AActor> Class = FAssetStatics::GetAssetClass(GetWorld(), AssetName))
 	//{
-	//	AActor* Spawned = GetWorld()->SpawnActor(PreviewClass, &SpawnLocation, &SpawnRotation);
+	//	AActor* Spawned = GetWorld()->SpawnActor(Class, &SpawnLocation, &SpawnRotation, SpawnParameters);
 	//	Spawned->SetReplicates(true);
 	//}
-	else
+	//else
+	//{
+	//	ensureAlwaysMsgf(Class, TEXT("Spawning class does not defined"));
+	//}
+	// AssetName을 사용하지 않을 경우 해당 주석을 풀어주세요
+	if (const TSubclassOf<AActor> PreviewClass = PreviewSpawnTarget)
 	{
-		ensureAlwaysMsgf(Class, TEXT("Spawning class does not defined"));
+		AActor* Spawned = GetWorld()->SpawnActor(PreviewClass, &SpawnLocation, &SpawnRotation);
+		Spawned->SetReplicates(true);
 	}
 }
 
