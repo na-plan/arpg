@@ -16,6 +16,7 @@
 #include "Ability/GameInstanceSubsystem/NAAbilityGameInstanceSubsystem.h"
 #include "ARPG/ARPG.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
+#include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
 #include "Net/UnrealNetwork.h"
 
@@ -110,6 +111,8 @@ ANACharacter::ANACharacter()
 	RightHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("RightHandChildActor"));
 	LeftHandChildActor->SetupAttachment(GetMesh(), LeftHandSocketName);
 	RightHandChildActor->SetupAttachment(GetMesh(), RightHandSocketName);
+
+	VitalCheckComponent = CreateDefaultSubobject<UNAVitalCheckComponent>(TEXT("VitalCheckComponent"));
 
 	GetMesh()->SetIsReplicated( true );
 	bReplicates = true;

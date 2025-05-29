@@ -10,6 +10,7 @@
 #include "Logging/LogMacros.h"
 #include "NACharacter.generated.h"
 
+class UNAVitalCheckComponent;
 class UNAMontageCombatComponent;
 class UNAAttributeSet;
 class UGameplayEffect;
@@ -43,6 +44,9 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
 	UChildActorComponent* RightHandChildActor;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
+	UNAVitalCheckComponent* VitalCheckComponent;
 	
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
