@@ -59,8 +59,8 @@ void UNACombatComponent::BeginPlay()
 	DoStopAttack.AddUniqueDynamic(this, &UNACombatComponent::StopAttack);
 	bCanAttack = IsAbleToAttack();
 
-	// 에디터 실행 방어 구문
-	SetAttackAbility( AttackAbility );	
+	SetAttackAbility( AttackAbility );
+	
 }
 
 void UNACombatComponent::EndPlay( const EEndPlayReason::Type EndPlayReason )
@@ -77,10 +77,19 @@ void UNACombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME_CONDITION(UNACombatComponent, bCanAttack, COND_OwnerOnly)
 }
 
+void UNACombatComponent::SetActive( bool bNewActive, bool bReset )
+{
+	Super::SetActive( bNewActive, bReset );
+	if ( !bNewActive )
+	{
+		StopAttack();	
+	}
+}
+
 bool UNACombatComponent::IsAbleToAttack()
 {
 	// Ammo, stamina, montage duration, etc...
-	return AttackAbility != nullptr;
+	return AttackAbility != nullptr && IsActive();
 }
 
 void UNACombatComponent::SetAttack(const bool NewAttack)
