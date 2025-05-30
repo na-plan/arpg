@@ -124,9 +124,10 @@ void UNAVitalCheckComponent::HandleKnockDown( const ANACharacter* Character, con
 		SetState( ECharacterStatus::Alive );
 		CombatComponent->SetActive( true );
 		const FGameplayTagContainer TagContainer( FGameplayTag::RequestGameplayTag( "Player.Status.KnockDown" ) );
-		Character->GetAbilitySystemComponent()->RemoveActiveEffectsWithTags( TagContainer );
+		Character->GetAbilitySystemComponent()->RemoveActiveEffectsWithAppliedTags( TagContainer );
 	}
 
+	// 캐릭터가 쓰러진 경우
 	if ( CharacterState == ECharacterStatus::Alive && NewHealth <= 0.f )
 	{
 		CombatComponent->SetActive( false );

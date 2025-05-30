@@ -19,6 +19,7 @@
 #include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "HP/GameplayAbility/NAGA_Revive.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
+#include "HP/WidgetComponent/NAReviveWidgetComponent.h"
 #include "Net/UnrealNetwork.h"
 
 #include "Interaction/NAInteractionComponent.h"
@@ -110,10 +111,16 @@ ANACharacter::ANACharacter()
 
 	LeftHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("LeftHandChildActor"));
 	RightHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("RightHandChildActor"));
-	LeftHandChildActor->SetupAttachment(GetMesh(), LeftHandSocketName);
-	RightHandChildActor->SetupAttachment(GetMesh(), RightHandSocketName);
 
 	VitalCheckComponent = CreateDefaultSubobject<UNAVitalCheckComponent>(TEXT("VitalCheckComponent"));
+	ReviveWidget = CreateDefaultSubobject<UNAReviveWidgetComponent>( TEXT("ReviveWidgetComponent") );
+
+	if ( GetMesh()->GetSkeletalMeshAsset() )
+	{
+		LeftHandChildActor->SetupAttachment(GetMesh(), LeftHandSocketName);
+		RightHandChildActor->SetupAttachment(GetMesh(), RightHandSocketName);
+		ReviveWidget->SetupAttachment( GetMesh(), TEXT("ReviveWidgetSocket") );
+	}
 
 	GetMesh()->SetIsReplicated( true );
 	bReplicates = true;
@@ -242,7 +249,8 @@ void ANACharacter::RetrieveAsset(const AActor* InCDO)
 		// 다시 지정된 매시 기준으로 Child actor를 재부착
 		LeftHandChildActor->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, LeftHandSocketName);
 		RightHandChildActor->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, RightHandSocketName);
-
+		ReviveWidget->AttachToComponent( GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, TEXT("ReviveWidgetSocket") );
+		
 		if (HasAuthority())
 		{
 			if (const UNAAbilityGameInstanceSubsystem* AbilityGameInstanceSubsystem = GetGameInstance()->GetSubsystem<UNAAbilityGameInstanceSubsystem>())

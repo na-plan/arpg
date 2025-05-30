@@ -10,6 +10,8 @@
 #include "Logging/LogMacros.h"
 #include "NACharacter.generated.h"
 
+class UNAReviveWidgetComponent;
+class UWidgetComponent;
 class UNAVitalCheckComponent;
 class UNAMontageCombatComponent;
 class UNAAttributeSet;
@@ -47,6 +49,9 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
 	UNAVitalCheckComponent* VitalCheckComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
+	UNAReviveWidgetComponent* ReviveWidget;
 	
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -133,5 +138,6 @@ public:
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	FORCEINLINE virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent; }
+	FORCEINLINE UNAReviveWidgetComponent* GetReviveWidget() const { return ReviveWidget; }
 };
 

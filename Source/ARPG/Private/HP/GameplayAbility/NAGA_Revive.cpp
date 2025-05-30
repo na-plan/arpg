@@ -7,11 +7,13 @@
 #include "NACharacter.h"
 #include "Ability/AttributeSet/NAAttributeSet.h"
 #include "Ability/GameAbilityTask/NAAT_WaitPlayerViewport.h"
+#include "GameFramework/GameStateBase.h"
 #include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
 #include "HP/GameplayEffect/NAGE_Dead.h"
 #include "HP/GameplayEffect/NAGE_Helping.h"
 #include "HP/GameplayEffect/NAGE_Revive.h"
+#include "Net/UnrealNetwork.h"
 
 void UNAGA_Revive::OnReviveSucceeded()
 {
@@ -88,6 +90,12 @@ void UNAGA_Revive::ActivateAbility( const FGameplayAbilitySpecHandle Handle, con
 
 					UAbilitySystemComponent* RevivingASC = Character->GetAbilitySystemComponent();
 					UAbilitySystemComponent* HelperASC = ActorInfo->AbilitySystemComponent.Get();
+
+					// 누운 상태가 아님
+					if ( !RevivingASC->HasMatchingGameplayTag( FGameplayTag::RequestGameplayTag( "Player.Status.KnockDown" ) ) )
+					{
+						continue;
+					}
 					
 					// 누군가 이미 살려주고 있음
 					if ( RevivingASC->HasMatchingGameplayTag( FGameplayTag::RequestGameplayTag( "Player.Status.Reviving" ) ) )
@@ -99,15 +107,21 @@ void UNAGA_Revive::ActivateAbility( const FGameplayAbilitySpecHandle Handle, con
 
 					// 살려주는 중
 					FGameplayEffectContextHandle HelperContextHandle = HelperASC->MakeEffectContext();
+					HelperContextHandle.AddInstigator( ActorInfo->OwnerActor.Get(), ActorInfo->AvatarActor.Get() );
+					HelperContextHandle.SetAbility( this );
+					HelperContextHandle.AddSourceObject( this );
 					FGameplayEffectSpecHandle HelperEffectHandle = HelperASC->MakeOutgoingSpec( UNAGE_Helping::StaticClass(), 1.f, HelperContextHandle );
 					HelperASC->ApplyGameplayEffectSpecToSelf( *HelperEffectHandle.Data.Get() );
 					
 					if ( RevivingTarget.IsValid() )
 					{
 						// 부활 중
-						FGameplayEffectContextHandle RevivingContextHandle = HelperASC->MakeEffectContext();
-						FGameplayEffectSpecHandle RevivingEffectHandle = HelperASC->MakeOutgoingSpec( UNAGE_Revive::StaticClass(), 1.f, HelperContextHandle );
-						HelperASC->ApplyGameplayEffectSpecToSelf( *RevivingEffectHandle.Data.Get() );
+						FGameplayEffectContextHandle RevivingContextHandle = RevivingASC->MakeEffectContext();
+						RevivingContextHandle.AddInstigator( ActorInfo->OwnerActor.Get(), ActorInfo->AvatarActor.Get() );
+						RevivingContextHandle.SetAbility( this );
+						RevivingContextHandle.AddSourceObject( this );
+						FGameplayEffectSpecHandle RevivingEffectHandle = RevivingASC->MakeOutgoingSpec( UNAGE_Revive::StaticClass(), 1.f, HelperContextHandle );
+						RevivingASC->ApplyGameplayEffectSpecToSelf( *RevivingEffectHandle.Data.Get() );
 						
 						// 부활받던 사람이 중간에 죽을 경우
 						RevivingTargetHandle = RevivingASC->OnGameplayEffectAppliedDelegateToSelf.AddUObject( this, &UNAGA_Revive::CheckKnockDownDead );
@@ -118,7 +132,7 @@ void UNAGA_Revive::ActivateAbility( const FGameplayAbilitySpecHandle Handle, con
 					ViewportCheckTask->ReadyForActivation();
 
 					ActorInfo->AvatarActor->GetWorld()->GetTimerManager().SetTimer( ReviveTimerHandle, this, &UNAGA_Revive::OnReviveSucceeded, 5.f, false );
-
+					
 					// 부활해주는 사람이 중간에 맞거나 눕는 경우
 					ReviveCancelHandle = ActorInfo->AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate( UNAAttributeSet::GetHealthAttribute() ).AddUObject( this, &UNAGA_Revive::OnHitWhileRevive );
 					break;
@@ -161,15 +175,17 @@ void UNAGA_Revive::EndAbility( const FGameplayAbilitySpecHandle Handle, const FG
 		
 		UAbilitySystemComponent* HelperASC = ActorInfo->AbilitySystemComponent.Get();
 		FGameplayTagContainer TagToRemove;
-		TagToRemove.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Revive" ) );
+		TagToRemove.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Reviving" ) );
 		TagToRemove.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Helping" ) );
 		
-		HelperASC->RemoveActiveEffectsWithTags( TagToRemove );
+		const int32 HelperRemoved = HelperASC->RemoveActiveEffectsWithAppliedTags( TagToRemove );
+		UE_LOG(LogAbilitySystemComponent, Log, TEXT("%hs: Helper %d effects removed"), __FUNCTION__, HelperRemoved );
 		
 		if ( RevivingTarget.IsValid() )
 		{
 			UAbilitySystemComponent* RevivingASC = RevivingTarget->GetAbilitySystemComponent();
-			RevivingASC->RemoveActiveEffectsWithTags( TagToRemove );
+			const int32 RevivingRemoved = RevivingASC->RemoveActiveEffectsWithAppliedTags( TagToRemove );
+			UE_LOG(LogAbilitySystemComponent, Log, TEXT("%hs: Reviving %d effects removed"), __FUNCTION__, RevivingRemoved );
 			RevivingTarget->GetComponentByClass<UNAVitalCheckComponent>()->OnCharacterStateChanged.Remove( RevivingTargetHandle );
 		}
 	}
