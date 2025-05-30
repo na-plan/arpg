@@ -8,6 +8,7 @@
 #include "NAPlayerController.h"
 #include "NAPlayerState.h"
 #include "Assets/Interface/NAManagedAsset.h"
+#include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
 
 ANAGameMode::ANAGameMode()
@@ -45,5 +46,6 @@ APawn* ANAGameMode::SpawnDefaultPawnAtTransform_Implementation(AController* NewP
 	{
 		UE_LOG(LogGameMode, Warning, TEXT("SpawnDefaultPawnAtTransform: Couldn't spawn Pawn of type %s at %s"), *GetNameSafe(PawnClass), *SpawnTransform.ToHumanReadableString());
 	}
+	
 	return ResultPawn;
 }
