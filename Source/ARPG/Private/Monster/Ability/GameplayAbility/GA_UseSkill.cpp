@@ -48,6 +48,8 @@ void UGA_UseSkill::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 			if (UAnimMontage* SkillMontage = MonsterBase->GetSelectSkillMontage())
 			{
 				ASC->PlayMontage(this, CurrentActivationInfo, SkillMontage, 1.0f);
+				//공격 콤보 리셋
+				MonsterBase->ResetCombo();
 				//UAnimInstance* AnimInstance = ASC->AbilityActorInfo->GetAnimInstance();
 				//AnimInstance->OnMontageEnded.AddUniqueDynamic(this, &UGA_UseSkill::OnMontageEnded);
 				//AnimInstance->OnMontageStarted.AddUniqueDynamic(this, &UGA_UseSkill::OnMontageStarted);
