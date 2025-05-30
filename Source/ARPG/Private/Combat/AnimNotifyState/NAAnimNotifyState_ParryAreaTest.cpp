@@ -72,6 +72,11 @@ void UNAAnimNotifyState_ParryAreaTest::NotifyEnd(USkeletalMeshComponent* MeshCom
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
 
 
+	// 만들고 나서 보니까 이거 잘하면 잡기 판정도 만들수 있을거 같은데?...
+	// 심지어 대상을 내 소켓애다가 박아놓고 tick동안 움직임 고정 시키고 end 때 풀어놓으면?
+	// tick동안 대상에게 특정 montage 강제 시켜놓으면 잡기도 될거 같은데????
+	// ParryArea 같이 쓰면 잡기 시전중에 패링시키고 실패시 잡혀가는것도 될거 같은데?????
+
 	if (MeshComp->GetWorld()->IsGameWorld())
 	{
 		/* 공격 판정 apply */
