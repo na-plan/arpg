@@ -197,24 +197,28 @@ void AMonsterAIController::SelectSkill()
 		FOwnSkillTable* Data = OwnSkillData.GetRow<FOwnSkillTable>(TEXT("MonsterSkillData"));
 		//보유한 스킬들
 		//0번 1개 있을때 1이 됩니다.
-		uint8 MonsterOwnskillNum = Data->OwnSkillArray.Num();
-
-		//random 한번 돌리는 과정입니다
-		// gas로 쿨타임 관리를 하고 사용을 하고
-		if (MonsterOwnskillNum > 0)
+		if (Data)
 		{
-			// Array Index
-			int64 Index = FMath::RandRange(0, MonsterOwnskillNum - 1);
-			// 선택한 스킬을 몬스터로 보내 그걸 GAS가 잡아서 사용할거야
-			OwnerMonster->SetSelectSkillMontage(Data->OwnSkillArray[Index].SkillMontage);
+			uint8 MonsterOwnskillNum = Data->OwnSkillArray.Num();
 
-			// 선택한 스킬의 사거리는 blackboard에 세팅을 하고
-			float SkillRange = Data->OwnSkillArray[Index].Range;
+			//random 한번 돌리는 과정입니다
+			// gas로 쿨타임 관리를 하고 사용을 하고
+			if (MonsterOwnskillNum > 0)
+			{
+				// Array Index
+				int64 Index = FMath::RandRange(0, MonsterOwnskillNum - 1);
+				// 선택한 스킬을 몬스터로 보내 그걸 GAS가 잡아서 사용할거야
+				OwnerMonster->SetSelectSkillMontage(Data->OwnSkillArray[Index].SkillMontage);
 
-			// 이제 스킬이 세팅되서 사용이 가능해
-			Blackboard->SetValueAsFloat(TEXT("SkillDistance"), SkillRange);			
-			Blackboard->SetValueAsBool(TEXT("SelectedSkill"), true);
+				// 선택한 스킬의 사거리는 blackboard에 세팅을 하고
+				float SkillRange = Data->OwnSkillArray[Index].Range;
+
+				// 이제 스킬이 세팅되서 사용이 가능해
+				Blackboard->SetValueAsFloat(TEXT("SkillDistance"), SkillRange);
+				Blackboard->SetValueAsBool(TEXT("SelectedSkill"), true);
+			}
 		}
+
 		
 	}
 }

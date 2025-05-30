@@ -21,7 +21,7 @@ class ARPG_API UNAAnimNotifyState_ParryAreaTest : public UAnimNotifyState
 	// 확인
 	virtual void NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime, const FAnimNotifyEventReference& EventReference) override;
 
-	bool Check;
+	bool SuccessParry = false;
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlap", meta = (AllowPrivateAccess = "true"))
 	float OverlapInterval = 0.01f;
