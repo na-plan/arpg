@@ -167,7 +167,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Inventory Component")
 	TArray<UNAItemData*> InventoryContents;
 
-
+// Inventory Widget ////////////////////////////////////////////////////////////////////////////////////////////////////
 public:
 	
 

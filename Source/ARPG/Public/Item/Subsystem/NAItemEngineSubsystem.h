@@ -40,8 +40,6 @@ public:
 	void CheckAndMappingItemClass(UClass* InItemActorClass);
 	EItemMetaDirtyFlags FindChangedItemMetaFlags(bool bCheckMetaMap, const FDataTableRowHandle& RowHandle, const UObject* InCDO) const;
 	EItemMetaDirtyFlags FindChangedItemMetaFlags(bool bCheckMetaMap, const FNAItemBaseTableRow* RowData, const UObject* InCDO) const;
-
-	void AddItemActorObj(ANAItemActor* InItemActorClass);
 	
 protected:
 	bool ContainsItemMetaDataHandle(const FDataTableRowHandle& RowHandle) const;
@@ -54,6 +52,7 @@ protected:
 	UClass* ResolveToSkeletalItemClass(UClass* InItemActorClass) const;
 	UClass* ResolveToGeneratedItemClass(UClass* InItemActorClass) const;
 	
+	void HandlePostEngineInit();
 	void HandlePostCDOCompiled(UObject* InCDO, const FObjectPostCDOCompiledContext& CompiledContext);
 #endif
 		

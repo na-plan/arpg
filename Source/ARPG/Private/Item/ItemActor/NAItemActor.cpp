@@ -327,13 +327,13 @@ void ANAItemActor::ExecuteItemPatch(UClass* ClassToPatch, const FNAItemBaseTable
 			AddInstanceComponent(ItemRootShape);
 		}
 
-		FTransform CachedMeshTransform = FTransform::Identity;
+		FTransform CachedMeshRelativeTransform = FTransform::Identity;
 		if (EnumHasAnyFlags(PatchFlags, EItemMetaDirtyFlags::MF_Mesh))
 		{
 			if (ItemMesh)
 			{
 				OldComponents.Emplace(ItemMesh.Get());
-				CachedMeshTransform = ItemMesh->GetRelativeTransform();
+				CachedMeshRelativeTransform = ItemMesh->GetRelativeTransform();
 			}
 
 			switch (PatchData->MeshType)
@@ -363,13 +363,13 @@ void ANAItemActor::ExecuteItemPatch(UClass* ClassToPatch, const FNAItemBaseTable
 			AddInstanceComponent(ItemRootShape);
 		}
 
-		FTransform CachedButtonTransform = FTransform::Identity;
+		FTransform CachedButtonRelativeTransform = FTransform::Identity;
 		if (EnumHasAnyFlags(PatchFlags, EItemMetaDirtyFlags::MF_IxButton))
 		{
 			if (ItemInteractionButton)
 			{
 				OldComponents.Emplace(ItemInteractionButton.Get());
-				CachedButtonTransform = ItemInteractionButton->GetRelativeTransform();
+				CachedButtonRelativeTransform = ItemInteractionButton->GetRelativeTransform();
 			}
 
 			ItemInteractionButton = NewObject<UBillboardComponent>(
@@ -387,13 +387,13 @@ void ANAItemActor::ExecuteItemPatch(UClass* ClassToPatch, const FNAItemBaseTable
 			AddInstanceComponent(ItemInteractionButton);
 		}
 
-		FTransform CachedButtonTextTransform = FTransform::Identity;
+		FTransform CachedButtonTextRelativeTransform = FTransform::Identity;
 		if (EnumHasAnyFlags(PatchFlags, EItemMetaDirtyFlags::MF_IxButton))
 		{
 			if (ItemInteractionButtonText)
 			{
 				OldComponents.Emplace(ItemInteractionButtonText.Get());
-				CachedButtonTextTransform = ItemInteractionButtonText->GetRelativeTransform();
+				CachedButtonTextRelativeTransform = ItemInteractionButtonText->GetRelativeTransform();
 			}
 
 			ItemInteractionButtonText = NewObject<UTextRenderComponent>(
@@ -419,7 +419,6 @@ void ANAItemActor::ExecuteItemPatch(UClass* ClassToPatch, const FNAItemBaseTable
 		ItemMesh->AttachToComponent(ItemRootShape, FAttachmentTransformRules::KeepRelativeTransform);
 		ItemMesh->RegisterComponent();
 		ItemMesh->Mobility = EComponentMobility::Movable;
-		ItemMesh->SetRelativeTransform(PatchData->CachedTransforms.MeshTransform);
 		if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(ItemMesh))
 		{
 			StaticMeshComp->SetStaticMesh(PatchData->StaticMeshAssetData.StaticMesh);
@@ -455,18 +454,24 @@ void ANAItemActor::ExecuteItemPatch(UClass* ClassToPatch, const FNAItemBaseTable
 		{
 			ItemRootShape->SetWorldTransform(CachedRootWorldTransform);
 		}
-		if (!CachedMeshTransform.Equals(FTransform::Identity))
-		{
-			ItemMesh->SetWorldTransform(CachedMeshTransform);
-		}
-		if (!CachedButtonTransform.Equals(FTransform::Identity))
-		{
-			ItemInteractionButton->SetWorldTransform(CachedButtonTransform);
-		}
-		if (!CachedButtonTextTransform.Equals(FTransform::Identity))
-		{
-			ItemInteractionButtonText->SetWorldTransform(CachedButtonTextTransform);
-		}
+		
+		const FTransform NewMeshRelativeTransform =
+			CachedMeshRelativeTransform.Equals(PatchData->CachedTransforms.MeshTransform)
+				? CachedMeshRelativeTransform
+				: PatchData->CachedTransforms.MeshTransform;
+		ItemMesh->SetRelativeTransform(NewMeshRelativeTransform);
+
+		const FTransform NewButtonRelativeTransform =
+			CachedButtonRelativeTransform.Equals(PatchData->CachedTransforms.ButtonTransform)
+				? CachedButtonRelativeTransform
+				: PatchData->CachedTransforms.ButtonTransform;
+		ItemInteractionButton->SetRelativeTransform(NewButtonRelativeTransform);
+		
+		const FTransform NewButtonTextRelativeTransform =
+			NewButtonTextRelativeTransform.Equals(PatchData->CachedTransforms.ButtonTextTransform)
+				? NewButtonTextRelativeTransform
+				: PatchData->CachedTransforms.ButtonTextTransform;
+		ItemInteractionButtonText->SetRelativeTransform(NewButtonTextRelativeTransform);
 	}
 }
 #endif

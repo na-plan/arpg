@@ -130,24 +130,28 @@ USTRUCT()
 struct FNACachedTransform
 {
 	GENERATED_BODY()
-
-	UPROPERTY(NoClear)
+	
+// Size ////////////////////////////////////////////////////////////////
+	
+	UPROPERTY()
 	float RootSphereRadius = 0.f;
 
-	UPROPERTY(NoClear)
+	UPROPERTY()
 	FVector RootBoxExtent = FVector::ZeroVector;
 
 	// X = Radius, Y = Half Height
-	UPROPERTY(NoClear)
+	UPROPERTY()
 	FVector2D RootCapsuleSize = FVector2D::ZeroVector;
 	
-	UPROPERTY(NoClear)
+// Relative Transform ////////////////////////////////////////////////////////////////
+	
+	UPROPERTY()
 	FTransform MeshTransform = FTransform::Identity;
 
-	UPROPERTY(NoClear)
+	UPROPERTY()
 	FTransform ButtonTransform = FTransform::Identity;
 	
-	UPROPERTY(NoClear)
+	UPROPERTY()
 	FTransform ButtonTextTransform = FTransform::Identity;
 };
 
