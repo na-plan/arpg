@@ -10,6 +10,7 @@
 // Sets default values
 AMonsterSpawner::AMonsterSpawner()
 {
+	bReplicates = true;
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -129,6 +130,9 @@ void AMonsterSpawner::Tick(float DeltaTime)
 
 void AMonsterSpawner::SpawnMonster(bool Spawncheck)
 {
+
+
+
 	//Spawn이 false면 spawn하지 못하도록
 	if (!Spawncheck) { return; }
 
@@ -152,10 +156,17 @@ void AMonsterSpawner::SpawnMonster(bool Spawncheck)
 	//	ensureAlwaysMsgf(Class, TEXT("Spawning class does not defined"));
 	//}
 	// AssetName을 사용하지 않을 경우 해당 주석을 풀어주세요
-	if (const TSubclassOf<AActor> PreviewClass = PreviewSpawnTarget)
+
+	//Spawn 처리를 서버가 하도록 합니다
+	if (HasAuthority())
 	{
-		AActor* Spawned = GetWorld()->SpawnActor(PreviewClass, &SpawnLocation, &SpawnRotation);
-		Spawned->SetReplicates(true);
+		if (const TSubclassOf<AActor> PreviewClass = PreviewSpawnTarget)
+		{
+			AActor* Spawned = GetWorld()->SpawnActor(PreviewClass, &SpawnLocation, &SpawnRotation);
+			Spawned->SetReplicates(true);
+		}
 	}
+
+
 }
 
