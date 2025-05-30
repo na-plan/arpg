@@ -40,23 +40,23 @@ public:
 		return bModifiedFromBaseline ;
 	}
 
-	UPROPERTY(EditInstanceOnly, Category = "Interactable Data")
+	UPROPERTY(EditInstanceOnly, Category = "Item Interactable Data")
 	ENAInteractableType InteractableType;
 
-	UPROPERTY(/*EditInstanceOnly,*/VisibleInstanceOnly, Category = "Interactable Data")
+	UPROPERTY(/*EditInstanceOnly,*/VisibleInstanceOnly, Category = "Item Interactable Data")
 	FText InteractionName;
 
 	//UPROPERTY(EditInstanceOnly, Category = "Interactable Data")
 	//FText InteractionScript;
 	
-	UPROPERTY(EditInstanceOnly, Category = "Interactable Data")
+	UPROPERTY(EditInstanceOnly, Category = "Item Interactable Data")
 	float InteractionDuration;
 	
 	// ANAPickableItemActor 전용
-	UPROPERTY(EditInstanceOnly, Category = "Interactable Data")
+	UPROPERTY(EditInstanceOnly, Category = "Item Interactable Data")
 	int32 Quantity;
 
-	UPROPERTY(VisibleInstanceOnly, Category = "Interactable Data")
+	UPROPERTY(VisibleInstanceOnly, Category = "Item Interactable Data")
 	TWeakObjectPtr<class ANACharacter> InteractingCharacter;
 
 private:

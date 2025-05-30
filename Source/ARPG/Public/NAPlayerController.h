@@ -13,12 +13,6 @@ UCLASS()
 class ARPG_API ANAPlayerController : public APlayerController
 {
 	GENERATED_BODY()
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction", meta=(AllowPrivateAccess="true"))
-	TObjectPtr<class UNAInventoryComponent> InventoryComponent;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction", meta=(AllowPrivateAccess="true"))
-	TObjectPtr<class UNAInventoryWidget> InventoryWidget = nullptr;
 
 public:
 	ANAPlayerController();

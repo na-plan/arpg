@@ -69,6 +69,9 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UNAInteractionComponent> InteractionComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<class UNAInventoryComponent> InventoryComponent;
+
 	// 양손에 무기가 없을때 사용되는 전투 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Combat", meta=(AllowPrivateAccess="true"))
 	UNAMontageCombatComponent* DefaultCombatComponent;

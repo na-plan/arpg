@@ -20,6 +20,7 @@
 #include "Net/UnrealNetwork.h"
 
 #include "Interaction/NAInteractionComponent.h"
+#include "Inventory/NAInventoryComponent.h"
 
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
@@ -103,6 +104,7 @@ ANACharacter::ANACharacter()
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	DefaultCombatComponent = CreateDefaultSubobject<UNAMontageCombatComponent>( TEXT( "DefaultCombatComponent" ) );
 	InteractionComponent = CreateDefaultSubobject<UNAInteractionComponent>(TEXT("InteractionComponent"));
+	InventoryComponent = CreateDefaultSubobject<UNAInventoryComponent>(TEXT("InventoryComponent"));
 
 	LeftHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("LeftHandChildActor"));
 	RightHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("RightHandChildActor"));
@@ -160,6 +162,17 @@ void ANACharacter::PossessedBy(AController* NewController)
 		}
 
 		SetOwner(NewController);
+	}
+
+	if (InventoryComponent && NewController->IsLocalPlayerController())
+	{
+		if (APlayerController* PlayerController = Cast<APlayerController>(NewController))
+		{
+			if (ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer())
+			{
+				InventoryComponent->SetOwnerPlayer(LocalPlayer);
+			}
+		}
 	}
 }
 

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/ActorComponent.h"
+#include "Components/WidgetComponent.h"
 #include "NAInventoryComponent.generated.h"
 
 
@@ -67,10 +67,10 @@ struct FItemAddResult
 class UNAItemData;
 /**
  * Handle~: UNAInventoryGameInstanceSubsystem가 제공하는 인벤토리 APT에 대한 래퍼 메서드
- * 인벤토리 UI
+ * 위젯 컴포넌트: BeginPlay 때 IniWidget 실행 -> CreateWidget (고정되어있다)
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class ARPG_API UNAInventoryComponent : public UActorComponent
+class ARPG_API UNAInventoryComponent : public UWidgetComponent
 {
 	GENERATED_BODY()
 
@@ -166,5 +166,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = "Inventory Component")
 	TArray<UNAItemData*> InventoryContents;
+
+
+public:
+	
 
 };

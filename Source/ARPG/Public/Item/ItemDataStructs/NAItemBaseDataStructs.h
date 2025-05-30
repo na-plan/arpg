@@ -29,16 +29,13 @@ struct FItemTextData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category = "Item Text Data")
-	FText Name;
+	FText Name = FText::GetEmpty();
 
 	UPROPERTY(EditAnywhere, Category = "Item Text Data")
-	FText Description;
+	FText Description = FText::GetEmpty();
 
 	UPROPERTY(EditAnywhere, Category = "Item Text Data")
-	FText InteractionText;
-
-	UPROPERTY(EditAnywhere, Category = "Item Text Data")
-	FText UsageText;
+	FText UsageText = FText::GetEmpty();
 };
 
 class UGeometryCollection;
@@ -51,10 +48,7 @@ struct ARPG_API FNAStaticMeshItemAssetData
 	UPROPERTY(EditAnywhere, Category = "Static Mesh Item Asset Data")
 	TObjectPtr<UStaticMesh> StaticMesh = nullptr;
 
-	UPROPERTY(EditAnywhere, Category = "Static Mesh Item Asset Data")
-	FTransform MeshTransform = FTransform::Identity;
-
-	// (선택) Fracture  Geometry Collection 에셋
+	// (선택) Fracture Geometry Collection 에셋
 	UPROPERTY(EditAnywhere, Category = "Static Mesh Item Asset Data|Fracture")
 	UGeometryCollection* FractureCollection = nullptr;
 
@@ -67,15 +61,11 @@ USTRUCT()
 struct FNASkeletalMeshItemAssetData
 {
 	GENERATED_BODY()
-	
 
 	UPROPERTY(EditAnywhere, Category = "Skeletal Mesh Item Asset Data")
 	TObjectPtr<USkeletalMesh> SkeletalMesh = nullptr;
 
-	UPROPERTY(EditAnywhere, Category = "Skeletal Mesh Item Asset Data")
-	FTransform MeshTransform = FTransform::Identity;
-
-	// @TODO: 아이템 전용 애님 클래스 만들기
+	// @TODO: 아이템 전용 애님 클래스 만들기?
 	UPROPERTY(EditAnywhere, Category = "Skeletal Mesh Item Asset Data")
 	TSubclassOf<UAnimInstance/*UItemAnimInstance*/> AnimClass;
 };
@@ -83,8 +73,8 @@ struct FNASkeletalMeshItemAssetData
 UENUM(BlueprintType)
 enum class EItemRootShapeType : uint8
 {
-	IRT_None		UMETA(DisplayName = "None"),
-
+	IRT_None		UMETA(Hidden),
+	
 	IRT_Sphere		UMETA(DisplayName = "Sphere"),
 	IRT_Box			UMETA(DisplayName = "Box"),
 	IRT_Capsule		UMETA(DisplayName = "Capsule"),
@@ -93,10 +83,10 @@ enum class EItemRootShapeType : uint8
 UENUM(BlueprintType)
 enum class EItemMeshType : uint8
 {
-	IMT_None		UMETA(DisplayName = "None"),
-
+	IMT_None		UMETA(Hidden),
+	
 	IMT_Static		UMETA(DisplayName = "Static"),
-	IMT_Skeletal UMETA(DisplayName = "Skeletal"),
+	IMT_Skeletal	UMETA(DisplayName = "Skeletal"),
 };
 
 // Weight Capacity: 인벤토리에 적재 가능한 최대 아이템 스택 계산에 사용됨. 아이템의 스택 = 아이템 무게 * 아이템 수량
@@ -109,14 +99,19 @@ struct FItemNumericData
 	float ItemWeight = 0.0f;	// 아이템 무게, 아이템 스택 계산에 사용
 
 	/**
-	 * MaxStackSize가 0이면 수량 제한 없음, 1이면 인벤토리 슬롯 1칸에 1개만 들어감
+	 * 인벤토리의 슬롯 1칸에 소지 가능한 최대 수량
+	 * 1이면 인벤토리 슬롯 1칸에 1개만 들어감, 0이면 수량 제한 없음
 	 * 주의! MaxSlotStackSize은  MaxInventoryStackSize보다 큰 값을 가질 수 없음!
 	 */
 	UPROPERTY(EditAnywhere, Category = "Item Numeric Data", meta = (UIMin = 0, UIMax = 999))
 	int32 MaxSlotStackSize = -1;
-	
+
+	/**
+	* 인벤토리에 소지 가능한 최대 수량
+	* 1이면 인벤토리에 1개만 들어감, 0이면 수량 제한 없음
+	*/
 	UPROPERTY(EditAnywhere, Category = "Item Numeric Data", meta = (UIMin = 0))
-	int32 MaxInventoryStackSize = -1; // 인벤토리에 소지 가능한 최대 수량, 0이면 수량 제한 없음
+	int32 MaxInventoryStackSize = -1;
 	
 	UPROPERTY(EditAnywhere, Category = "Item Numeric Data")
 	uint8 bIsStackable : 1 = false;	// 인벤토리에 소지 가능 여부
@@ -129,12 +124,31 @@ struct FNAIconAssetData
 	
 	UPROPERTY(EditAnywhere, Category = "Item Icon Asset Data")
 	TObjectPtr<UTexture2D> Icon = nullptr;
+};
 
-	UPROPERTY(EditAnywhere, Category = "Item Icon Asset Data")
-	FTransform IconTransform = FTransform::Identity;
+USTRUCT()
+struct FNACachedTransform
+{
+	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category = "Item Icon Asset Data")
-	FTransform IconTextTransform = FTransform::Identity;
+	UPROPERTY(NoClear)
+	float RootSphereRadius = 0.f;
+
+	UPROPERTY(NoClear)
+	FVector RootBoxExtent = FVector::ZeroVector;
+
+	// X = Radius, Y = Half Height
+	UPROPERTY(NoClear)
+	FVector2D RootCapsuleSize = FVector2D::ZeroVector;
+	
+	UPROPERTY(NoClear)
+	FTransform MeshTransform = FTransform::Identity;
+
+	UPROPERTY(NoClear)
+	FTransform ButtonTransform = FTransform::Identity;
+	
+	UPROPERTY(NoClear)
+	FTransform ButtonTextTransform = FTransform::Identity;
 };
 
 class ANAItemActor;
@@ -143,55 +157,39 @@ struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 {
 	GENERATED_BODY()
 
-public:
-	UPROPERTY(EditAnywhere, Category = "Item Base Data")
-	TSubclassOf<ANAItemActor> ItemClass;
 
-	UPROPERTY(EditAnywhere, Category = "Item Base Data")
-	uint8 bIsPickable : 1 = false;
+	FNAItemBaseTableRow(UClass* InItemClass = nullptr);
+	
+	// meta=(BlueprintBaseOnly): 블루프린트 클래스만 노출하도록 강제하는 지정자인데, 5.6 미만에서 버그 있음(언리얼피셜)
+	// https://forums.unrealengine.com/t/uproperty-specifier-blueprintbaseonly-is-not-working-this-is-clearly-bug/2334795/6
+	// https://issues.unrealengine.com/issue/UE-210088
+	// 휴먼 에러 주의(c++ 네이티브 클래스 선택하지 말 것)
+	UPROPERTY(EditAnywhere, Category = "Item Base Data", meta=(BlueprintBaseOnly, AllowAbstract="false"))
+	TSubclassOf<ANAItemActor> ItemClass = nullptr;
+
+	UPROPERTY(EditAnywhere, Category ="Item Base Data")
+	EItemType ItemType = EItemType::IT_None;
 
 	UPROPERTY(EditAnywhere, Category = "Item Base Data")
 	EItemRootShapeType RootShapeType = EItemRootShapeType::IRT_Sphere;
 
-	UPROPERTY(EditAnywhere, Category = "Item Base Data",
-		meta = (EditCondition = "RootShapeType==EItemRootShapeType::IRT_Sphere", EditConditionHides, ClampMin = "0.0"))
-	float RootSphereRadius = 20.f;
-
-	UPROPERTY(EditAnywhere, Category = "Item Base Data",
-		meta = (EditCondition = "RootShapeType==EItemRootShapeType::IRT_Box", EditConditionHides))
-	FVector RootBoxExtent = FVector(20.f, 20.f, 20.f);
-
-	UPROPERTY(EditAnywhere, Category = "Item Base Data",
-		meta = (EditCondition = "RootShapeType==EItemRootShapeType::IRT_Capsule", EditConditionHides, ClampMin = "0.0"))
-	float RootCapsuleHalfHeight = 20.f;
-
-	UPROPERTY(EditAnywhere, Category = "Item Base Data",
-		meta = (EditCondition = "RootShapeType==EItemRootShapeType::IRT_Capsule", EditConditionHides, ClampMin = "0.0"))
-	float RootCapsuleRadius = 20.f;
-
-	UPROPERTY(EditAnywhere, Category = "Item Base Data")
-	FTransform RootShapeTransform = FTransform::Identity;
-
 	/* ANAItemActor의 메쉬 타입*/
 	UPROPERTY(EditAnywhere, Category = "Item Base Data")
 	EItemMeshType MeshType = EItemMeshType::IMT_Static;
-
+	
 	/** Static Mesh 에셋, 2D 아이콘 텍스처 포함 */
 	UPROPERTY(EditAnywhere, Category = "Item Base Data",
-		meta=(EditCondition="MeshType==EItemMeshType::IMT_Static", EditConditionHides/*, ShowOnlyInnerProperties*/))
+		meta=(EditCondition="MeshType==EItemMeshType::IMT_Static", EditConditionHides))
 	FNAStaticMeshItemAssetData StaticMeshAssetData;
 
 	/** Skeletal  Mesh  에셋, 2D 아이콘 텍스처 포함 */
 	UPROPERTY(EditAnywhere, Category = "Item Base Data",
-		meta=(EditCondition="MeshType==EItemMeshType::IMT_Skeletal", EditConditionHides/*, ShowOnlyInnerProperties*/))
+		meta=(EditCondition="MeshType==EItemMeshType::IMT_Skeletal", EditConditionHides))
 	FNASkeletalMeshItemAssetData SkeletalMeshAssetData;
 	
 	UPROPERTY(EditAnywhere, Category ="Item Base Data")
 	FNAIconAssetData IconAssetData;
 	
-	UPROPERTY(EditAnywhere, Category ="Item Base Data")
-	EItemType ItemType = EItemType::IT_None;
-
 	UPROPERTY(EditAnywhere, Category = "Item Base Data")
 	FItemTextData TextData;
 
@@ -200,8 +198,14 @@ public:
 
 protected:
 	friend class INAInteractableInterface;
-	UPROPERTY(EditAnywhere, Category = "Item Base Data | Interactable")
+	UPROPERTY(EditAnywhere,/* Category = "Item Interactable Data", */meta=(ShowOnlyInnerProperties))
 	FNAInteractableData InteractableData;
+
+public:
+	// 서브 오브젝트 트랜스폼 캐싱
+	// 직접 편집 ㄴㄴ
+	UPROPERTY(meta=(TextExportTransient))
+	FNACachedTransform CachedTransforms;
 
 protected:
 	virtual void OnDataTableChanged(const UDataTable* InDataTable, const FName InRowName) override;

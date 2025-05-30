@@ -3,31 +3,16 @@
 
 #include "Inventory/GameInstance/NAInventoryGameInstanceSubsystem.h"
 
-#include "Item/ItemManagerStatics.h"
-#include "Item/GameInstance/NAItemGameInstanceSubsystem.h"
-
-UNAItemGameInstanceSubsystem* GetItemSubsys(const UObject* Obj)
-{
-	UNAItemGameInstanceSubsystem* ItemSubsys = nullptr;
-	if (Obj)
-	{
-		if (UWorld* World = Obj->GetWorld()) {
-			if (UGameInstance* GI = World->GetGameInstance()) {
-				ItemSubsys = GI->GetSubsystem<UNAItemGameInstanceSubsystem>();
-			}
-		}
-	}
-	return ItemSubsys;
-}
+#include "Item/Subsystem/NAItemEngineSubsystem.h"
 
 void UNAInventoryGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	// 아이템 서브 시스템의 Initialize가 먼저 호출되도록 보장
-	USubsystem* Subsys = Collection.InitializeDependency(UNAItemGameInstanceSubsystem::StaticClass());
+	check(UNAItemEngineSubsystem::Get());
 	
 	Super::Initialize(Collection);
 
-	if (UNAItemGameInstanceSubsystem* ItemSubsys = Cast<UNAItemGameInstanceSubsystem>(Subsys))
+	if (GEngine)
 	{
 		bool bInventoryInitialized = false;
 		// @TODO: 세이브 파일에서 인벤토리 데이터를 읽어와서 Inventory를 초기화하는 로직
@@ -37,7 +22,7 @@ void UNAInventoryGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Col
 		{
 			for (const FNAInventorySlot& InvSlot : Inventory)
 			{
-				const UNAItemData* NewItemData = FItemManagerStatics::Get(GetWorld()).CreateItemDataBySlot(GetWorld(), InvSlot);
+				const UNAItemData* NewItemData = UNAItemEngineSubsystem::Get()->CreateItemDataBySlot(GetWorld(), InvSlot);
 				if (!NewItemData)
 				{
 					UE_LOG(LogTemp, Warning, TEXT("[UNAInventoryGameInstanceSubsystem::Initialize]  인벤토리 슬롯으로 아이템 데이터 생성 실패"));
@@ -60,7 +45,7 @@ void UNAInventoryGameInstanceSubsystem::Deinitialize()
 
 bool UNAInventoryGameInstanceSubsystem::AddItemToInventory(const FName& ItemID, int32 Stack)
 {
-	if (UNAItemData* InputItem = FItemManagerStatics::Get(GetWorld()).GetRuntimeItemData(ItemID))
+	if (UNAItemData* InputItem = UNAItemEngineSubsystem::Get()->GetRuntimeItemData(ItemID))
 	{
 		const bool bResult = AddItemToInventory(InputItem, Stack);
 		return bResult;
@@ -73,14 +58,14 @@ bool UNAInventoryGameInstanceSubsystem::AddItemToInventory(UNAItemData* InItem, 
 {
 	if (InItem)
 	{
-		if (UNAItemGameInstanceSubsystem* ItemSubsys = GetItemSubsys(this))
+		if (GEngine)
 		{
 			UClass* ItemClass = InItem->GetClass();
 			UNAItemData* OldItem = nullptr;
 			int32 OldStack = 0;
 			for (TPair<FName,int32>& Pair : InventoryItems)
 			{
-				if (OldItem == FItemManagerStatics::Get(GetWorld()).GetRuntimeItemData(Pair.Key))
+				if (OldItem == UNAItemEngineSubsystem::Get()->GetRuntimeItemData(Pair.Key))
 				{
 					if (ItemClass == OldItem->GetItemActorClass())
 					{

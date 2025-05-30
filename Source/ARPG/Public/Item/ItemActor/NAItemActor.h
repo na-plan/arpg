@@ -1,77 +1,48 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
-#include "Item/GameInstance/NAItemGameInstanceSubsystem.h"
 #include "Interaction/NAInteractableInterface.h"
-#include "Item/ItemManagerStatics.h"
+#include "Item/ItemData/NAItemData.h"
 #include "NAItemActor.generated.h"
-
-
-/*#define IMPLEMENT_MACROHOOK_InitItemData(RowStructType)\
-	static_assert(TIsDerivedFrom<RowStructType, FNAItemBaseTableRow>::IsDerived,\
-	#RowStructType "은 반드시 FNAItemBaseTableRow 파생 타입이어야만.");\
-protected:\
-	virtual void InitItemData_MacroHook() override\
-	{\
-		bIsItemDataInitialized = CreateItemDataIfUnset<RowStructType>();\
-	}
-*/
-#define IMPLEMENT_MACROHOOK_GetInitInteractableDataParams(Type, /*Script,*/Duration, Quantity)\
-protected:\
-virtual void GetInitInteractableDataParams_MacroHook(\
-		ENAInteractableType& OutInteractableType,\
-		FString&			 OutInteractableName,\
-		/*FString				OutInteractionScript,*/\
-		float&				 OutInteractableDuration,\
-		int32&				 OutQuantity) const override\
-{\
-	OutInteractableType		= Type;\
-	OutInteractableName		= GetItemData()->GetItemMetaDataStruct<FNAItemBaseTableRow>()->TextData.InteractionText.ToString();\
-	/*OutInteractionScript		= Script*/\
-	OutInteractableDuration = Duration;\
-	OutQuantity				= Quantity;\
-}
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemActorInitialized, ANAItemActor*, InitializedItemActor);
 
-UCLASS()
+UCLASS(Abstract)
 class ARPG_API ANAItemActor : public AActor, public INAInteractableInterface
 {
 	GENERATED_BODY()
 
+	friend class UNAItemEngineSubsystem;
 public:
 	ANAItemActor(const FObjectInitializer& ObjectInitializer);
-	
-	virtual void PostRegisterAllComponents() override;
+
+	virtual void PostInitProperties() override;
+	virtual void PostLoad() override;
+	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) override;
+	virtual void PostActorCreated() override;
+	virtual void PreDuplicate(FObjectDuplicationParameters& DupParams) override;
 	virtual void OnConstruction(const FTransform& Transform) override;
-	virtual void PostInitializeComponents() override;
+	
+#if WITH_EDITOR
+	// 블루프린트 에디터에서 프로퍼티 바뀔 때
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
-	UFUNCTION(BlueprintCallable, Category = "Item Instance")
-	FORCEINLINE UNAItemData* GetItemData() const
-	{
-		return ItemData.Get();
-	}
-
+private:
+	void ExecuteItemPatch(UClass* ClassToPatch, const FNAItemBaseTableRow* PatchData, EItemMetaDirtyFlags PatchFlags);
+#endif
+	
 protected:
-	// 파생 클래스에서 InitItemData_Impl 오버라이딩 시, UItemGameInstanceSubsystem::CreateItemDataByActor 호출 간소화를 위한 템플릿 래퍼 함수
-	// @param	ItemDTRow_T:	해당 클래스 전용의 아이템 DT Row 타입
-	// @return	해당 객체의 멤버 ItemData에 유효한 값이 할당되었는지 여부
-	template<typename ItemDTRow_T = FNAItemBaseTableRow>
-		requires TIsDerivedFrom<ItemDTRow_T, FNAItemBaseTableRow>::IsDerived
-	bool CreateItemDataIfUnset() noexcept;
+	virtual void BeginPlay() override;
 
-	// 파생 클래스가 만약 전용 DT Row 타입을 써야한다면 이 함수를 오버라이딩 하셍요
-	// 오버라이딩이 필요하다면, 파생 클래스 선언 부 안에 IMPLEMENT_MACROHOOK_InitItemData 매크로 쓰셈
-	// e.g.) IMPLEMENT_ITEM_DATA(FNAWeaponTableRow)
-	//virtual void InitItemData_MacroHook();
-
+public:
+	UFUNCTION(BlueprintCallable, Category = "Item Actor")
+	const UNAItemData* GetItemData() const;
+	
+protected:
 	// OnItemDataInitialized: BP 확장 가능
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void OnItemDataInitialized();
-	virtual void OnItemDataInitialized_Implementation() {}
-
-	// 파생 클래스 오버라이딩 전용
-	virtual void VerifyInteractableData_Impl() {}
+	virtual void OnItemDataInitialized_Implementation();
 
 	// 파생 클래스 오버라이딩 전용
 	// @parm	InDataTableRowHandle: ANAItemActor::InitItemActor_Internal에서 유효성 검사 실행한 뒤 전달됨
@@ -79,57 +50,122 @@ protected:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void OnItemActorInitialized();
-	virtual void OnItemActorInitialized_Implementation() {}
-	
-	virtual void BeginPlay() override;
+	virtual void OnItemActorInitialized_Implementation();
 
-protected:
-	UFUNCTION(BlueprintCallable)
-	void InitItemActor_Internal();
-	
 private:
+	void BeginItemInitialize_Internal();
 	void InitItemData_Internal();
-	
+	void InitItemActor_Internal();
 	void VerifyInteractableData_Internal();
-
+	
 public:
-	UPROPERTY(BlueprintAssignable, Category = "Item Instance")
+	UPROPERTY(BlueprintAssignable, Category = "Item Actor")
 	FOnItemActorInitialized OnItemActorInitializedDelegate;
 	
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Instance | Root Shape")
-	TSubclassOf<UShapeComponent> ItemRootShapeClass;
+	UPROPERTY(BlueprintReadOnly, Category = "Item Actor | Root Shape")
+	EItemRootShapeType ItemRootShapeType = EItemRootShapeType::IRT_None;
+	UPROPERTY(Instanced, VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Root Shape")
+	TObjectPtr<UShapeComponent> ItemRootShape;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Item Instance | Root Shape")
-	TObjectPtr<class UShapeComponent> ItemRootShape = nullptr;
+	UPROPERTY(BlueprintReadOnly, Category="Item Actor | Mesh")
+	EItemMeshType ItemMeshType = EItemMeshType::IMT_None;
+	UPROPERTY(Instanced, VisibleAnywhere, Category = "Item Actor | Mesh")
+	TObjectPtr<UMeshComponent> ItemMesh;
 
-	UPROPERTY(VisibleAnywhere, Category="Item Instance | Mesh")
-	TSubclassOf<UMeshComponent> ItemMeshClass;
+	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Static Mesh")
+	TObjectPtr<class UGeometryCollection> ItemFractureCollection;
+	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Static Mesh")
+	TObjectPtr<class UGeometryCollectionCache> ItemFractureCache;
 
-	UPROPERTY(VisibleAnywhere, Category = "Item Instance | Mesh")
-	TObjectPtr<class UMeshComponent> ItemMesh;
+	UPROPERTY(Instanced, VisibleAnywhere, Category="Item Actor | Interaction Button")
+	TObjectPtr<UBillboardComponent> ItemInteractionButton;
 
-	// UPROPERTY(VisibleAnywhere, Category = "Item Instance | Static Mesh")
-	// TObjectPtr<class UGeometryCollection> ItemFractureCollection = nullptr;
-	//
-	// UPROPERTY(VisibleAnywhere, Category = "Item Instance | Static Mesh")
-	// TObjectPtr<class UGeometryCollectionCache> ItemFractureCache = nullptr;
-	
-	UPROPERTY(VisibleAnywhere, Category = "Item Instance | Static Mesh")
-	TSubclassOf<UAnimInstance> ItemAnimClass;
-	
-	uint8 bIsItemDataInitialized :1 = false;
-	uint8 bWTF :1 = false;
-	uint8 bHasShapeRoot : 1 = false;
-
-	UPROPERTY(VisibleAnywhere, Category="Item Instance | Interaction Button")
-	TObjectPtr<class UBillboardComponent> ItemInteractionButton;
-	UPROPERTY(VisibleAnywhere, Category="Item Instance | Interaction Button")
+	UPROPERTY(Instanced, VisibleAnywhere, Category="Item Actor | Interaction Button")
 	TObjectPtr<class UTextRenderComponent> ItemInteractionButtonText;
 
 private:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Instance", meta = (AllowPrivateAccess = "true"))
-	TWeakObjectPtr<UNAItemData> ItemData = nullptr;
+	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Item Actor", meta = (AllowPrivateAccess = "true"))
+	FName ItemDataID;
+
+	uint8 bItemDataInitialized :1;
+	
+	struct NAItemActorProp
+	{
+		enum class Flag : uint16
+		{
+			None						= 0,
+			
+			NeedsUpdate					= 1 << 0,
+		
+			ItemRootShapeType			= 1 << 1,
+			ItemRootShape				= 1 << 2,
+			ItemMeshType				= 1 << 3,
+			ItemMesh					= 1 << 4,
+			ItemFractureCollection		= 1 << 5,
+			ItemFractureCache			= 1 << 6,
+			ItemAnimClass				= 1 << 7,
+			ItemInteractionButton		= 1 << 8,
+			ItemInteractionButtonText	= 1 << 9,
+			ItemDataID					= 1 << 10,
+		};
+
+		static constexpr Flag AllProps =
+			static_cast<Flag>(
+				// (1 << (11 + 1)) - (1 << 0)
+				(static_cast<uint16>(Flag::ItemDataID) << 1)
+				- static_cast<uint16>(Flag::NeedsUpdate)
+			);
+
+		static constexpr bool HasAnyFlags(const Flag& Value, const Flag Test)
+		{
+			return (static_cast<uint16>(Value) & static_cast<uint16>(Test)) != 0;
+		}
+		
+		static constexpr bool HasAllFlags(const Flag& Value, const Flag Test)
+		{
+			return (static_cast<uint16>(Value) & static_cast<uint16>(Test))
+				 == static_cast<uint16>(Test);
+		}
+		
+		static constexpr void AddFlags(Flag& Value, Flag ToAdd)
+		{
+			uint16 NewBits = static_cast<uint16>(Value) | static_cast<uint16>(ToAdd);
+						
+			Value = static_cast<Flag>(NewBits);
+		}
+		
+		static constexpr void RemoveFlags(Flag& Value, Flag ToRemove)
+		{
+			Value = static_cast<Flag>(static_cast<uint16>(Value) & ~static_cast<uint16>(ToRemove));
+		}
+	};
+	NAItemActorProp::Flag PropertyFlags;
+
+	static void MarkItemActorCDOSynchronized(TSubclassOf<ANAItemActor> ItemActorClass)
+	{
+		if (ItemActorClass)
+		{
+			if (ANAItemActor* CDO = Cast<ANAItemActor>(ItemActorClass.Get()->GetDefaultObject(false)))
+			{
+				CDO->bCDOSynchronizedWithMeta = true;
+			}
+		}
+	}
+	static bool IsItemActorCDOSynchronizedWithMeta(TSubclassOf<ANAItemActor> ItemActorClass)
+	{
+		if (ItemActorClass)
+		{
+			if (ANAItemActor* CDO = Cast<ANAItemActor>(ItemActorClass.Get()->GetDefaultObject(false)))
+			{
+				return CDO->bCDOSynchronizedWithMeta;
+			}
+		}
+		return false;
+	}
+	// 이 변수 건들면 안됨
+	UPROPERTY(Transient)
+	uint8 bCDOSynchronizedWithMeta : 1 = false;
 
 //======================================================================================================================
 // Interactable Interface Implements
@@ -152,7 +188,7 @@ public:
 protected:
 	/** 자기 자신(this)이 구현한 인터페이스를 보관 */
 	UPROPERTY()
-	TScriptInterface<INAInteractableInterface> InteractableInterfaceRef;
+	TScriptInterface<INAInteractableInterface> InteractableInterfaceRef = nullptr;
 	
 	// INAInteractableInterface 메서드 x, ANAItemActor의 파생 클래스에서 구현해야하는 매크로 훅 함수
 	// 오버라이딩이 필요하다면, 파생 클래스 선언 부 안에 IMPLEMENT_MACROHOOK_GetInitInteractableDataParams 매크로 쓰셈
@@ -171,25 +207,3 @@ private:
 		float				InInteractionDuration,
 		int32				InQuantity) override final;
 };
-
-class UNAItemGameInstanceSubsystem;
-
-template<typename ItemDTRow_T>
-	requires TIsDerivedFrom<ItemDTRow_T, FNAItemBaseTableRow>::IsDerived
-inline bool ANAItemActor::CreateItemDataIfUnset() noexcept
-{
-	if (ItemData.IsExplicitlyNull())
-	{
-		if (TWeakObjectPtr<UNAItemData> NewItemData = FItemManagerStatics::Get(GetWorld()).CreateItemDataByActor/*ItemDTRow_T>*/(this);
-			NewItemData.IsValid())
-		{
-			ItemData = NewItemData;
-			return true;
-		}
-	} // sh1t
-	else {
-		UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor::CreateItemDataIfUnset]  이미 초기화된 ItemData."));
-	}
-
-	return false;
-}

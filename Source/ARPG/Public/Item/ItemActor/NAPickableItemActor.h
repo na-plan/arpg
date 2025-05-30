@@ -16,12 +16,13 @@ enum class EPickupMode : uint8
 ENUM_CLASS_FLAGS(EPickupMode)
 
 
-UCLASS()
+UCLASS(Abstract)
 class ARPG_API ANAPickableItemActor : public ANAItemActor
 {
 	GENERATED_BODY()
 
 public:
+	ANAPickableItemActor(const FObjectInitializer& ObjectInitializer);
 	// UFUNCTION(BlueprintCallable, Category = "Pickable Item")
 	// FORCEINLINE EPickupMode GetPickupMode() const
 	// {
@@ -30,9 +31,6 @@ public:
 
 	//UFUNCTION(BlueprintCallable, Category = "Pickable Item")
 	//void SetPickupMode(EPickupMode InPickupMode);
-
-	// Macro Hooks
-	IMPLEMENT_MACROHOOK_GetInitInteractableDataParams(ENAInteractableType::Placeable, 0.f, 1);
 
 public:
 	virtual void PostRegisterAllComponents() override;
