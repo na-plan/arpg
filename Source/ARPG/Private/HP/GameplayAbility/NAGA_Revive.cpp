@@ -111,7 +111,13 @@ void UNAGA_Revive::ActivateAbility( const FGameplayAbilitySpecHandle Handle, con
 					HelperContextHandle.SetAbility( this );
 					HelperContextHandle.AddSourceObject( this );
 					FGameplayEffectSpecHandle HelperEffectHandle = HelperASC->MakeOutgoingSpec( UNAGE_Helping::StaticClass(), 1.f, HelperContextHandle );
-					HelperASC->ApplyGameplayEffectSpecToSelf( *HelperEffectHandle.Data.Get() );
+					FActiveGameplayEffectHandle HelpingHandle = HelperASC->ApplyGameplayEffectSpecToSelf( *HelperEffectHandle.Data.Get() );
+
+					// 이펙트 적용에 실패할 수 있음 (이펙트 조건부 참조)
+					if ( !HelpingHandle.WasSuccessfullyApplied() )
+					{
+						EndAbility( Handle, ActorInfo, ActivationInfo, false, true );
+					}
 					
 					if ( RevivingTarget.IsValid() )
 					{
@@ -121,7 +127,13 @@ void UNAGA_Revive::ActivateAbility( const FGameplayAbilitySpecHandle Handle, con
 						RevivingContextHandle.SetAbility( this );
 						RevivingContextHandle.AddSourceObject( this );
 						FGameplayEffectSpecHandle RevivingEffectHandle = RevivingASC->MakeOutgoingSpec( UNAGE_Revive::StaticClass(), 1.f, HelperContextHandle );
-						RevivingASC->ApplyGameplayEffectSpecToSelf( *RevivingEffectHandle.Data.Get() );
+						FActiveGameplayEffectHandle RevivingHandle = RevivingASC->ApplyGameplayEffectSpecToSelf( *RevivingEffectHandle.Data.Get() );
+
+						// 이펙트 적용에 실패할 수 있음 (이펙트 조건부 참조)
+						if ( !RevivingHandle.WasSuccessfullyApplied() )
+						{
+							EndAbility( Handle, ActorInfo, ActivationInfo, false, true );
+						}
 						
 						// 부활받던 사람이 중간에 죽을 경우
 						RevivingTargetHandle = RevivingASC->OnGameplayEffectAppliedDelegateToSelf.AddUObject( this, &UNAGA_Revive::CheckKnockDownDead );
