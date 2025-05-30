@@ -203,19 +203,10 @@ void UNAAnimNotifyState_ParryAreaTest::NotifyTick(USkeletalMeshComponent* MeshCo
 						if (PlayerCombatComponent->IsAttacking() && ParryAngle < -0.85) { SuccessParry = true; }
 						else{ SuccessParry = false; }
 
-					}
-					
-				}
-				
-
+					}					
+				}			
 			}
-
 			OverlapElapsed = 0.f;
 		}
-
 	}
-
-
-
-
 }
