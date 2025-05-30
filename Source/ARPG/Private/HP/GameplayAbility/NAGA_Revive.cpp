@@ -7,7 +7,11 @@
 #include "NACharacter.h"
 #include "Ability/AttributeSet/NAAttributeSet.h"
 #include "Ability/GameAbilityTask/NAAT_WaitPlayerViewport.h"
+#include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
+#include "HP/GameplayEffect/NAGE_Dead.h"
+#include "HP/GameplayEffect/NAGE_Helping.h"
+#include "HP/GameplayEffect/NAGE_Revive.h"
 
 void UNAGA_Revive::OnReviveSucceeded()
 {
@@ -23,7 +27,7 @@ void UNAGA_Revive::OnReviveSucceeded()
 			Character->GetAbilitySystemComponent()->RemoveActiveGameplayEffect( Handle );
 		}
 
-		EndAbility( GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false );
+		EndAbility( GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), false, false );
 	}
 }
 
@@ -33,7 +37,16 @@ void UNAGA_Revive::OnHitWhileRevive( const FOnAttributeChangeData& OnAttributeCh
 	if ( OnAttributeChangeData.NewValue < OnAttributeChangeData.OldValue ||
 		 OnAttributeChangeData.NewValue <= 0.f )
 	{
-		CancelAbility( GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true );
+		CancelAbility( GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), false );
+	}
+}
+
+void UNAGA_Revive::CheckKnockDownDead( UAbilitySystemComponent* AbilitySystemComponent,
+	const FGameplayEffectSpec& GameplayEffectSpec, FActiveGameplayEffectHandle ActiveGameplayEffectHandle )
+{
+	if ( GameplayEffectSpec.Def->IsA<UNAGE_Dead>() )
+	{
+		CancelAbility( GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), false );
 	}
 }
 
@@ -42,11 +55,13 @@ void UNAGA_Revive::ActivateAbility( const FGameplayAbilitySpecHandle Handle, con
 {
 	Super::ActivateAbility( Handle, ActorInfo, ActivationInfo, TriggerEventData );
 
-	if (HasAuthority( &ActivationInfo ))
+	if ( HasAuthority( &ActivationInfo ) )
 	{
-		if (!CommitAbility( Handle, ActorInfo, ActivationInfo ))
+		if ( !CommitAbility( Handle, ActorInfo, ActivationInfo ) )
 		{
-			EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
+			UE_LOG( LogAbilitySystemComponent, Log, TEXT("%hs: Cannot revive anything"), __FUNCTION__ );
+			EndAbility( Handle, ActorInfo, ActivationInfo, false, true );
+			return;
 		}
 
 		if ( const USkeletalMeshComponent* SkeletalMeshComponent = ActorInfo->AvatarActor->GetComponentByClass<USkeletalMeshComponent>() )
@@ -66,23 +81,52 @@ void UNAGA_Revive::ActivateAbility( const FGameplayAbilitySpecHandle Handle, con
 				for ( const FHitResult& Result : OutResult )
 				{
 					ANACharacter* Character = Cast<ANACharacter>( Result.GetActor() );
-
 					if ( !Character )
 					{
 						continue;
 					}
 
-					RevivingTarget = Character;
-					ActorInfo->AbilitySystemComponent->AddReplicatedLooseGameplayTag( FGameplayTag::RequestGameplayTag( "Player.Status.Reviving" ) );
+					UAbilitySystemComponent* RevivingASC = Character->GetAbilitySystemComponent();
+					UAbilitySystemComponent* HelperASC = ActorInfo->AbilitySystemComponent.Get();
+					
+					// 누군가 이미 살려주고 있음
+					if ( RevivingASC->HasMatchingGameplayTag( FGameplayTag::RequestGameplayTag( "Player.Status.Reviving" ) ) )
+					{
+						continue;
+					}
 
-					// 부활시키는 캐릭터가 화면 밖으로 나가지 않도록
+					RevivingTarget = Character;
+
+					// 살려주는 중
+					FGameplayEffectContextHandle HelperContextHandle = HelperASC->MakeEffectContext();
+					FGameplayEffectSpecHandle HelperEffectHandle = HelperASC->MakeOutgoingSpec( UNAGE_Helping::StaticClass(), 1.f, HelperContextHandle );
+					HelperASC->ApplyGameplayEffectSpecToSelf( *HelperEffectHandle.Data.Get() );
+					
+					if ( RevivingTarget.IsValid() )
+					{
+						// 부활 중
+						FGameplayEffectContextHandle RevivingContextHandle = HelperASC->MakeEffectContext();
+						FGameplayEffectSpecHandle RevivingEffectHandle = HelperASC->MakeOutgoingSpec( UNAGE_Revive::StaticClass(), 1.f, HelperContextHandle );
+						HelperASC->ApplyGameplayEffectSpecToSelf( *RevivingEffectHandle.Data.Get() );
+						
+						// 부활받던 사람이 중간에 죽을 경우
+						RevivingTargetHandle = RevivingASC->OnGameplayEffectAppliedDelegateToSelf.AddUObject( this, &UNAGA_Revive::CheckKnockDownDead );
+					}
+
+					// 부활시키는 캐릭터가 화면 밖으로 나가면 취소
 					ViewportCheckTask = UNAAT_WaitPlayerViewport::WaitPlayerViewport( this, "WaitPlayerViewport", ActorInfo->AbilitySystemComponent.Get(), Character );
 					ViewportCheckTask->ReadyForActivation();
-					
-					ActorInfo->AvatarActor->GetWorld()->GetTimerManager().SetTimer( ReviveTimer, this, &UNAGA_Revive::OnReviveSucceeded, 5.f, false );
+
+					ActorInfo->AvatarActor->GetWorld()->GetTimerManager().SetTimer( ReviveTimerHandle, this, &UNAGA_Revive::OnReviveSucceeded, 5.f, false );
+
+					// 부활해주는 사람이 중간에 맞거나 눕는 경우
 					ReviveCancelHandle = ActorInfo->AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate( UNAAttributeSet::GetHealthAttribute() ).AddUObject( this, &UNAGA_Revive::OnHitWhileRevive );
 					break;
 				}
+			}
+			else
+			{
+				UE_LOG( LogAbilitySystemComponent, Log, TEXT("%hs: Unable to reviving target"), __FUNCTION__ );
 			}
 		}
 	}
@@ -92,32 +136,41 @@ void UNAGA_Revive::CancelAbility( const FGameplayAbilitySpecHandle Handle, const
 	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateCancelAbility )
 {
 	Super::CancelAbility( Handle, ActorInfo, ActivationInfo, bReplicateCancelAbility );
+	UE_LOG( LogAbilitySystemComponent, Log, TEXT("%hs: Ability cancelled"), __FUNCTION__ );
 }
 
 void UNAGA_Revive::EndAbility( const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled )
 {
 	Super::EndAbility( Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled );
+	UE_LOG( LogAbilitySystemComponent, Log, TEXT("%hs: Ability ended"), __FUNCTION__ );
 
 	if ( HasAuthority( &ActivationInfo ) )
 	{
-		ViewportCheckTask->EndTask();
-		
-		if ( ReviveTimer.IsValid() )
+		if ( ReviveTimerHandle.IsValid() )
 		{
-			ActorInfo->AvatarActor->GetWorld()->GetTimerManager().ClearTimer( ReviveTimer );
+			ActorInfo->AvatarActor->GetWorld()->GetTimerManager().ClearTimer( ReviveTimerHandle );
+		}
+		
+		if ( ViewportCheckTask )
+		{
+			ViewportCheckTask->EndTask();	
 		}
 		
 		ActorInfo->AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate( UNAAttributeSet::GetHealthAttribute() ).Remove( ReviveCancelHandle );
 		
-		if ( ActorInfo->AbilitySystemComponent->HasMatchingGameplayTag( FGameplayTag::RequestGameplayTag( "Player.Status.Reviving" ) ) )
+		UAbilitySystemComponent* HelperASC = ActorInfo->AbilitySystemComponent.Get();
+		FGameplayTagContainer TagToRemove;
+		TagToRemove.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Revive" ) );
+		TagToRemove.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Helping" ) );
+		
+		HelperASC->RemoveActiveEffectsWithTags( TagToRemove );
+		
+		if ( RevivingTarget.IsValid() )
 		{
-			ActorInfo->AbilitySystemComponent->RemoveReplicatedLooseGameplayTag( FGameplayTag::RequestGameplayTag( "Player.Status.Reviving" ) );
-		}
-		else
-		{
-			// 분명히 전에 태그가 붙었어야 함...
-			check( false );
+			UAbilitySystemComponent* RevivingASC = RevivingTarget->GetAbilitySystemComponent();
+			RevivingASC->RemoveActiveEffectsWithTags( TagToRemove );
+			RevivingTarget->GetComponentByClass<UNAVitalCheckComponent>()->OnCharacterStateChanged.Remove( RevivingTargetHandle );
 		}
 	}
 }
@@ -126,7 +179,15 @@ bool UNAGA_Revive::CommitAbility( const FGameplayAbilitySpecHandle Handle, const
                                   const FGameplayAbilityActivationInfo ActivationInfo, FGameplayTagContainer* OptionalRelevantTags )
 {
 	bool bResult = Super::CommitAbility( Handle, ActorInfo, ActivationInfo, OptionalRelevantTags );
-	bResult &= !ActorInfo->AbilitySystemComponent->HasMatchingGameplayTag( FGameplayTag::RequestGameplayTag( "Player.Status.Reviving" ) );
-	bResult &= !ActorInfo->AbilitySystemComponent->HasMatchingGameplayTag( FGameplayTag::RequestGameplayTag( "Player.Status.Alive" ) );
+	const UAbilitySystemComponent* AbilitySystemComponent = ActorInfo->AbilitySystemComponent.Get();
+	bResult &= !AbilitySystemComponent->HasMatchingGameplayTag( FGameplayTag::RequestGameplayTag( "Player.Status.Helping" ) );
+	bResult &= !AbilitySystemComponent->HasMatchingGameplayTag( FGameplayTag::RequestGameplayTag( "Player.Status.Dead" ) );
 	return bResult;
+}
+
+void UNAGA_Revive::InputReleased( const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo )
+{
+	Super::InputReleased( Handle, ActorInfo, ActivationInfo );
+	CancelAbility( Handle, ActorInfo, ActivationInfo, true );
 }

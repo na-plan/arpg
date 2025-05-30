@@ -103,7 +103,7 @@ ANACharacter::ANACharacter()
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 
-	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT( "AbilitySystemComponent" ));
 	DefaultCombatComponent = CreateDefaultSubobject<UNAMontageCombatComponent>( TEXT( "DefaultCombatComponent" ) );
 	InteractionComponent = CreateDefaultSubobject<UNAInteractionComponent>(TEXT("InteractionComponent"));
 	InventoryComponent = CreateDefaultSubobject<UNAInventoryComponent>(TEXT("InventoryComponent"));
@@ -125,9 +125,12 @@ void ANACharacter::BeginPlay()
 	// Call the base class  
 	Super::BeginPlay();
 
-	// 부활 기능 추가
-	const FGameplayAbilitySpec SpecHandle( UNAGA_Revive::StaticClass(), 1.f );
-	AbilitySystemComponent->GiveAbility( SpecHandle );
+	if ( HasAuthority() )
+	{
+		// 부활 기능 추가
+		const FGameplayAbilitySpec SpecHandle( UNAGA_Revive::StaticClass(), 1.f, static_cast<int32>( EAbilityInputID::Revive ) );
+		AbilitySystemComponent->GiveAbility( SpecHandle );
+	}
 	
 	// == 테스트 코드 ==
 	{
@@ -213,6 +216,9 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 		EnhancedInputComponent->BindAction(LeftMouseAttackAction, ETriggerEvent::Started, this, &ANACharacter::StartLeftMouseAttack);
 		EnhancedInputComponent->BindAction(LeftMouseAttackAction, ETriggerEvent::Completed, this, &ANACharacter::StopLeftMouseAttack);
+		
+		EnhancedInputComponent->BindAction( ReviveAction, ETriggerEvent::Started, this, &ANACharacter::TryRevive );
+		EnhancedInputComponent->BindAction( ReviveAction, ETriggerEvent::Completed, this, &ANACharacter::StopRevive );
 	}
 	else
 	{
@@ -323,6 +329,24 @@ void ANACharacter::StopLeftMouseAttack()
 		{
 			DefaultCombatComponent->StopAttack();	
 		}
+	}
+}
+
+void ANACharacter::TryRevive()
+{
+	// todo: GAS의 Input 감지를 이용할 수 있음
+	if ( AbilitySystemComponent )
+	{
+		AbilitySystemComponent->AbilityLocalInputPressed( static_cast<int32>( EAbilityInputID::Revive ) );
+	}
+}
+
+void ANACharacter::StopRevive()
+{
+	// todo: GAS의 Input 감지를 이용할 수 있음
+	if ( AbilitySystemComponent )
+	{
+		AbilitySystemComponent->AbilityLocalInputReleased( static_cast<int32>( EAbilityInputID::Revive ) );
 	}
 }
 

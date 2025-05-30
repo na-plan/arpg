@@ -3,7 +3,6 @@
 
 #include "HP/GameplayEffect/NAGE_Damage.h"
 
-#include "AbilitySystemLog.h"
 #include "Ability/AttributeSet/NAAttributeSet.h"
 
 UNAGE_Damage::UNAGE_Damage()

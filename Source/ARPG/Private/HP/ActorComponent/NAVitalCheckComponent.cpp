@@ -8,6 +8,8 @@
 #include "Ability/AttributeSet/NAAttributeSet.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "HP/GameplayEffect/NAGE_Dead.h"
+#include "HP/GameplayEffect/NAGE_KnockDown.h"
 
 DEFINE_LOG_CATEGORY( LogVitalComponent );
 
@@ -38,6 +40,41 @@ ECharacterStatus UNAVitalCheckComponent::GetCharacterStatus() const
 	return CharacterState;
 }
 
+void UNAVitalCheckComponent::OnMovementSpeedChanged( const FOnAttributeChangeData& OnAttributeChangeData )
+{
+	if ( ANACharacter* Character = GetCharacter() )
+	{
+		Cast<UCharacterMovementComponent>( Character->GetMovementComponent() )->MaxWalkSpeed = OnAttributeChangeData.NewValue;
+	}
+}
+
+void UNAVitalCheckComponent::HandleEffectToStatus( UAbilitySystemComponent* AbilitySystemComponent,
+	const FGameplayEffectSpec& GameplayEffectSpec, FActiveGameplayEffectHandle ActiveGameplayEffectHandle )
+{
+	if ( GameplayEffectSpec.Def->IsA<UNAGE_Dead>() )
+	{
+		if ( UCharacterMovementComponent* MovementComponent = Cast<UCharacterMovementComponent>( GetCharacter()->GetMovementComponent() ) )
+		{
+			MovementComponent->StopMovementImmediately();
+			MovementComponent->DisableMovement();
+			SetState( ECharacterStatus::Dead );	
+		}
+	}
+	else if ( GameplayEffectSpec.Def->IsA<UNAGE_KnockDown>() )
+	{
+		UNAMontageCombatComponent* CombatComponent = GetCharacter()->GetComponentByClass<UNAMontageCombatComponent>();
+		check( CombatComponent );
+
+		if ( UCharacterMovementComponent* MovementComponent = Cast<UCharacterMovementComponent>( GetCharacter()->GetMovementComponent() ) )
+		{
+			MovementComponent->SetMovementMode( MOVE_Walking );
+		}
+		
+		SetState( ECharacterStatus::KnockDown );
+		CombatComponent->SetActive( false );
+	}
+}
+
 // Called when the game starts
 void UNAVitalCheckComponent::BeginPlay()
 {
@@ -50,7 +87,9 @@ void UNAVitalCheckComponent::BeginPlay()
 		
 		// ASC의 체력 변화를 감지, 클라이언트 모두 업데이트
 		Character->GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate( UNAAttributeSet::GetHealthAttribute() ).AddUObject( this, &UNAVitalCheckComponent::OnHealthChanged );
+		Character->GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate( UNAAttributeSet::GetMovementSpeedAttribute() ).AddUObject( this, &UNAVitalCheckComponent::OnMovementSpeedChanged );
 
+		Character->GetAbilitySystemComponent()->OnActiveGameplayEffectAddedDelegateToSelf.AddUObject( this, &UNAVitalCheckComponent::HandleEffectToStatus );
 		// 초기 업데이트
 		if (const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>( Character->GetAbilitySystemComponent()->GetAttributeSet( UNAAttributeSet::StaticClass() ) ) )
 		{
@@ -64,7 +103,9 @@ void UNAVitalCheckComponent::BeginPlay()
 
 void UNAVitalCheckComponent::SetState( const ECharacterStatus NewStatus )
 {
-	UpdateGameplayTag( NewStatus );
+	const ECharacterStatus OldStatus = CharacterState;
+	CharacterState = NewStatus;
+	OnCharacterStateChanged.Broadcast( OldStatus, NewStatus );
 }
 
 ANACharacter* UNAVitalCheckComponent::GetCharacter() const
@@ -72,90 +113,40 @@ ANACharacter* UNAVitalCheckComponent::GetCharacter() const
 	return Cast<ANACharacter>( GetOwner() );
 }
 
-void UNAVitalCheckComponent::UpdateGameplayTag( const ECharacterStatus NewState )
-{
-	if ( GetNetMode() != NM_Client )
-	{
-		FGameplayTagContainer NewTags;
-		FGameplayTagContainer OldTags;
-
-		UAbilitySystemComponent* AbilitySystemComponent = GetCharacter()->GetAbilitySystemComponent();
-		check( AbilitySystemComponent );
-
-		switch ( CharacterState )
-		{
-		case ECharacterStatus::Alive:
-			OldTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Alive" ) );
-			break;
-		case ECharacterStatus::KnockDown:
-			OldTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Alive" ) );
-			OldTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.KnockDown" ) );
-			break;
-		case ECharacterStatus::Dead:
-			OldTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Dead" ) );
-			break;
-		}
-
-		AbilitySystemComponent->RemoveReplicatedLooseGameplayTags( OldTags );
-	
-		switch ( NewState )
-		{
-		case ECharacterStatus::Alive:
-			NewTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Alive" ) );
-			break;
-		case ECharacterStatus::KnockDown:
-			NewTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Alive" ) );
-			NewTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.KnockDown" ) );
-			break;
-		case ECharacterStatus::Dead:
-			NewTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Dead" ) );
-			break;
-		}
-	
-		AbilitySystemComponent->AddReplicatedLooseGameplayTags( NewTags );
-	}
-
-	// 클라이언트와 서버 개별로 업데이트 (리플리케이션에 의존하지 않음)
-	CharacterState = NewState;
-}
-
 void UNAVitalCheckComponent::HandleKnockDown( const ANACharacter* Character, const float NewHealth )
 {
 	UNAMontageCombatComponent* CombatComponent = Character->GetComponentByClass<UNAMontageCombatComponent>();
 	check( CombatComponent );
 
-	if ( UCharacterMovementComponent* MovementComponent = Cast<UCharacterMovementComponent>( Character->GetMovementComponent() ) )
+	// 캐릭터가 쓰러졌었다가 다시 일어난 경우
+	if ( CharacterState == ECharacterStatus::KnockDown && NewHealth > 0.f )
 	{
-		// 캐릭터가 쓰러졌었다가 다시 일어난 경우
-		if ( CharacterState == ECharacterStatus::KnockDown && NewHealth > 0.f )
-		{
-			MovementComponent->MaxWalkSpeed = 600.f;
-			SetState( ECharacterStatus::Alive );
-			CombatComponent->SetActive( true );
-		}
+		SetState( ECharacterStatus::Alive );
+		CombatComponent->SetActive( true );
+		const FGameplayTagContainer TagContainer( FGameplayTag::RequestGameplayTag( "Player.Status.KnockDown" ) );
+		Character->GetAbilitySystemComponent()->RemoveActiveEffectsWithTags( TagContainer );
+	}
 
-		// 캐릭터가 녹다운이 된 경우
-		if ( NewHealth <= 0.f )
-		{
-			MovementComponent->MaxWalkSpeed = 150.f;
-			SetState( ECharacterStatus::KnockDown );
-			CombatComponent->SetActive( false );
-		}
+	if ( CharacterState == ECharacterStatus::Alive && NewHealth <= 0.f )
+	{
+		CombatComponent->SetActive( false );
+
+		const FGameplayEffectContextHandle ContextHandle = Character->GetAbilitySystemComponent()->MakeEffectContext();
+		const FGameplayEffectSpecHandle SpecHandle = Character->GetAbilitySystemComponent()->MakeOutgoingSpec( UNAGE_KnockDown::StaticClass(), 1.f, ContextHandle );
+		const FActiveGameplayEffectHandle ActiveGameplayEffect = Character->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf( *SpecHandle.Data.Get() );
+		check( ActiveGameplayEffect.WasSuccessfullyApplied() );
 	}
 }
 
 void UNAVitalCheckComponent::HandleDead( const ANACharacter* Character, const float NewHealth )
 {
 	// 캐릭터가 녹다운 상태에서 사망 상태로 변한 경우
-	if ( CharacterState == ECharacterStatus::KnockDown && NewHealth < -100.f )
+	if ( CharacterState == ECharacterStatus::KnockDown && NewHealth <= -100.f )
 	{
-		if ( UCharacterMovementComponent* MovementComponent = Cast<UCharacterMovementComponent>( Character->GetMovementComponent() ) )
-		{
-			MovementComponent->StopMovementImmediately();
-			MovementComponent->DisableMovement();
-			SetState( ECharacterStatus::Dead );
-			// todo: 플레이어 관전자 모드로 전환
-		}
+		const FGameplayEffectContextHandle ContextHandle = Character->GetAbilitySystemComponent()->MakeEffectContext();
+		const FGameplayEffectSpecHandle SpecHandle = Character->GetAbilitySystemComponent()->MakeOutgoingSpec( UNAGE_Dead::StaticClass(), 1.f, ContextHandle );
+		const FActiveGameplayEffectHandle ActiveGameplayEffect = Character->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf( *SpecHandle.Data.Get() );
+		check( ActiveGameplayEffect.WasSuccessfullyApplied() );
 	}
 }
 

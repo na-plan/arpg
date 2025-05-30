@@ -28,6 +28,8 @@ enum class ECharacterStatus : uint8
 	Dead
 };
 
+DECLARE_MULTICAST_DELEGATE_TwoParams( FOnCharacterStateChanged, ECharacterStatus, ECharacterStatus );
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ARPG_API UNAVitalCheckComponent : public UActorComponent
 {
@@ -51,16 +53,21 @@ class ARPG_API UNAVitalCheckComponent : public UActorComponent
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Status", meta=(AllowPrivateAccess="true"))
 	ECharacterStatus CharacterState = ECharacterStatus::Alive;
 
-
 public:
 	// Sets default values for this component's properties
 	UNAVitalCheckComponent();
 
 	ECharacterStatus GetCharacterStatus() const;
+	
+	FOnCharacterStateChanged OnCharacterStateChanged;
 
 protected:
 	// 매시에서 체력 구분 단위
 	constexpr static float MeshHealthStep = 0.25f;
+
+	void OnMovementSpeedChanged( const FOnAttributeChangeData& OnAttributeChangeData );
+
+	void HandleEffectToStatus( UAbilitySystemComponent* AbilitySystemComponent, const FGameplayEffectSpec& GameplayEffectSpec, FActiveGameplayEffectHandle ActiveGameplayEffectHandle );
 	
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -68,8 +75,6 @@ protected:
 	void SetState( ECharacterStatus NewStatus );
 
 	ANACharacter* GetCharacter() const;
-
-	void UpdateGameplayTag( const ECharacterStatus NewState );
 
 	// 캐릭터가 쓰러졌을때 캐릭터 속성 관리
 	void HandleKnockDown( const ANACharacter* Character, const float NewHealth );

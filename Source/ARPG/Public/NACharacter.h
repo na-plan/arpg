@@ -108,6 +108,9 @@ protected:
 	void StopLeftMouseAttack();
 	
 protected:
+	void TryRevive();
+
+	void StopRevive();
 	// APawn interface
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
