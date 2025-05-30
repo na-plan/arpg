@@ -45,12 +45,13 @@ void UNAAnimNotifyState_SphereOverlapTest::NotifyBegin( USkeletalMeshComponent* 
 			MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->StopMovementImmediately();
 			MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->DisableMovement();
 		}
-		else if (MeshComp->GetOwner()->GetComponentByClass<UPawnMovementComponent>())
-		{
-			//MeshComp->GetOwner()->GetComponentByClass<UPawnMovementComponent>()->bUseControllerDesiredRotation = false;
-			MeshComp->GetOwner()->GetComponentByClass<UPawnMovementComponent>()->StopMovementImmediately();
-			//MeshComp->GetOwner()->GetComponentByClass<UPawnMovementComponent>()->DisableMovement();
-		}
+		// monster는 aicontroller가 서버에서 만들어 지기 때문에 동기화 과정은 필요 없을거 같음
+		//else if (MeshComp->GetOwner()->GetComponentByClass<UPawnMovementComponent>())
+		//{
+		//	MeshComp->GetOwner()->GetComponentByClass<UPawnMovementComponent>()->bUseControllerDesiredRotation = false;
+		//	MeshComp->GetOwner()->GetComponentByClass<UPawnMovementComponent>()->StopMovementImmediately();
+		//	MeshComp->GetOwner()->GetComponentByClass<UPawnMovementComponent>()->DisableMovement();
+		//}
 
 	}
 }

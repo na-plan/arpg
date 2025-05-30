@@ -24,7 +24,8 @@ class ARPG_API UNAAnimNotifyState_ParryAreaTest : public UAnimNotifyState
 	bool Check;
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlap", meta = (AllowPrivateAccess = "true"))
-	float OverlapInterval = 0.25f;
+	float OverlapInterval = 0.01f;
+	float OverlapElapsed ;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlap", meta = (AllowPrivateAccess = "true"))
 	FName SocketName;
@@ -37,6 +38,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound", meta = (AllowPrivateAccess = "true"))
 	USoundBase* ParrySound = nullptr;
+
+	UPROPERTY()
+	TSet<AActor*> AppliedActors;
 
 	FGameplayEffectContextHandle ContextHandle;
 

@@ -6,10 +6,21 @@
 #include "AbilitySystemComponent.h"
 #include "Ability/AttributeSet/NAAttributeSet.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Engine/OverlapResult.h"
+#include "NACharacter.h"
 
 void UNAAnimNotifyState_ParryAreaTest::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration, const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
+
+
+
+	AActor* OwnerActor = MeshComp->GetOwner();
+
+#if WITH_EDITOR
+	if (GIsEditor && OwnerActor && OwnerActor->GetWorld() != GWorld) { return; }
+#endif
 
 	if (MeshComp->GetWorld()->IsGameWorld())
 	{
@@ -23,65 +34,32 @@ void UNAAnimNotifyState_ParryAreaTest::NotifyBegin(USkeletalMeshComponent* MeshC
 			//	check(false);
 			//	return;
 			//}
+			if (UAbilitySystemComponent* OwnerASC = OwnerActor->FindComponentByClass<UAbilitySystemComponent>())
+			{
+				const FVector SocketLocation = MeshComp->GetSocketLocation(SocketName);
+				ContextHandle = OwnerASC->MakeEffectContext();
+				ContextHandle.AddOrigin(SocketLocation);
+				ContextHandle.AddInstigator(MeshComp->GetOwner()->GetInstigatorController(), MeshComp->GetOwner());
+				ContextHandle.SetAbility(OwnerASC->GetAnimatingAbility());
+				ContextHandle.AddSourceObject(this);
+				SpecHandle = OwnerASC->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1.f, ContextHandle);
 
-			//const FVector SocketLocation = MeshComp->GetSocketLocation(SocketName);
-
-			//ContextHandle = SourceInterface->GetAbilitySystemComponent()->MakeEffectContext();
-			//ContextHandle.AddOrigin(SocketLocation);
-			//ContextHandle.AddInstigator(MeshComp->GetOwner()->GetInstigatorController(), MeshComp->GetOwner());
-			//ContextHandle.SetAbility(SourceInterface->GetAbilitySystemComponent()->GetAnimatingAbility());
-			//ContextHandle.AddSourceObject(this);
-
-			//SpecHandle = SourceInterface->GetAbilitySystemComponent()->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1.f, ContextHandle);
+			}
 		}
 		// 서버와 클라이언트 간 플레이어 컨트롤러 설정 동기화
-		//if (MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>())
-		//{
-		//	MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->bUseControllerDesiredRotation = false;
-		//	MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->StopMovementImmediately();
-		//	MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->DisableMovement();
-		//}
+		if (MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>())
+		{
+			MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->bUseControllerDesiredRotation = false;
+			MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->StopMovementImmediately();
+			MeshComp->GetOwner()->GetComponentByClass<UCharacterMovementComponent>()->DisableMovement();
+		}
+		// monster는 aicontroller가 서버에서 만들어 지기 때문에 동기화 과정은 필요 없을거 같음
 		//else if (MeshComp->GetOwner()->GetComponentByClass<UPawnMovementComponent>())
 		//{
 		//	MeshComp->GetOwner()->GetComponentByClass<UPawnMovementComponent>()->bUseControllerDesiredRotation = false;
 		//	MeshComp->GetOwner()->GetComponentByClass<UPawnMovementComponent>()->StopMovementImmediately();
 		//	MeshComp->GetOwner()->GetComponentByClass<UPawnMovementComponent>()->DisableMovement();
 		//}
-
-	}
-
-
-	AActor* OwnerActor =  MeshComp->GetOwner();
-
-	// For EditorPlay AnimSequence
-	// 구체 붙이고
-
-#if WITH_EDITOR
-	if (GIsEditor && OwnerActor && OwnerActor->GetWorld() != GWorld) { return; }
-#endif
-
-	//Test 용으로 begin되자마자 attribute에 데미지 넣고 패링 되는지 확인 ㄱㄱ
-	if (UAbilitySystemComponent* OwnerASC = OwnerActor->FindComponentByClass<UAbilitySystemComponent>())
-	{
-		//const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>(OwnerASC->GetAttributeSet(UNAAttributeSet::StaticClass()));
-		//CheckHP = AttributeSet->GetHealth();
-
-		// 데미지
-		FGameplayEffectContextHandle EffectContext = OwnerASC->MakeEffectContext();
-
-
-		EffectContext.AddInstigator(MeshComp->GetOwner()->GetInstigatorController(), MeshComp->GetOwner());
-
-		// Gameplay Effect CDO, 레벨?, ASC에서 부여받은 Effect Context로 적용할 효과에 대한 설명을 생성
-		const FGameplayEffectSpecHandle DamageEffectSpec = OwnerASC->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1, EffectContext);
-
-		// 설명에 따라 효과 부여 (본인에게)
-		const auto& Handle = OwnerASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpec.Data.Get());
-
-		check(Handle.WasSuccessfullyApplied());
-
-
-		bool checkOwnerASC = false;
 
 	}
 
@@ -109,34 +87,82 @@ void UNAAnimNotifyState_ParryAreaTest::NotifyTick(USkeletalMeshComponent* MeshCo
 {
 	Super::NotifyTick(MeshComp, Animation, FrameDeltaTime, EventReference);
 
-	//Owner의 Parry Area 에서 근접공격 맞은 애들은 parry 를 당함. 근접공격은 player쪽에서 넘겨가지고 attribute 를 조정한다고 하면
-	// tick동안 attribute를 가지고 와서 근접 공격에 맞았으면 parry 아니면 계속 공격
-	if (UAbilitySystemComponent* OwnerASC = MeshComp->GetOwner()->FindComponentByClass<UAbilitySystemComponent>())
+
+	// 충돌 처리는 서버의 책임
+	if (MeshComp->GetOwner()->HasAuthority())
 	{
-		UAnimInstance* AnimInstance = OwnerASC->AbilityActorInfo->GetAnimInstance();
+		// 충돌 확인 지연	-> 어차피 텀은 적은데 그냥 tick에서 돌리는게 맞지 않을까? 
+		OverlapElapsed += FrameDeltaTime;
+		//interval time 넘어가면 충돌 확인 계속 하도록 하는거
+		if (OverlapElapsed >= OverlapInterval)
+		{
+			const FVector SocketLocation = MeshComp->GetSocketLocation(SocketName);
+			TArray<FOverlapResult> OverlapResults;
+			FCollisionQueryParams QueryParams;
+			QueryParams.AddIgnoredActor(MeshComp->GetOwner()); // 시전자 제외
+			const bool bOverlap = MeshComp->GetWorld()->OverlapMultiByChannel
+			(
+				OverlapResults,
+				SocketLocation,
+				FQuat::Identity,
+				ECC_Pawn,
+				FCollisionShape::MakeSphere(SphereRadius),
+				QueryParams
+			);
 
-		//GetAnimatingAbility로 player animability 가져오기
-		OwnerASC->GetAnimatingAbility();
+#if WITH_EDITOR || UE_BUILD_DEBUG
+			DrawDebugSphere
+			(
+				MeshComp->GetWorld(),
+				SocketLocation,
+				SphereRadius,
+				8,
+				bOverlap || !OverlapResults.IsEmpty() ? FColor::Green : FColor::Red
+			);
+#endif
+			//충돌된게 게임월드일 경우
+			if (!OverlapResults.IsEmpty() && MeshComp->GetWorld()->IsGameWorld())
+			{
+				const TScriptInterface<IAbilitySystemInterface>& SourceInterface = MeshComp->GetOwner();
 
-		OwnerASC->GetCurrentMontage();
+				if (!SourceInterface)
+				{
+					// GAS가 없는 객체로부터 시도됨
+					check(false);
+					return;
+				}
+				//AppliedActors 에 새로운 대상이 추가되면 검사 목록에 추가
+				for (const FOverlapResult& OverlapResult : OverlapResults)
+				{
+					if (const TScriptInterface<IAbilitySystemInterface>& TargetInterface = OverlapResult.GetActor())
+					{
+						if (!AppliedActors.Contains(OverlapResult.GetActor()))
+						{
+							UE_LOG(LogTemp, Log, TEXT("[%hs]: Found target %s"), __FUNCTION__, *OverlapResult.GetActor()->GetName());
+							SourceInterface->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget
+							(
+								*SpecHandle.Data.Get(),
+								TargetInterface->GetAbilitySystemComponent()
+							);
 
-		const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>(OwnerASC->GetAttributeSet(UNAAttributeSet::StaticClass()));
-		//Take Damage is true -> Stopmontage change to Parry
+							AppliedActors.Add(OverlapResult.GetActor());
+						}
+					}
+				}
+				//검사 목록에서 NACharacter 검출 -> 이후 근접 공격 어빌리티 사용을 하는지 확인후 
+				for (AActor* Test : AppliedActors)
+				{
+					//if(AppliedActors)
+				}
+				
 
+			}
 
-		//OwnerASC->GetAllAttributes();
-		// 
-		//damage 맞았다고 대충 치고		++이때 패링 이펙트 파티클 같은거 보여줘서 패링 타이밍 보이게 하는것도 괜찮을거 같음
-		Check = true;
+			OverlapElapsed = 0.f;
+		}
 
-		//패링 캔슬을 여기에 넣을까 END에 넣을까 고민이 좀 있긴함
-		/**/
-		//if (Check)
-		//{
-		//	AnimInstance->Montage_Stop(0.2f);
-		//	AnimInstance->Montage_Play(StunMontage);
-		//}
 	}
+
 
 
 
