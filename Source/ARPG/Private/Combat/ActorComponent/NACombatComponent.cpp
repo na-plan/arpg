@@ -23,20 +23,22 @@ UNACombatComponent::UNACombatComponent()
 
 void UNACombatComponent::SetAttackAbility(const TSubclassOf<UGameplayAbility>& InAbility)
 {
+	TSubclassOf<UGameplayAbility> OldAbility = AttackAbility;
+	
 	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker() )
 	{
-		if ( AttackAbility && GetNetMode() != NM_Client )
+		if ( OldAbility && GetNetMode() != NM_Client )
 		{
 			Interface->GetAbilitySystemComponent()->ClearAbility( AbilitySpecHandle );
 		}
-		
-		AttackAbility = InAbility;
 
-		if ( AttackAbility && GetNetMode() != NM_Client )
+		if ( InAbility && GetNetMode() != NM_Client )
 		{
-			AbilitySpecHandle = Interface->GetAbilitySystemComponent()->GiveAbility( AttackAbility );		
+			AbilitySpecHandle = Interface->GetAbilitySystemComponent()->GiveAbility( InAbility );		
 		}
 	}
+
+	AttackAbility = InAbility;
 }
 
 void UNACombatComponent::ReplayAttack()
