@@ -1,18 +1,240 @@
 
 #include "Item/ItemActor/NAItemActor.h"
 
-#include "DataTableEditorUtils.h"
 #include "Item/Subsystem/NAItemEngineSubsystem.h"
 #include "Components/SphereComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Interaction/NAInteractionComponent.h"
 #include "Components/BillboardComponent.h"
-#include "Components/Button.h"
 #include "Components/TextRenderComponent.h"
 #include "GeometryCollection/GeometryCollectionObject.h"
-#include "GeometryCollection/GeometryCollectionCache.h"
 
+#define TRANSFORM_OVERRIDE_BY_CACHE( Component, PreviousTransform, CacheTransform ) \
+	{\
+		const FTransform UpdateTransform =\
+					PreviousTransform.Equals(CacheTransform)\
+						? PreviousTransform : CacheTransform;\
+		Component->SetRelativeTransform(UpdateTransform);\
+	}
+
+void FMeshUpdatePredication::operator()( AActor* InOuter, UMeshComponent* InComponent, UMeshComponent* InOldComponent,
+	const FNAItemBaseTableRow* InRow, const EItemMetaDirtyFlags DirtyFlags ) const
+{
+	if ( ANAItemActor* BPCDO = Cast<ANAItemActor>( InOuter ) )
+	{
+		BPCDO->ItemMeshType = InRow->MeshType;
+		InComponent->SetupAttachment(BPCDO->ItemRootShape);
+		InComponent->Mobility = EComponentMobility::Movable;
+		InComponent->SetRelativeTransform( InRow->CachedTransforms.MeshTransform );
+
+		if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>( InComponent ))
+		{
+			if (EnumHasAnyFlags(DirtyFlags, EItemMetaDirtyFlags::MF_Mesh | EItemMetaDirtyFlags::MF_MeshAsset))
+			{
+				StaticMeshComp->SetStaticMesh(InRow->StaticMeshAssetData.StaticMesh);
+			}
+
+			BPCDO->ItemFractureCollection = InRow->StaticMeshAssetData.FractureCollection;
+			BPCDO->ItemFractureCache = InRow->StaticMeshAssetData.FractureCache;
+		}
+		else if ( USkeletalMeshComponent* SkeletalMeshComp = Cast<USkeletalMeshComponent>( InComponent ) )
+		{
+			if (EnumHasAnyFlags(DirtyFlags, EItemMetaDirtyFlags::MF_Mesh))
+			{
+				SkeletalMeshComp->SetSkeletalMesh(InRow->SkeletalMeshAssetData.SkeletalMesh);
+				SkeletalMeshComp->SetAnimClass(InRow->SkeletalMeshAssetData.AnimClass.Get());
+			}
+			else if (EnumHasAnyFlags(DirtyFlags, EItemMetaDirtyFlags::MF_MeshAsset))
+			{
+				SkeletalMeshComp->SetSkeletalMesh(InRow->SkeletalMeshAssetData.SkeletalMesh);
+			}
+			else if (EnumHasAnyFlags(DirtyFlags, EItemMetaDirtyFlags::MF_MeshAnim))
+			{
+				SkeletalMeshComp->SetAnimClass(InRow->SkeletalMeshAssetData.AnimClass.Get());
+			}
+		}
+	}
+}
+
+void FMeshInstanceUpdatePredication::operator()( AActor* InOuter, UMeshComponent* InComponent,
+	UMeshComponent* InOldComponent, const FNAItemBaseTableRow* InRow, const EItemMetaDirtyFlags DirtyFlags ) const
+{
+	FMeshUpdatePredication::operator()( InOuter, InComponent, InOldComponent, InRow, DirtyFlags );
+
+	FTransform CachedMeshRelativeTransform = FTransform::Identity;
+	if ( InOldComponent )
+	{
+		CachedMeshRelativeTransform = InOldComponent->GetRelativeTransform();
+	}
+	
+	TRANSFORM_OVERRIDE_BY_CACHE( InComponent, CachedMeshRelativeTransform, InRow->CachedTransforms.MeshTransform );
+}
+
+void FRootShapeUpdatePredication::operator()( AActor* InOuter, UShapeComponent* InComponent,
+                                              UShapeComponent* InOldComponent, const FNAItemBaseTableRow* InRow, const EItemMetaDirtyFlags DirtyFlags ) const
+{
+	if ( ANAItemActor* BPCDO = Cast<ANAItemActor>( InOuter ) )
+	{
+		BPCDO->ItemRootShapeType = InRow->RootShapeType;
+		BPCDO->SetRootComponent( InComponent );
+		InComponent->SetWorldTransform( InRow->CachedTransforms.RootTransform );
+
+		if ( USphereComponent* RootSphere = Cast<USphereComponent>( InComponent ) )
+		{
+			RootSphere->SetSphereRadius( InRow->CachedTransforms.RootSphereRadius );
+		}
+		else if ( UBoxComponent* RootBox = Cast<UBoxComponent>( InComponent ) )
+		{
+			RootBox->SetBoxExtent( InRow->CachedTransforms.RootBoxExtent );
+		}
+		else if ( UCapsuleComponent* RootCapsule = Cast<UCapsuleComponent>( InComponent ) )
+		{
+			RootCapsule->SetCapsuleSize( InRow->CachedTransforms.RootCapsuleSize.X, InRow->CachedTransforms.RootCapsuleSize.Y );
+		}
+	}
+}
+
+void FRootShapeInstanceUpdatePredication::operator()( AActor* InOuter, UShapeComponent* InComponent,
+	UShapeComponent* InOldComponent, const FNAItemBaseTableRow* InRow, const EItemMetaDirtyFlags DirtyFlags ) const
+{
+	FRootShapeUpdatePredication::operator()( InOuter, InComponent, InOldComponent, InRow, DirtyFlags );
+
+	FTransform CachedRootWorldTransform = FTransform::Identity;
+	
+	if ( !InOuter->GetWorld()->IsPreviewWorld() )
+	{
+		CachedRootWorldTransform = InOldComponent->GetComponentTransform();
+	}
+
+	{
+		const FTransform UpdateTransform = CachedRootWorldTransform.Equals( InRow->CachedTransforms.RootTransform )
+			                                   ? CachedRootWorldTransform
+			                                   : InRow->CachedTransforms.RootTransform;
+		InComponent->SetWorldTransform( UpdateTransform );
+	};
+	
+	if (USphereComponent* RootSphere = Cast<USphereComponent>(InComponent))
+	{
+		RootSphere->SetSphereRadius( InRow->CachedTransforms.RootSphereRadius );
+	}
+	else if (UBoxComponent* RootBox = Cast<UBoxComponent>(InComponent))
+	{
+		RootBox->SetBoxExtent( InRow->CachedTransforms.RootBoxExtent );
+	}
+	else if (UCapsuleComponent* RootCapsule = Cast<UCapsuleComponent>(InComponent))
+	{
+		RootCapsule->SetCapsuleSize( InRow->CachedTransforms.RootCapsuleSize.X, InRow->CachedTransforms.RootCapsuleSize.Y );
+	}
+}
+
+void FInteractionButtonUpdatePredication::operator()( AActor* InOuter, UBillboardComponent* InComponent,
+                                                      UBillboardComponent* InOldComponent, const FNAItemBaseTableRow* InRow, const EItemMetaDirtyFlags DirtyFlags ) const
+{
+	if ( const ANAItemActor* ItemCDO = Cast<ANAItemActor>( InOuter );
+		 InComponent && ItemCDO )
+	{
+		InComponent->SetupAttachment( ItemCDO->ItemMesh );
+		InComponent->SetSprite( InRow->IconAssetData.Icon );
+	}	
+}
+
+void FInteractionButtonInstanceUpdatePredication::operator()( AActor* InOuter, UBillboardComponent* InComponent,
+	UBillboardComponent* InOldComponent, const FNAItemBaseTableRow* InRow, const EItemMetaDirtyFlags DirtyFlags ) const
+{
+	FInteractionButtonUpdatePredication::operator()( InOuter, InComponent, InOldComponent, InRow, DirtyFlags );
+
+	FTransform CachedButtonRelativeTransform = FTransform::Identity;
+	if ( InOldComponent )
+	{
+		CachedButtonRelativeTransform = InOldComponent->GetComponentTransform();
+	}
+	
+	TRANSFORM_OVERRIDE_BY_CACHE( InComponent, CachedButtonRelativeTransform, InRow->CachedTransforms.ButtonTransform );
+}
+
+void FInteractionButtonTextUpdatePredication::operator()( AActor* InOuter, UTextRenderComponent* InComponent,
+                                                          UTextRenderComponent* InOldComponent, const FNAItemBaseTableRow* InRow, const EItemMetaDirtyFlags DirtyFlags ) const
+{
+	if ( ANAItemActor* ItemCDO = Cast<ANAItemActor>( InOuter ) )
+	{
+		InComponent->SetupAttachment( ItemCDO->ItemInteractionButton );
+	}
+}
+
+void FInteractionButtonTextInstanceUpdatePredication::operator()( AActor* InOuter, UTextRenderComponent* InComponent,
+	UTextRenderComponent* InOldComponent, const FNAItemBaseTableRow* InRow, const EItemMetaDirtyFlags DirtyFlags ) const
+{
+	FInteractionButtonTextUpdatePredication::operator()( InOuter, InComponent, InOldComponent, InRow, DirtyFlags );
+
+	FTransform CachedButtonTextRelativeTransform = FTransform::Identity;
+	if ( InOldComponent )
+	{
+		CachedButtonTextRelativeTransform = InOldComponent->GetComponentTransform();
+	}
+
+	TRANSFORM_OVERRIDE_BY_CACHE( InComponent, CachedButtonTextRelativeTransform, InRow->CachedTransforms.ButtonTextTransform );
+}
+
+UShapeComponent* FRootShapeSpawnPredication::operator()( UObject* InOuter, const FName& InComponentName,
+                                                         const EObjectFlags InObjectFlags, const FNAItemBaseTableRow* InRow ) const
+{
+	UShapeComponent* Result = nullptr;
+			
+	switch ( InRow->RootShapeType )
+	{
+	case EItemRootShapeType::IRT_Sphere:
+		Result = NewObject<USphereComponent>(
+			InOuter, USphereComponent::StaticClass(),TEXT("ItemRootShape(Sphere)"), InObjectFlags);
+		break;
+	case EItemRootShapeType::IRT_Box:
+		Result = NewObject<UBoxComponent>(
+			InOuter, UBoxComponent::StaticClass(),TEXT("ItemRootShape(Box)"), InObjectFlags);
+		break;
+	case EItemRootShapeType::IRT_Capsule:
+		Result = NewObject<UCapsuleComponent>(
+			InOuter, UCapsuleComponent::StaticClass(),TEXT("ItemRootShape(Capsule)"),
+			InObjectFlags);
+		break;
+	default:
+		ensureAlwaysMsgf( false, TEXT("%hs: RootShapeType이 none이었음. ???"), __FUNCTION__ );
+	}
+			
+	if (Result == nullptr)
+	{
+		ensureAlwaysMsgf( false, TEXT( "%hs: 생성 실패. ???"), __FUNCTION__ );
+	}
+
+	return Result;
+}
+
+UMeshComponent* FMeshSpawnPredication::operator()( UObject* InOuter, const FName& InComponentName,
+                                                   const EObjectFlags InObjectFlags, const FNAItemBaseTableRow* InRow ) const
+{
+	UMeshComponent* Result = nullptr;
+
+	switch ( InRow->MeshType )
+	{
+	case EItemMeshType::IMT_Static:
+		Result = NewObject<UStaticMeshComponent>(
+			InOuter, UStaticMeshComponent::StaticClass(),TEXT("ItemMesh(Static)"), InObjectFlags);
+		break;
+	case EItemMeshType::IMT_Skeletal:
+		Result = NewObject<USkeletalMeshComponent>(
+			InOuter, USkeletalMeshComponent::StaticClass(),TEXT("ItemMesh(Skeletal)"),
+			InObjectFlags);
+		break;
+	default:
+		ensureAlwaysMsgf( false, TEXT( "%hs: MeshType none이었음. ???") , __FUNCTION__ );
+	}
+	
+	if ( Result == nullptr )
+	{
+		ensureAlwaysMsgf( false, TEXT("%hs: 생성 실패. ???"), __FUNCTION__ );
+	}
+
+	return Result;
+}
 
 ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -59,6 +281,7 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 			ItemRootShapeType = RowData->RootShapeType;
 			USceneComponent* OldRoot = GetRootComponent();
 			SetRootComponent(ItemRootShape);
+			
 			if (USphereComponent* RootSphere = Cast<USphereComponent>(ItemRootShape))
 			{
 				RootSphere->SetSphereRadius(RowData->CachedTransforms.RootSphereRadius);
@@ -271,173 +494,69 @@ void ANAItemActor::ExecuteItemPatch(UClass* ClassToPatch, const FNAItemBaseTable
 		TArray<UActorComponent*> OldComponents;
 
 		// Create new subobjects
-		FTransform CachedRootWorldTransform = FTransform::Identity;
-		if (EnumHasAnyFlags(PatchFlags, EItemMetaDirtyFlags::MF_RootShape))
-		{
-			if (ItemRootShape)
-			{
-				OldComponents.Emplace(ItemRootShape.Get());
-				
-				if (!GetWorld()->IsPreviewWorld())
-				{
-					CachedRootWorldTransform = ItemRootShape->GetComponentTransform();
-				}
-			}
-			
-			switch (PatchData->RootShapeType)
-			{
-			case EItemRootShapeType::IRT_Sphere:
-				ItemRootShape = NewObject<USphereComponent>(
-					this, USphereComponent::StaticClass(),TEXT("ItemRootShape(Sphere)"), SubobjFlags);
-				break;
-			case EItemRootShapeType::IRT_Box:
-				ItemRootShape = NewObject<UBoxComponent>(
-					this, UBoxComponent::StaticClass(),TEXT("ItemRootShape(Box)"), SubobjFlags);
-				break;
-			case EItemRootShapeType::IRT_Capsule:
-				ItemRootShape = NewObject<UCapsuleComponent>(
-					this, UCapsuleComponent::StaticClass(),TEXT("ItemRootShape(Capsule)"),
-					SubobjFlags);
-				break;
+		FItemPatchHelper::UpdateDirtyComponent<
+			decltype(ItemRootShape)::ElementType,
+			EItemMetaDirtyFlags::MF_RootShape,
+			FRootShapeSpawnPredication,
+			FRootShapeInstanceUpdatePredication>
+		(
+			PatchFlags,
+			OldComponents,
+			this,
+			&ItemRootShape,
+			PatchData,
+			TEXT( "" ),
+			SubobjFlags,
+			true
+		);
 
-			default:
-				ensureAlwaysMsgf(false, TEXT("ttt" ));
-				break;
-			}
-			if (ItemRootShape == nullptr)
-			{
-				ensureAlwaysMsgf(false, TEXT("ttt"));
-				return;
-			}
-			ItemRootShapeType = PatchData->RootShapeType;
-			if (USphereComponent* RootSphere = Cast<USphereComponent>(ItemRootShape))
-			{
-				RootSphere->SetSphereRadius(PatchData->CachedTransforms.RootSphereRadius);
-			}
-			else if (UBoxComponent* RootBox = Cast<UBoxComponent>(ItemRootShape))
-			{
-				RootBox->SetBoxExtent(PatchData->CachedTransforms.RootBoxExtent);
-			}
-			else if (UCapsuleComponent* RootCapsule = Cast<UCapsuleComponent>(ItemRootShape))
-			{
-				RootCapsule->SetCapsuleSize(PatchData->CachedTransforms.RootCapsuleSize.X, PatchData->CachedTransforms.RootCapsuleSize.Y);
-			}
-			ItemRootShape->CreationMethod = EComponentCreationMethod::Native;
-			AddOwnedComponent(ItemRootShape);
-			AddInstanceComponent(ItemRootShape);
-		}
+		FItemPatchHelper::UpdateDirtyComponent<
+			decltype(ItemMesh)::ElementType,
+			EItemMetaDirtyFlags::MF_Mesh,
+			FMeshSpawnPredication,
+			FMeshInstanceUpdatePredication>
+		(
+			PatchFlags,
+			OldComponents,
+			this,
+			&ItemMesh,
+			PatchData,
+			TEXT( "" ),
+			SubobjFlags,
+			true
+		);
 
-		FTransform CachedMeshRelativeTransform = FTransform::Identity;
-		if (EnumHasAnyFlags(PatchFlags, EItemMetaDirtyFlags::MF_Mesh))
-		{
-			if (ItemMesh)
-			{
-				OldComponents.Emplace(ItemMesh.Get());
-				CachedMeshRelativeTransform = ItemMesh->GetRelativeTransform();
-			}
+		FItemPatchHelper::UpdateDirtyComponent<
+			decltype(ItemInteractionButton)::ElementType,
+			EItemMetaDirtyFlags::MF_IxButton,
+			FItemPatchHelper::FDefaultSpawnPredication<decltype(ItemInteractionButton)::ElementType>,
+			FInteractionButtonInstanceUpdatePredication>
+		(
+			PatchFlags,
+			OldComponents,
+			this,
+			&ItemInteractionButton,
+			PatchData,
+			TEXT( "ItemInteractionButton" ),
+			SubobjFlags,
+			true
+		);
 
-			switch (PatchData->MeshType)
-			{
-			case EItemMeshType::IMT_Static:
-				ItemMesh = NewObject<UStaticMeshComponent>(
-					this, UStaticMeshComponent::StaticClass(),TEXT("ItemMesh(Static)"), SubobjFlags);
-				break;
-			case EItemMeshType::IMT_Skeletal:
-				ItemMesh = NewObject<USkeletalMeshComponent>(
-					this, USkeletalMeshComponent::StaticClass(),TEXT("ItemMesh(Skeletal)"), SubobjFlags);
-				break;
-
-			default:
-				ensureAlwaysMsgf(false,
-				                 TEXT( "yy"));
-				break;
-			}
-			if (ItemMesh == nullptr)
-			{
-				ensureAlwaysMsgf(false, TEXT("yy"));
-				return;
-			}
-			ItemMeshType = PatchData->MeshType;
-			ItemMesh->CreationMethod = EComponentCreationMethod::Native;
-			AddOwnedComponent(ItemMesh);
-			AddInstanceComponent(ItemRootShape);
-		}
-
-		FTransform CachedButtonRelativeTransform = FTransform::Identity;
-		if (EnumHasAnyFlags(PatchFlags, EItemMetaDirtyFlags::MF_IxButton))
-		{
-			if (ItemInteractionButton)
-			{
-				OldComponents.Emplace(ItemInteractionButton.Get());
-				CachedButtonRelativeTransform = ItemInteractionButton->GetRelativeTransform();
-			}
-
-			ItemInteractionButton = NewObject<UBillboardComponent>(
-				this, UBillboardComponent::StaticClass(),TEXT("ItemInteractionButton"), SubobjFlags);
-
-			if (ItemInteractionButton == nullptr)
-			{
-				ensureAlwaysMsgf(false,
-				                 TEXT(
-					                 "dd"));
-				return;
-			}
-			ItemInteractionButton->CreationMethod = EComponentCreationMethod::Native;
-			AddOwnedComponent(ItemInteractionButton);
-			AddInstanceComponent(ItemInteractionButton);
-		}
-
-		FTransform CachedButtonTextRelativeTransform = FTransform::Identity;
-		if (EnumHasAnyFlags(PatchFlags, EItemMetaDirtyFlags::MF_IxButton))
-		{
-			if (ItemInteractionButtonText)
-			{
-				OldComponents.Emplace(ItemInteractionButtonText.Get());
-				CachedButtonTextRelativeTransform = ItemInteractionButtonText->GetRelativeTransform();
-			}
-
-			ItemInteractionButtonText = NewObject<UTextRenderComponent>(
-				this, UTextRenderComponent::StaticClass(),TEXT("ItemInteractionButtonText"), SubobjFlags);
-
-			if (ItemInteractionButtonText == nullptr)
-			{
-				ensureAlwaysMsgf(false,
-				                 TEXT(
-					                 "dde"));
-				return;
-			}
-			ItemInteractionButtonText->CreationMethod = EComponentCreationMethod::Native;
-			AddOwnedComponent(ItemInteractionButtonText);
-			AddInstanceComponent(ItemInteractionButtonText);
-		}
-
-		// Hierarchy & Property settings
-		SetRootComponent(ItemRootShape);
-		ItemRootShape->RegisterComponent();
-		ItemRootShape->Mobility = EComponentMobility::Movable;
-
-		ItemMesh->AttachToComponent(ItemRootShape, FAttachmentTransformRules::KeepRelativeTransform);
-		ItemMesh->RegisterComponent();
-		ItemMesh->Mobility = EComponentMobility::Movable;
-		if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(ItemMesh))
-		{
-			StaticMeshComp->SetStaticMesh(PatchData->StaticMeshAssetData.StaticMesh);
-
-			ItemFractureCollection = PatchData->StaticMeshAssetData.FractureCollection;
-			ItemFractureCache = PatchData->StaticMeshAssetData.FractureCache;
-		}
-		else if (USkeletalMeshComponent* SkeletalMeshComp = Cast<USkeletalMeshComponent>(ItemMesh))
-		{
-			SkeletalMeshComp->SetSkeletalMesh(PatchData->SkeletalMeshAssetData.SkeletalMesh);
-			SkeletalMeshComp->SetAnimClass(PatchData->SkeletalMeshAssetData.AnimClass.Get());
-		}
-
-		ItemInteractionButton->AttachToComponent(ItemMesh, FAttachmentTransformRules::KeepRelativeTransform);
-		ItemInteractionButton->RegisterComponent();
-		ItemInteractionButton->SetSprite(PatchData->IconAssetData.Icon);
-
-		ItemInteractionButtonText->AttachToComponent(ItemInteractionButton, FAttachmentTransformRules::KeepRelativeTransform);
-		ItemInteractionButtonText->RegisterComponent();
+		FItemPatchHelper::UpdateDirtyComponent<
+			decltype(ItemInteractionButtonText)::ElementType,
+			EItemMetaDirtyFlags::MF_IxButtonText,
+			FItemPatchHelper::FDefaultSpawnPredication<decltype(ItemInteractionButtonText)::ElementType>,
+			FInteractionButtonTextUpdatePredication>
+		(
+			PatchFlags,
+			OldComponents,
+			this,
+			&ItemInteractionButtonText,
+			PatchData,
+			TEXT( "ItemInteractionButtonText" ),
+			SubobjFlags,
+			false
+		);
 
 		if (!OldComponents.IsEmpty())
 		{
@@ -449,29 +568,6 @@ void ANAItemActor::ExecuteItemPatch(UClass* ClassToPatch, const FNAItemBaseTable
 			}
 			OldComponents.Empty();
 		}
-
-		if (!CachedRootWorldTransform.Equals(FTransform::Identity))
-		{
-			ItemRootShape->SetWorldTransform(CachedRootWorldTransform);
-		}
-		
-		const FTransform NewMeshRelativeTransform =
-			CachedMeshRelativeTransform.Equals(PatchData->CachedTransforms.MeshTransform)
-				? CachedMeshRelativeTransform
-				: PatchData->CachedTransforms.MeshTransform;
-		ItemMesh->SetRelativeTransform(NewMeshRelativeTransform);
-
-		const FTransform NewButtonRelativeTransform =
-			CachedButtonRelativeTransform.Equals(PatchData->CachedTransforms.ButtonTransform)
-				? CachedButtonRelativeTransform
-				: PatchData->CachedTransforms.ButtonTransform;
-		ItemInteractionButton->SetRelativeTransform(NewButtonRelativeTransform);
-		
-		const FTransform NewButtonTextRelativeTransform =
-			NewButtonTextRelativeTransform.Equals(PatchData->CachedTransforms.ButtonTextTransform)
-				? NewButtonTextRelativeTransform
-				: PatchData->CachedTransforms.ButtonTextTransform;
-		ItemInteractionButtonText->SetRelativeTransform(NewButtonTextRelativeTransform);
 	}
 }
 #endif

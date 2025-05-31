@@ -5,6 +5,8 @@
 #include "NAWeaponDataStructs.generated.h"
 
 
+class UGameplayAbility;
+
 UENUM(BlueprintType)
 enum class EWeaponRarity : uint8
 {
@@ -51,6 +53,12 @@ struct FNAFirearmStatistics
 
 	//UPROPERTY(EditAnywhere, Category = "Firearm Statistics")
 	//TSubclassOf<ANAProjectile> ProjectileClass;	// 발사체 클래스
+
+	UPROPERTY(EditAnywhere, Category= "Firearm Statistics")
+	UAnimMontage* FirearmMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "Firearm Statistics")
+	TSubclassOf<UGameplayAbility> GameplayAbility = nullptr;
 
 	UPROPERTY(EditAnywhere, Category = "Firearm Statistics")
 	int32 MaxAmmo = -1;
