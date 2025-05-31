@@ -2,6 +2,11 @@
 
 #include "DefaultAnimInstance.h"
 
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemInterface.h"
+#include "NACharacter.h"
+#include "NAPlayerState.h"
+#include "Ability/AttributeSet/NAAttributeSet.h"
 #include "Combat/Interface/NAHandActor.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -44,6 +49,14 @@ void UDefaultAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	{
 		bLeftHandEmpty = HandActor->GetLeftHandChildActorComponent()->GetChildActor() == nullptr;
 		bRightHandEmpty = HandActor->GetRightHandChildActorComponent()->GetChildActor() == nullptr;
+	}
+
+	if ( const ANACharacter* Character = Cast<ANACharacter>( Pawn ) )
+	{
+		if ( const ANAPlayerState* PlayerState = Character->GetPlayerState<ANAPlayerState>() )
+		{
+			bShouldCrawl = PlayerState->IsKnockDown();
+		}
 	}
 
 	

@@ -3,6 +3,7 @@
 
 #include "Interaction/NAInteractionComponent.h"
 
+#include "NACharacter.h"
 #include "Item/ItemActor/NAItemActor.h"
 
 
@@ -74,12 +75,13 @@ void UNAInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	}
 }
 
-void UNAInteractionComponent::AttachItemMeshToOwner(INAInteractableInterface* InteractableActor)
+AActor* UNAInteractionComponent::TryAttachItemMeshToOwner(INAInteractableInterface* InteractableActor)
 {
 	if (ActiveInteractable != InteractableActor)
 	{
 		// 로그
-		return;
+		check( false );
+		return nullptr;
 	}
 
 	if (UObject* ActiveInteractableObj = ActiveInteractable.GetRawObject())
@@ -88,11 +90,27 @@ void UNAInteractionComponent::AttachItemMeshToOwner(INAInteractableInterface* In
 		if (!ActiveInteractableInstance)
 		{
 			// 로그
-			return;
+			check( false );
+			return nullptr;
 		}
 
-		// @TODO: Outer의 메쉬에 ActiveInteractableInstance 붙이기
+		if ( const TScriptInterface<INAHandActor> HandActor = GetOwner() )
+		{
+			if ( HandActor->GetRightHandChildActorComponent() )
+			{
+				HandActor->GetRightHandChildActorComponent()->SetChildActorClass( ActiveInteractableInstance->GetClass() );
+				return HandActor->GetRightHandChildActorComponent()->GetChildActor();
+			}
+			
+			if ( HandActor->GetLeftHandChildActorComponent() )
+			{
+				HandActor->GetLeftHandChildActorComponent()->SetChildActorClass( ActiveInteractableInstance->GetClass() );
+				return HandActor->GetLeftHandChildActorComponent()->GetChildActor();
+			}
+		}
 	}
+
+	return nullptr;
 }
 
 void UNAInteractionComponent::UpdateInteractionData()

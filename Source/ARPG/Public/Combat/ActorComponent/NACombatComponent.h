@@ -51,6 +51,8 @@ public:
 	// Sets default values for this component's properties
 	UNACombatComponent();
 
+	virtual void SetActive(bool bNewActive, bool bReset = false) override;
+
 	// 공격을 시작할 경우 사용하는 델레게이트 
 	UPROPERTY(BlueprintAssignable)
 	FDoStartAttack DoStartAttack;
@@ -91,7 +93,7 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
+	
 	// 공격 상태로 변환하는 함수
 	void SetAttack(bool NewAttack);
 

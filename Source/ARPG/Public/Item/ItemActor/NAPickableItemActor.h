@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Combat/Interface/NAHandActor.h"
 #include "Item/ItemActor/NAItemActor.h"
 #include "NAPickableItemActor.generated.h"
 

@@ -46,9 +46,13 @@ protected:
 	/*쓸지 안쓸지 고민중 + fall anim not exist */
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsCrouch = false;
+	
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsFalling = false;
 
+	UPROPERTY(BlueprintReadOnly)
+	bool bShouldCrawl = false;
+	
 	UPROPERTY(BlueprintReadOnly)
 	FRotator AimRotation;
 

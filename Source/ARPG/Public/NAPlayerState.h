@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerState.h"
 #include "NAPlayerState.generated.h"
 
+class UNAVitalCheckComponent;
 /**
  * 
  */
@@ -18,12 +19,19 @@ public:
 
 	// 현재 체력
 	float GetHealth() const;
-
+	
 	// 최대 체력
 	int32 GetMaxHealth() const;
 
+	// 캐릭터의 VitalCheckComponent 래퍼 함수
+	// 캐릭터가 여럿이 될 경우나 바뀔 경우를 위해 PlayerState로 빼놓음
+	// ============================
 	// 생존 상태 반환
 	bool IsAlive() const;
+	
+	// 녹다운 상태 반환
+	bool IsKnockDown() const;
+	// ============================
 
 	// 빙의한 Pawn의 에셋 이름 반환
 	FName GetPossessAssetName() const { return PossessAssetName; }
@@ -50,4 +58,5 @@ protected:
 	// 플레이어 또는 NPC의 에셋
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_PossessAssetName)
 	FName PossessAssetName = NAME_None;
+	
 };

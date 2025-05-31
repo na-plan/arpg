@@ -5,7 +5,9 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
+#include "NACharacter.h"
 #include "NAPlayerState.h"
+#include "ARPG/ARPG.h"
 
 
 ANAPlayerController::ANAPlayerController()
@@ -36,10 +38,9 @@ void ANAPlayerController::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
 
-	if ( const TScriptInterface<IAbilitySystemInterface> Interface( GetPawn() );
-		 Interface )
+	if ( ANACharacter* NACharacter = Cast<ANACharacter>( GetPawn() ) )
 	{
-		Interface->GetAbilitySystemComponent()->InitAbilityActorInfo
+		NACharacter->GetAbilitySystemComponent()->InitAbilityActorInfo
 		(
 			GetPlayerState<ANAPlayerState>(),
 			GetPawn()

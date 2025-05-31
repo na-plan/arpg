@@ -64,7 +64,7 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	void AttachItemMeshToOwner(INAInteractableInterface* InteractableActor);
+	AActor* TryAttachItemMeshToOwner(INAInteractableInterface* InteractableActor);
 
 protected:
 	//==================================================================================================
