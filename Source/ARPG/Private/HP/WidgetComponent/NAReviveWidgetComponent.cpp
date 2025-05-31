@@ -93,8 +93,11 @@ void UNAReviveWidgetComponent::TickComponent( float DeltaTime, ELevelTick TickTy
 
 	// ...
 
-	const float Ratio = 1.f - ((GetWorld()->GetGameState()->GetServerWorldTimeSeconds() - StartInServerTime) / 5.f);
-	RuntimeInstance->SetScalarParameterValue( TEXT("Progress"), FMath::Clamp( Ratio, 0.f, 1.f ) );
+	if ( const AGameStateBase* GameState = GetWorld()->GetGameState() )
+	{
+		const float Ratio = 1.f - ((GameState->GetServerWorldTimeSeconds() - StartInServerTime) / 5.f);
+		RuntimeInstance->SetScalarParameterValue( TEXT("Progress"), FMath::Clamp( Ratio, 0.f, 1.f ) );
+	}
 	
 	if ( const APlayerController* PlayerController = Cast<APlayerController>( GetWorld()->GetFirstPlayerController() ) )
 	{
