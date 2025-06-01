@@ -64,6 +64,9 @@ struct FItemAddResult
 	}
 };
 
+//DECLARE_MULTICAST_DELEGATE_OneParam(FOnItemAdded, FItemAddResult);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnInventoryUpdated, UNAInventoryComponent*);
+
 class UNAItemData;
 /**
  * Handle~: UNAInventoryGameInstanceSubsystem가 제공하는 인벤토리 APT에 대한 래퍼 메서드
@@ -82,21 +85,30 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
+public:
+	// Called every frame
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
+	void RemoveSingleInstanceOfItem(UNAItemData* ItemToRemove);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
+	int32 RemoveAmountOfItem(UNAItemData* ItemToRemove, int32 DesiredAmountToRemove);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
+	void SpiltExistingStack(UNAItemData* ItemToSplit, const int32 AmountToSplit);
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
 	FItemAddResult HandleNonStackableItems(UNAItemData* InItem, int32 RequestedAddAmount);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
-	int32 HandleStatckableItems(UNAItemData* InItem, int32 RequestedAddAmount);
+	int32 HandleStackableItems(UNAItemData* InItem, int32 RequestedAddAmount);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
 	int32 CalculateWeightAddAmount(UNAItemData* InItem, int32 RequestedAddAmount);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
-	int32 CalculateNumberForFullStack(UNAItemData* ExistingItem, int32 InitialRequestedAddAmount);
-
-public:
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	int32 CalculateNumberForFullStack(UNAItemData* StackableItem, int32 InitialRequestedAddAmount);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
 	UNAItemData* FindMatchingItem(UNAItemData* InItem) const;
@@ -109,6 +121,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
 	void HandleAddNewItem(UNAItemData* Item, const int32 AmountToAdd);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
+	FItemAddResult HandleAddItem(UNAItemData* ItemToAdd, int32 RequestedAddAmount);
 	
 	// @TODO 여기서 제거하는 객체가 Item Data / ItemActor인지 확실히 하기
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
@@ -124,21 +139,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
 	FORCEINLINE float GetInventoryTotalWeight() const
 	{
-		return 0.f;
+		return InventoryTotalWeight;
 	}
 	
 	// @TODO: 인벤토리 무게 계산 방법 정립부터 한 뒤, 로직 구체화
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
 	FORCEINLINE float GetInventoryWeightCapacity() const
 	{
-		return 0.f;
+		return InventoryWeightCapacity;
 	}
 	
 	// @TODO: 인벤토리 무게 계산 방법 정립부터 한 뒤, 로직 구체화
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
 	FORCEINLINE int32 GetInventorySlotCapacity() const
 	{
-		return 0;
+		return InventorySlotsCapacity;
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
@@ -149,17 +164,22 @@ public:
 	FORCEINLINE float GetWeightCapacity() const { return InventoryWeightCapacity; }
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
-	FORCEINLINE void SetSlotsCapacity(const int32 NewSlotsCapacity) const {}
+	FORCEINLINE void SetSlotsCapacity(const int32 NewSlotsCapacity)
+	{
+		InventorySlotsCapacity = NewSlotsCapacity;
+	}
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
-	FORCEINLINE void SetWeightCapacity(const float NewWeightCapacity) const {}
-
+	FORCEINLINE void SetWeightCapacity(const float NewWeightCapacity)
+	{
+		InventoryWeightCapacity =  NewWeightCapacity;
+	}
 
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Inventory Component")
 	float InventoryTotalWeight;
 
 	UPROPERTY(VisibleAnywhere, Category = "Inventory Component")
-	float InventorySlotsCapacity;
+	int32 InventorySlotsCapacity;
 
 	UPROPERTY(VisibleAnywhere, Category = "Inventory Component")
 	float InventoryWeightCapacity;

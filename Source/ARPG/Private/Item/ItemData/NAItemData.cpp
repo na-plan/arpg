@@ -1,7 +1,8 @@
 #include "Item/ItemData/NAItemData.h"
 #include "Item/ItemActor/NAItemActor.h"
 #include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
-#include "Inventory/GameInstance/NAInventoryGameInstanceSubsystem.h"
+
+#include "Inventory/NAInventoryComponent.h"
 
 // 프로그램 시작 시 0 에서 시작
 FThreadSafeCounter UNAItemData::IDCount(0);
@@ -55,13 +56,13 @@ void UNAItemData::SetQuantity(const int32 NewQuantity)
 	{
 		if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct<FNAItemBaseTableRow>()) {
 			Quantity = FMath::Clamp(NewQuantity, 0, ItemMetaData->NumericData.bIsStackable ? ItemMetaData->NumericData.MaxSlotStackSize : 1);
-			/*if (OwningInventory.Get())
+			if (OwningInventory.Get())
 			{
 				if (Quantity <= 0)
 				{
-					OwningInventory->RemoveItem(this);
+					OwningInventory->RemoveSingleInstanceOfItem(this);
 				}
-			}*/
+			}
 		}
 	}
 }

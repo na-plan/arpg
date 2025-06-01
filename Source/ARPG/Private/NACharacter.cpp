@@ -16,6 +16,7 @@
 #include "Ability/GameInstanceSubsystem/NAAbilityGameInstanceSubsystem.h"
 #include "ARPG/ARPG.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
+#include "Components/SplineComponent.h"
 #include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "HP/GameplayAbility/NAGA_Revive.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
@@ -104,11 +105,22 @@ ANACharacter::ANACharacter()
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 
-	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT( "AbilitySystemComponent" ));
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	DefaultCombatComponent = CreateDefaultSubobject<UNAMontageCombatComponent>( TEXT( "DefaultCombatComponent" ) );
 	InteractionComponent = CreateDefaultSubobject<UNAInteractionComponent>(TEXT("InteractionComponent"));
+	InventoryWidgetBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("InventorySpringArm"));
+	InventoryWidgetBoom->SetupAttachment(RootComponent);
+	InventoryWidgetBoom-> bUsePawnControlRotation = false;
+	InventoryWidgetBoom-> bInheritPitch = false;
+	InventoryWidgetBoom-> bInheritYaw = false;
+	InventoryWidgetBoom-> bInheritRoll = false;
+	InventoryWidgetBoom->SetRelativeRotation(FRotator(0.0f, 190.0f, 0.0f));
+	InventoryWidgetBoom->TargetArmLength = 10.f;
+	InventoryWidgetBoom->bDoCollisionTest = false;
 	InventoryComponent = CreateDefaultSubobject<UNAInventoryComponent>(TEXT("InventoryComponent"));
-
+	InventoryComponent->SetupAttachment(InventoryWidgetBoom, USpringArmComponent::SocketName);
+	InventoryCamOrbitSpline = CreateDefaultSubobject<USplineComponent>(TEXT("InventoryCamOrbitSpline"));
+	
 	LeftHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("LeftHandChildActor"));
 	RightHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("RightHandChildActor"));
 
@@ -205,6 +217,7 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
+			Subsystem->AddMappingContext(InventoryMappingContext, 1);
 		}
 	}
 	
@@ -226,6 +239,10 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		
 		EnhancedInputComponent->BindAction( ReviveAction, ETriggerEvent::Started, this, &ANACharacter::TryRevive );
 		EnhancedInputComponent->BindAction( ReviveAction, ETriggerEvent::Completed, this, &ANACharacter::StopRevive );
+		// Interact
+		EnhancedInputComponent->BindAction(InteractionAction, ETriggerEvent::Started, this, &ANACharacter::TryInteract);
+		// Inventory
+		EnhancedInputComponent->BindAction(InventoryAction, ETriggerEvent::Started, this, &ANACharacter::ToggleInventoryWidget);
 	}
 	else
 	{
@@ -336,6 +353,29 @@ void ANACharacter::StopLeftMouseAttack()
 		if ( DefaultCombatComponent->IsAttacking() )
 		{
 			DefaultCombatComponent->StopAttack();	
+		}
+	}
+}
+
+void ANACharacter::TryInteract()
+{
+	if (ensure(InteractionComponent != nullptr))
+	{
+		InteractionComponent->BeginInteraction();
+	}
+}
+
+void ANACharacter::ToggleInventoryWidget()
+{
+	if (ensure(InventoryComponent != nullptr))
+	{
+		if (InventoryComponent->IsWidgetVisible())
+		{
+			InventoryComponent->CollapseInventoryWidget();
+		}
+		else
+		{
+			InventoryComponent->ReleaseInventoryWidget();
 		}
 	}
 }

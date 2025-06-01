@@ -17,6 +17,11 @@
 #include "Engine/SCS_Node.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "FileHelpers.h"
+#include "Abilities/GameplayAbility.h"
+#include "Combat/ActorComponent/NAMontageCombatComponent.h"
+#include "Item/ItemActor/NAWeapon.h"
+#include "Item/ItemDataStructs/NAWeaponDataStructs.h"
+#include "Misc/ItemPatchHelper.h"
 
 // 와 이것도 정적 로드로 CDO 생김 ㅁㅊ
 UNAItemEngineSubsystem::UNAItemEngineSubsystem()
@@ -241,6 +246,20 @@ EItemMetaDirtyFlags UNAItemEngineSubsystem::FindChangedItemMetaFlags(bool bCheck
 			EnumAddFlags(Result, EItemMetaDirtyFlags::MF_IxButtonText);
 		}
 	}
+
+	if ( const ANAWeapon* WeaponActorCDO = Cast<ANAWeapon>(InCDO) )
+	{
+		const FNAWeaponTableRow* WeaponRow = static_cast<const FNAWeaponTableRow*>( RowData );
+		UNAMontageCombatComponent* CombatComponent = WeaponActorCDO->CombatComponent;
+		
+		if ( !CombatComponent ||
+			 CombatComponent->GetMontage() != WeaponRow->FirearmStatistics.FirearmMontage ||
+			 CombatComponent->GetAttackAbility() != WeaponRow->FirearmStatistics.GameplayAbility )
+		{
+			EnumAddFlags( Result, EItemMetaDirtyFlags::MF_Combat );
+		}
+	}
+	
 	
 	return Result;
 }
@@ -315,7 +334,8 @@ void UNAItemEngineSubsystem::HandlePostCDOCompiled(UObject* InCDO, const FObject
 		{
 			UPackage* DTPackage = ItemMetaDataMap[InCDO->GetClass()].DataTable->GetOutermost();
 			DTPackage->Modify();
-			
+
+			ItemData->CachedTransforms.RootTransform = ItemActorCDO->ItemRootShape->GetComponentTransform();
 			ItemData->CachedTransforms.MeshTransform = ItemActorCDO->ItemMesh->GetRelativeTransform();
 			ItemData->CachedTransforms.ButtonTransform = ItemActorCDO->ItemInteractionButton->GetRelativeTransform();
 			ItemData->CachedTransforms.ButtonTextTransform = ItemActorCDO->ItemInteractionButtonText->GetRelativeTransform();
@@ -397,157 +417,88 @@ void UNAItemEngineSubsystem:: SynchronizeItemCDOWithMeta(UClass* InItemActorClas
 		TArray<UActorComponent*> OldComponents;
 
 		// Create new subobjects
+		FItemPatchHelper::UpdateDirtyComponent<
+			decltype(ItemActorBPCDO->ItemRootShape)::ElementType,
+			EItemMetaDirtyFlags::MF_RootShape,
+			FRootShapeSpawnPredication,
+			FRootShapeUpdatePredication>
+		(
+			MetaDirtyFlags,
+			OldComponents,
+			ItemActorBPCDO,
+			&ItemActorBPCDO->ItemRootShape,
+			RowData,
+			TEXT( "" ),
+			MetaSubobjFlags,
+			false
+		);
 
-		if (EnumHasAnyFlags(MetaDirtyFlags, EItemMetaDirtyFlags::MF_RootShape))
+		FItemPatchHelper::UpdateDirtyComponent<
+			decltype(ItemActorBPCDO->ItemMesh)::ElementType,
+			EItemMetaDirtyFlags::MF_Mesh,
+			FMeshSpawnPredication,
+			FMeshUpdatePredication>
+		(
+			MetaDirtyFlags,
+			OldComponents,
+			ItemActorBPCDO,
+			&ItemActorBPCDO->ItemMesh,
+			RowData,
+			TEXT( "" ),
+			MetaSubobjFlags,
+			false
+		);
+
+		FItemPatchHelper::UpdateDirtyComponent<
+			decltype(ItemActorBPCDO->ItemInteractionButton)::ElementType,
+			EItemMetaDirtyFlags::MF_IxButton,
+			FItemPatchHelper::FDefaultSpawnPredication<decltype(ItemActorBPCDO->ItemInteractionButton)::ElementType>,
+			FInteractionButtonUpdatePredication>
+		(
+			MetaDirtyFlags,
+			OldComponents,
+			ItemActorBPCDO,
+			&ItemActorBPCDO->ItemInteractionButton,
+			RowData,
+			TEXT( "ItemInteractionButton" ),
+			MetaSubobjFlags,
+			false
+		);
+
+		FItemPatchHelper::UpdateDirtyComponent<
+			decltype(ItemActorBPCDO->ItemInteractionButtonText)::ElementType,
+			EItemMetaDirtyFlags::MF_IxButtonText,
+			FItemPatchHelper::FDefaultSpawnPredication<decltype(ItemActorBPCDO->ItemInteractionButtonText)::ElementType>,
+			FInteractionButtonTextUpdatePredication>
+		(
+			MetaDirtyFlags,
+			OldComponents,
+			ItemActorBPCDO,
+			&ItemActorBPCDO->ItemInteractionButtonText,
+			RowData,
+			TEXT( "ItemInteractionButtonText" ),
+			MetaSubobjFlags,
+			false
+		);
+
+		if ( ANAWeapon* WeaponBPCDO = Cast<ANAWeapon>( ItemActorBPCDO ) )
 		{
-			if (ItemActorBPCDO->ItemRootShape)
-			{
-				OldComponents.Emplace(ItemActorBPCDO->ItemRootShape.Get());
-			}
-
-			switch (RowData->RootShapeType)
-			{
-			case EItemRootShapeType::IRT_Sphere:
-				ItemActorBPCDO->ItemRootShape = NewObject<USphereComponent>(
-					ItemActorBPCDO, USphereComponent::StaticClass(),TEXT("ItemRootShape(Sphere)"), MetaSubobjFlags);
-				break;
-			case EItemRootShapeType::IRT_Box:
-				ItemActorBPCDO->ItemRootShape = NewObject<UBoxComponent>(
-					ItemActorBPCDO, UBoxComponent::StaticClass(),TEXT("ItemRootShape(Box)"), MetaSubobjFlags);
-				break;
-			case EItemRootShapeType::IRT_Capsule:
-				ItemActorBPCDO->ItemRootShape = NewObject<UCapsuleComponent>(
-					ItemActorBPCDO, UCapsuleComponent::StaticClass(),TEXT("ItemRootShape(Capsule)"),
-					MetaSubobjFlags);
-				break;
-
-			default:
-				ensureAlwaysMsgf(false,
-				                 TEXT("[UNAItemEngineSubsystem::SynchronizeItemCDOWithMeta]  RowData->RootShapeType이 none이었음. ???"));
-				return;
-			}
-			if (ItemActorBPCDO->ItemRootShape == nullptr)
-			{
-				ensureAlwaysMsgf(false,
-				                 TEXT("[UNAItemEngineSubsystem::SynchronizeItemCDOWithMeta]  ItemRootShape 생성 실패. ???"));
-				return;
-			}
-			ItemActorBPCDO->ItemRootShapeType = RowData->RootShapeType;
-			ItemActorBPCDO->AddOwnedComponent(ItemActorBPCDO->ItemRootShape);
+			FItemPatchHelper::UpdateDirtyComponent<
+				UNAMontageCombatComponent,
+				EItemMetaDirtyFlags::MF_Combat,
+				FItemPatchHelper::FDefaultSpawnPredication<UNAMontageCombatComponent>,
+				FCombatUpdatePredication>
+			(
+				MetaDirtyFlags,
+				OldComponents,
+				WeaponBPCDO,
+				&WeaponBPCDO->CombatComponent,
+				RowData,
+				TEXT( "CombatComponent" ),
+				MetaSubobjFlags,
+				false
+			);
 		}
-
-		if (EnumHasAnyFlags(MetaDirtyFlags, EItemMetaDirtyFlags::MF_Mesh))
-		{
-			if (ItemActorBPCDO->ItemMesh)
-			{
-				OldComponents.Emplace(ItemActorBPCDO->ItemMesh.Get());
-			}
-
-			switch (RowData->MeshType)
-			{
-			case EItemMeshType::IMT_Static:
-				ItemActorBPCDO->ItemMesh = NewObject<UStaticMeshComponent>(
-					ItemActorBPCDO, UStaticMeshComponent::StaticClass(),TEXT("ItemMesh(Static)"), MetaSubobjFlags);
-				break;
-			case EItemMeshType::IMT_Skeletal:
-				ItemActorBPCDO->ItemMesh = NewObject<USkeletalMeshComponent>(
-					ItemActorBPCDO, USkeletalMeshComponent::StaticClass(),TEXT("ItemMesh(Skeletal)"), MetaSubobjFlags);
-				break;
-
-			default:
-				ensureAlwaysMsgf(false,
-				                 TEXT("[UNAItemEngineSubsystem::SynchronizeItemCDOWithMeta]  RowData->MeshType이 None이었음. ???"));
-				return;
-			}
-			if (ItemActorBPCDO->ItemMesh == nullptr)
-			{
-				ensureAlwaysMsgf(false,
-				                 TEXT("[UNAItemEngineSubsystem::SynchronizeItemCDOWithMeta]  ItemMesh 생성 실패. ???"));
-				return;
-			}
-			ItemActorBPCDO->ItemMeshType = RowData->MeshType;
-			ItemActorBPCDO->AddOwnedComponent(ItemActorBPCDO->ItemMesh);
-		}
-
-		if (EnumHasAnyFlags(MetaDirtyFlags, EItemMetaDirtyFlags::MF_IxButton))
-		{
-			if (ItemActorBPCDO->ItemInteractionButton)
-			{
-				OldComponents.Emplace(ItemActorBPCDO->ItemInteractionButton.Get());
-			}
-
-			ItemActorBPCDO->ItemInteractionButton = NewObject<UBillboardComponent>(
-				ItemActorBPCDO, UBillboardComponent::StaticClass(),TEXT("ItemInteractionButton"), MetaSubobjFlags);
-
-			if (ItemActorBPCDO->ItemInteractionButton == nullptr)
-			{
-				ensureAlwaysMsgf(false,
-				                 TEXT("[UNAItemEngineSubsystem::SynchronizeItemCDOWithMeta]  ItemInteractionButton 생성 실패. ???"));
-				return;
-			}
-			ItemActorBPCDO->AddOwnedComponent(ItemActorBPCDO->ItemInteractionButton);
-		}
-
-		if (EnumHasAnyFlags(MetaDirtyFlags, EItemMetaDirtyFlags::MF_IxButton))
-		{
-			if (ItemActorBPCDO->ItemInteractionButtonText)
-			{
-				OldComponents.Emplace(ItemActorBPCDO->ItemInteractionButtonText.Get());
-			}
-
-			ItemActorBPCDO->ItemInteractionButtonText = NewObject<UTextRenderComponent>(
-				ItemActorBPCDO, UTextRenderComponent::StaticClass(),TEXT("ItemInteractionButtonText"), MetaSubobjFlags);
-
-			if (ItemActorBPCDO->ItemInteractionButtonText == nullptr)
-			{
-				ensureAlwaysMsgf(false,
-				                 TEXT("[UNAItemEngineSubsystem::SynchronizeItemCDOWithMeta]  ItemInteractionButtonText 생성 실패. ???"));
-				return;
-			}
-			ItemActorBPCDO->AddOwnedComponent(ItemActorBPCDO->ItemInteractionButtonText);
-		}
-
-		// Hierarchy & Property settings
-
-		ItemActorBPCDO->SetRootComponent(ItemActorBPCDO->ItemRootShape);
-		ItemActorBPCDO->ItemRootShape->Mobility = EComponentMobility::Movable;
-
-		ItemActorBPCDO->ItemMesh->SetupAttachment(ItemActorBPCDO->ItemRootShape);
-		ItemActorBPCDO->ItemMesh->Mobility = EComponentMobility::Movable;
-		ItemActorBPCDO->ItemMesh->SetRelativeTransform(RowData->CachedTransforms.MeshTransform);
-		if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(ItemActorBPCDO->ItemMesh))
-		{
-			if (EnumHasAnyFlags(MetaDirtyFlags, EItemMetaDirtyFlags::MF_Mesh | EItemMetaDirtyFlags::MF_MeshAsset))
-			{
-				StaticMeshComp->SetStaticMesh(RowData->StaticMeshAssetData.StaticMesh);
-			}
-
-			ItemActorBPCDO->ItemFractureCollection = RowData->StaticMeshAssetData.FractureCollection;
-			ItemActorBPCDO->ItemFractureCache = RowData->StaticMeshAssetData.FractureCache;
-		}
-		else if (USkeletalMeshComponent* SkeletalMeshComp = Cast<USkeletalMeshComponent>(ItemActorBPCDO->ItemMesh))
-		{
-			if (EnumHasAnyFlags(MetaDirtyFlags, EItemMetaDirtyFlags::MF_Mesh))
-			{
-				SkeletalMeshComp->SetSkeletalMesh(RowData->SkeletalMeshAssetData.SkeletalMesh);
-				SkeletalMeshComp->SetAnimClass(RowData->SkeletalMeshAssetData.AnimClass.Get());
-			}
-			else if (EnumHasAnyFlags(MetaDirtyFlags, EItemMetaDirtyFlags::MF_MeshAsset))
-			{
-				SkeletalMeshComp->SetSkeletalMesh(RowData->SkeletalMeshAssetData.SkeletalMesh);
-			}
-			else if (EnumHasAnyFlags(MetaDirtyFlags, EItemMetaDirtyFlags::MF_MeshAnim))
-			{
-				SkeletalMeshComp->SetAnimClass(RowData->SkeletalMeshAssetData.AnimClass.Get());
-			}
-		}
-
-		ItemActorBPCDO->ItemInteractionButton->SetupAttachment(ItemActorBPCDO->ItemMesh);
-		ItemActorBPCDO->ItemInteractionButton->Mobility = EComponentMobility::Movable;
-		ItemActorBPCDO->ItemInteractionButton->SetSprite(RowData->IconAssetData.Icon);
-
-		ItemActorBPCDO->ItemInteractionButtonText->SetupAttachment(ItemActorBPCDO->ItemInteractionButton);
-		ItemActorBPCDO->ItemInteractionButtonText->Mobility = EComponentMobility::Movable;
 
 		ItemActorBPCDO->ItemDataID = NAME_None;
 
