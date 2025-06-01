@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "ARPG/Public/NAPlayerController.h"
@@ -22,7 +22,7 @@ void ANAPlayerController::BeginPlay()
 void ANAPlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
-
+	
 	// if (InteractionComponent)
 	// {
 	// 	AttachToPawn(InPawn);
@@ -37,15 +37,6 @@ void ANAPlayerController::AcknowledgePossession(APawn* P)
 void ANAPlayerController::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
-
-	if ( ANACharacter* NACharacter = Cast<ANACharacter>( GetPawn() ) )
-	{
-		NACharacter->GetAbilitySystemComponent()->InitAbilityActorInfo
-		(
-			GetPlayerState<ANAPlayerState>(),
-			GetPawn()
-		);
-	}
 }
 
 void ANAPlayerController::OnUnPossess()
