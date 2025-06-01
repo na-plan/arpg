@@ -87,13 +87,17 @@ public:
 	TSubclassOf<UGameplayAbility> GetAttackAbility() const;
 	
 protected:
+
+	UFUNCTION( Server, Reliable )
+	void Server_RequestAttackAbility();
+	
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	
+
 	// 공격 상태로 변환하는 함수
 	void SetAttack(bool NewAttack);
 

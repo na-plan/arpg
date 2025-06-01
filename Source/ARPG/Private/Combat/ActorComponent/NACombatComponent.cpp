@@ -23,11 +23,9 @@ UNACombatComponent::UNACombatComponent()
 
 void UNACombatComponent::SetAttackAbility(const TSubclassOf<UGameplayAbility>& InAbility)
 {
-	TSubclassOf<UGameplayAbility> OldAbility = AttackAbility;
-	
 	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker() )
 	{
-		if ( OldAbility && GetNetMode() != NM_Client )
+		if ( AbilitySpecHandle.IsValid() && GetNetMode() != NM_Client )
 		{
 			Interface->GetAbilitySystemComponent()->ClearAbility( AbilitySpecHandle );
 		}
@@ -61,8 +59,11 @@ void UNACombatComponent::BeginPlay()
 	DoStopAttack.AddUniqueDynamic(this, &UNACombatComponent::StopAttack);
 	bCanAttack = IsAbleToAttack();
 
-	SetAttackAbility( AttackAbility );
-	
+	// 클라이언트의 BeginPlay에 맞춰서 초기화
+	if ( GetAttacker()->GetController() == GetWorld()->GetFirstPlayerController() )
+	{
+		Server_RequestAttackAbility();
+	}
 }
 
 void UNACombatComponent::EndPlay( const EEndPlayReason::Type EndPlayReason )
@@ -280,6 +281,11 @@ void UNACombatComponent::SetConsiderChildActor(const bool InConsiderChildActor)
 TSubclassOf<UGameplayAbility> UNACombatComponent::GetAttackAbility() const
 {
 	return AttackAbility;
+}
+
+void UNACombatComponent::Server_RequestAttackAbility_Implementation()
+{
+	SetAttackAbility( AttackAbility );
 }
 
 void UNACombatComponent::StopAttack()
