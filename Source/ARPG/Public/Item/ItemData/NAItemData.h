@@ -67,7 +67,7 @@ public:
 	}
 
 	UFUNCTION(Category = "Item")
-	FORCEINLINE float GetItemWeight() const	// 아이템 무게
+	FORCEINLINE float GetItemSingleWeight() const	// 아이템 무게
 	{
 		if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct<FNAItemBaseTableRow>()) {
 			return  ItemMetaData->NumericData.ItemWeight;
@@ -122,10 +122,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Meta Data")
 	FDataTableRowHandle ItemMetaDataHandle;
-
-	// @TODO: 아이템 소유주(플레이어) 추적
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Ownership")
-	//TWeakObjectPtr<AActor> CurrentOwner = nullptr;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Ownership")
+	TWeakObjectPtr<class UNAInventoryComponent> OwningInventory = nullptr;
 };
 
 template<typename ItemDataStructT> requires TIsDerivedFrom<ItemDataStructT, FNAItemBaseTableRow>::IsDerived

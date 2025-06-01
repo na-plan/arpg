@@ -231,7 +231,7 @@ private:
 		return false;
 	}
 	// 이 변수 건들면 안됨
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, DuplicateTransient)
 	uint8 bCDOSynchronizedWithMeta : 1 = false;
 
 //======================================================================================================================
@@ -239,7 +239,7 @@ private:
 //======================================================================================================================
 public:
 	virtual FNAInteractableData GetInteractableData_Implementation() const override;
-	virtual const FNAInteractableData& GetInteractableData_Internal() const override;
+	virtual bool GetInteractableData_Internal(FNAInteractableData& OutIxData) const override;
 	virtual void SetInteractableData_Implementation(const FNAInteractableData& NewInteractableData) override;
 	virtual bool CanUseRootAsTriggerShape_Implementation() const override;
 	virtual bool CanInteract_Implementation() const override;

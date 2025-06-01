@@ -3,7 +3,8 @@
 
 #include "Inventory/GameInstance/NAInventoryGameInstanceSubsystem.h"
 
-#include "Item/Subsystem/NAItemEngineSubsystem.h"
+#include "Inventory/NAInventoryComponent.h"
+#include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
 
 void UNAInventoryGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -96,6 +97,26 @@ bool UNAInventoryGameInstanceSubsystem::AddItemToInventory(UNAItemData* InItem, 
 			{
 		
 			}
+
+			// UNAItemData* NewItem = nullptr;
+			// if (Item->bIsCopy || Item->bIsPickup)
+			// {
+			// 	// It the item is already a copy, or is a world pickup
+			// 	NewItem = Item;
+			// 	NewItem->ResetItemFlags();
+			// }
+			// else
+			// {
+			// 	// used when splitting or dragging to/from another inventory
+			// 	NewItem = Item->CreateItemCopy();
+			// }
+			//
+			// NewItem->OwningInventory = InvComp;
+			// NewItem->SetQuantity(AmountToAdd);
+			//
+			// InventoryContents.Add(NewItem);
+			// InventoryTotalWeight += NewItem->GetItemStackWeight();
+			// OnInventoryUpdated.Broadcast();
 		}
 	}
 	

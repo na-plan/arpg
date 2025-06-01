@@ -52,7 +52,7 @@ protected:
 	UClass* ResolveToSkeletalItemClass(UClass* InItemActorClass) const;
 	UClass* ResolveToGeneratedItemClass(UClass* InItemActorClass) const;
 	
-	void HandlePostEngineInit();
+	void HandlePostEngineInit() const;
 	void HandlePostCDOCompiled(UObject* InCDO, const FObjectPostCDOCompiledContext& CompiledContext);
 #endif
 		
@@ -61,7 +61,7 @@ public:
 #if WITH_EDITOR
 	FOnItemActorCDOPatched OnItemActorCDOPatched;
 	
-	FNAItemBaseTableRow* AccessItemMetaData(const TSubclassOf<ANAItemActor> InItemActorClass) const;
+	FNAItemBaseTableRow* AccessItemMetaData(UClass* InItemActorClass) const;
 #endif
 	const FNAItemBaseTableRow* GetItemMetaData(UClass* InItemActorClass) const;
 public:
@@ -81,9 +81,13 @@ public:
 
 	template<typename ItemDTRow_T = FNAItemBaseTableRow>
 		requires TIsDerivedFrom<ItemDTRow_T, FNAItemBaseTableRow>::IsDerived
-	const ItemDTRow_T* GetItemMetaDataByClass(TSubclassOf<ANAItemActor> InItemActorClass) const
+	const ItemDTRow_T* GetItemMetaDataByClass(UClass* InItemActorClass) const
 	{
-		if (const FDataTableRowHandle* Value = ItemMetaDataMap.Find(InItemActorClass.Get()))
+		if (!InItemActorClass->IsChildOf<ANAItemActor>())
+		{
+			return nullptr;
+		}
+		if (const FDataTableRowHandle* Value = ItemMetaDataMap.Find(InItemActorClass))
 		{
 			return Value->GetRow<ItemDTRow_T>(Value->RowName.ToString());
 		}
@@ -112,8 +116,7 @@ public:
 		UClass* InItemActorClass = InItemActor->GetClass();
 
 		// 1) 아이템 메타데이터 검색
-		const TMap<TSubclassOf<ANAItemActor>, FDataTableRowHandle>::ValueType* ValuePtr = ItemMetaDataMap.Find(
-			InItemActorClass);
+		const TMap<TSubclassOf<ANAItemActor>, FDataTableRowHandle>::ValueType* ValuePtr = ItemMetaDataMap.Find(InItemActorClass);
 		if (!ValuePtr)
 		{
 			UE_LOG(LogTemp, Warning,

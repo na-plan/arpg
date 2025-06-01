@@ -1,7 +1,7 @@
 
 #include "Item/ItemActor/NAItemActor.h"
 
-#include "Item/Subsystem/NAItemEngineSubsystem.h"
+#include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
 #include "Components/SphereComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -465,11 +465,15 @@ void ANAItemActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 
 		if (InteractableInterfaceRef)
 		{
-			FText meta_InteractionName = InteractableInterfaceRef->GetInteractableData_Internal().InteractionName;
-			FText this_InteractionName = ItemInteractionButtonText->Text;
-			if (this_InteractionName.ToString() != meta_InteractionName.ToString())
+			FNAInteractableData IxData;
+			if (GetInteractableData_Internal(IxData))
 			{
-				meta_InteractionName = this_InteractionName;
+				FText meta_InteractionName = IxData.InteractionName;
+				FText this_InteractionName = ItemInteractionButtonText->Text;
+				if (this_InteractionName.ToString() != meta_InteractionName.ToString())
+				{
+					meta_InteractionName = this_InteractionName;
+				}
 			}
 		}
 
@@ -677,31 +681,27 @@ const UNAItemData* ANAItemActor::GetItemData() const
 
 FNAInteractableData ANAItemActor::GetInteractableData_Implementation() const
 {
-	return GetInteractableData_Internal();
+	FNAInteractableData InteractableData;
+	GetInteractableData_Internal(InteractableData);
+	return InteractableData;
 }
 
-const FNAInteractableData& ANAItemActor::GetInteractableData_Internal() const
+bool ANAItemActor::GetInteractableData_Internal(FNAInteractableData& OutIxData) const
 {
 	const FNAInteractableData* InteractableDataRef = nullptr;
-	//if (ItemData.IsValid())
-	if (GEngine)
+	const UNAItemData* RuntimeItemData = UNAItemEngineSubsystem::Get()->GetRuntimeItemData(ItemDataID);
+	if (RuntimeItemData)
 	{
-		// const FNAItemBaseTableRow* ItemMetaData = ItemData->GetItemMetaDataStruct<FNAItemBaseTableRow>();
-		// if (ItemMetaData)
-		// {
-		// 	InteractableDataRef = TryGetInteractableData(ItemMetaData);
-		// }
-		const UNAItemData* ThisItemData = UNAItemEngineSubsystem::Get()->GetRuntimeItemData(ItemDataID);
-		if (ThisItemData)
+		if (const FNAItemBaseTableRow* ItemMetaData = RuntimeItemData->GetItemMetaDataStruct<FNAItemBaseTableRow>())
 		{
-			if (const FNAItemBaseTableRow* ItemMetaData = ThisItemData->GetItemMetaDataStruct<FNAItemBaseTableRow>())
-			{
-				InteractableDataRef = TryGetInteractableData(ItemMetaData);
-			}
+			InteractableDataRef = TryGetInteractableData(ItemMetaData);
 		}
 	}
-	
-	return *InteractableDataRef;
+	if (InteractableDataRef)
+	{
+		OutIxData = *InteractableDataRef;
+	}
+	return InteractableDataRef ? true : false;
 }
 
 void ANAItemActor::SetInteractableData_Implementation(const FNAInteractableData& NewInteractableData)

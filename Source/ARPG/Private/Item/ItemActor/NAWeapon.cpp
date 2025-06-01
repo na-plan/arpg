@@ -6,7 +6,7 @@
 #include "Abilities/GameplayAbility.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "Item/ItemDataStructs/NAWeaponDataStructs.h"
-#include "Item/Subsystem/NAItemEngineSubsystem.h"
+#include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
 
 void FCombatUpdatePredication::operator()( AActor* InOuter, UNAMontageCombatComponent* InComponent,
                                            UNAMontageCombatComponent* InOldComponent, const FNAItemBaseTableRow* InRow,

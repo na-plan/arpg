@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Item/Subsystem/NAItemEngineSubsystem.h"
+#include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
 
 #include "Inventory/DataStructs/NAInventoryDataStructs.h"
 
@@ -17,6 +17,7 @@
 #include "Engine/SCS_Node.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "FileHelpers.h"
+#include "Abilities/GameplayAbility.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "Item/ItemActor/NAWeapon.h"
 #include "Item/ItemDataStructs/NAWeaponDataStructs.h"
@@ -203,8 +204,8 @@ EItemMetaDirtyFlags UNAItemEngineSubsystem::FindChangedItemMetaFlags(bool bCheck
 	const ANAItemActor* ItemActorCDO = Cast<ANAItemActor>(InCDO);
 	if (ItemActorCDO)
 	{
-		if ( RowData->RootShapeType != ItemActorCDO->ItemRootShapeType ||
-			 !IsValid(ItemActorCDO->ItemRootShape) )
+		if (RowData->RootShapeType != ItemActorCDO->ItemRootShapeType
+			|| !IsValid(ItemActorCDO->ItemRootShape))
 		{
 			EnumAddFlags(Result, EItemMetaDirtyFlags::MF_RootShape);
 		}
@@ -269,7 +270,7 @@ bool UNAItemEngineSubsystem::ContainsItemMetaDataHandle(const FDataTableRowHandl
 	{
 		if (const FNAItemBaseTableRow* Row = RowHandle.GetRow<FNAItemBaseTableRow>(RowHandle.RowName.ToString()))
 		{
-			if (UClass* ItemClass = Row->ItemClass)
+			if (UClass* ItemClass = Row->ItemClass.Get())
 			{
 				return ContainsItemMetaClass(ItemClass);
 			}
@@ -299,7 +300,7 @@ bool UNAItemEngineSubsystem::ContainsItemMetaClass(UClass* InItemActorClass) con
 	return false;
 }
 
-void UNAItemEngineSubsystem::HandlePostEngineInit()
+void UNAItemEngineSubsystem::HandlePostEngineInit() const
 {
 	// 한 번만 실행되도록 바인딩 해제
 	FCoreDelegates::OnPostEngineInit.RemoveAll(this);
@@ -350,7 +351,7 @@ void UNAItemEngineSubsystem::HandlePostCDOCompiled(UObject* InCDO, const FObject
 			else if (UCapsuleComponent* RootCapsule = Cast<UCapsuleComponent>(ItemActorCDO->ItemRootShape))
 			{
 				ItemData->CachedTransforms.RootCapsuleSize.X = RootCapsule->GetScaledCapsuleRadius();
-				ItemData->CachedTransforms.RootCapsuleSize.X = RootCapsule->GetScaledCapsuleHalfHeight();
+				ItemData->CachedTransforms.RootCapsuleSize.Y = RootCapsule->GetScaledCapsuleHalfHeight();
 			}
 			
 			if (!CompiledContext.bIsSkeletonOnly)
@@ -385,7 +386,7 @@ void UNAItemEngineSubsystem:: SynchronizeItemCDOWithMeta(UClass* InItemActorClas
 	ensureAlwaysMsgf(bEnsureCheck,
 		TEXT("[UNAItemEngineSubsystem::SynchronizeItemCDOWithMeta]  ANAItemActor 파생이 아닌 블루프린트 클래스였음."));
 
-	EItemMetaDirtyFlags MetaDirtyFlags
+	const EItemMetaDirtyFlags MetaDirtyFlags
 		= FindChangedItemMetaFlags(IsItemMetaDataInitialized(), RowData, InItemActorClass->GetDefaultObject(false));
 	
 	if (MetaDirtyFlags == EItemMetaDirtyFlags::MF_None)
@@ -626,20 +627,27 @@ void UNAItemEngineSubsystem::Deinitialize()
 UNAItemData* UNAItemEngineSubsystem::GetRuntimeItemData(const FName& InItemID) const
 {
 	UNAItemData* Value = nullptr;
-	Value = RuntimeItemDataMap.Find(InItemID)->Get();
+	if (!InItemID.IsNone())
+	{
+		Value = RuntimeItemDataMap.Find(InItemID)->Get();
+	}
 	return Value;
 }
 
 #if	WITH_EDITOR
-FNAItemBaseTableRow* UNAItemEngineSubsystem::AccessItemMetaData(const TSubclassOf<ANAItemActor> InItemActorClass) const
+FNAItemBaseTableRow* UNAItemEngineSubsystem::AccessItemMetaData(UClass* InItemActorClass) const
 {
+	if (!InItemActorClass->IsChildOf<ANAItemActor>())
+	{
+		return nullptr;
+	}
 	if (IsItemMetaDataInitialized())
 	{
-		UClass* sh1t = ResolveToGeneratedItemClass(InItemActorClass.Get());
-		sh1t = sh1t ? sh1t : InItemActorClass.Get();
-		if (sh1t)
+		UClass* BPClass = ResolveToGeneratedItemClass(InItemActorClass);
+		BPClass = BPClass ? BPClass : InItemActorClass;
+		if (BPClass)
 		{
-			if (const FDataTableRowHandle* Value = ItemMetaDataMap.Find(sh1t))
+			if (const FDataTableRowHandle* Value = ItemMetaDataMap.Find(BPClass))
 			{
 				return Value->GetRow<FNAItemBaseTableRow>(Value->RowName.ToString());
 			}
