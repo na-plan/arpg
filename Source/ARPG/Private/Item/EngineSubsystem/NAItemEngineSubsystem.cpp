@@ -576,9 +576,8 @@ void UNAItemEngineSubsystem::SynchronizeItemCDOWithMeta(UClass* InItemActorClass
 						SCS->RemoveNode(OldNode, false);
 					}
 					OldComponent->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
-					OldComponent->DestroyComponent();
 					OldComponent->ClearFlags( RF_Standalone | RF_Public );
-					ItemActorBPCDO->MarkComponentsAsGarbage();
+					OldComponent->DestroyComponent(); // 안에서 MarkAsGarbage 처리됨
 					CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 					OldComponent = nullptr;
 				}
