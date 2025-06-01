@@ -9,6 +9,7 @@
 
 class UNAMontageCombatComponent;
 
+#if WITH_EDITOR
 struct FCombatUpdatePredication : FItemPatchHelper::FDefaultUpdatePredication<UNAMontageCombatComponent>
 {
 	virtual void operator()( AActor* InOuter, UNAMontageCombatComponent* InComponent,
@@ -22,6 +23,7 @@ struct FCombatInstanceUpdatePredication : FCombatUpdatePredication
 		UNAMontageCombatComponent* InOldComponent, const FNAItemBaseTableRow* InRow,
 		const EItemMetaDirtyFlags DirtyFlags ) const override;
 };
+#endif
 
 UCLASS()
 class ARPG_API ANAWeapon : public ANAPickableItemActor

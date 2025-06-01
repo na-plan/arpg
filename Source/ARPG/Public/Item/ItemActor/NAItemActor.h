@@ -9,9 +9,11 @@
 
 class UTextRenderComponent;
 class UNAMontageCombatComponent;
+class UBillboardComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnItemActorInitialized, ANAItemActor*, InitializedItemActor );
 
+#if WITH_EDITOR
 struct FMeshUpdatePredication : FItemPatchHelper::FDefaultUpdatePredication<UMeshComponent>
 {
 	virtual void operator()( AActor* InOuter, UMeshComponent* InComponent, UMeshComponent* InOldComponent,
@@ -71,6 +73,7 @@ struct FMeshSpawnPredication : FItemPatchHelper::FDefaultSpawnPredication<UMeshC
 	virtual UMeshComponent* operator()( UObject* InOuter, const FName& InComponentName, const EObjectFlags InObjectFlags,
 	                                    const FNAItemBaseTableRow* InRow ) const override;
 };
+#endif
 
 UCLASS(Abstract)
 class ARPG_API ANAItemActor : public AActor, public INAInteractableInterface
@@ -141,15 +144,15 @@ protected:
 	TObjectPtr<UMeshComponent> ItemMesh;
 
 	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Static Mesh")
-	TObjectPtr<class UGeometryCollection> ItemFractureCollection;
+	TObjectPtr<UGeometryCollection> ItemFractureCollection;
 	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Static Mesh")
-	TObjectPtr<class UGeometryCollectionCache> ItemFractureCache;
+	TObjectPtr<UGeometryCollectionCache> ItemFractureCache;
 
 	UPROPERTY(Instanced, VisibleAnywhere, Category="Item Actor | Interaction Button")
 	TObjectPtr<UBillboardComponent> ItemInteractionButton;
 
 	UPROPERTY(Instanced, VisibleAnywhere, Category="Item Actor | Interaction Button")
-	TObjectPtr<class UTextRenderComponent> ItemInteractionButtonText;
+	TObjectPtr<UTextRenderComponent> ItemInteractionButtonText;
 
 private:
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Item Actor", meta = (AllowPrivateAccess = "true"))

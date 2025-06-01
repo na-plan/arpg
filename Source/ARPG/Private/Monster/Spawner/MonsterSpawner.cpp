@@ -50,6 +50,7 @@ void AMonsterSpawner::BeginPlay()
 	}
 }
 
+#if WITH_EDITOR
 void AMonsterSpawner::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -69,8 +70,6 @@ void AMonsterSpawner::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 			PreviewActor->SetActorRotation(GetActorRotation());
 		}
 	}
-
-
 }
 
 void AMonsterSpawner::PostEditMove(bool bFinished)
@@ -98,6 +97,7 @@ void AMonsterSpawner::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGr
 {
 	Super::PostLoadSubobjects(OuterInstanceGraph);
 }
+#endif
 
 // Called every frame
 void AMonsterSpawner::Tick(float DeltaTime)

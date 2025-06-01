@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -46,15 +46,16 @@ protected:
 	bool ContainsItemMetaDataEntry(const FNAItemBaseTableRow* RowData) const;
 	bool ContainsItemMetaClass(UClass* InItemActorClass) const;
 	
-	void ValidateItemRow(const FNAItemBaseTableRow* RowData, const FName RowName) const;
-	void SynchronizeItemCDOWithMeta(UClass* InItemActorClass, const FNAItemBaseTableRow* RowData, bool bShouldRecompile) const;
-	
 	UClass* ResolveToSkeletalItemClass(UClass* InItemActorClass) const;
 	UClass* ResolveToGeneratedItemClass(UClass* InItemActorClass) const;
 	
 	void HandlePostEngineInit() const;
 	void HandlePostCDOCompiled(UObject* InCDO, const FObjectPostCDOCompiledContext& CompiledContext);
 #endif
+
+protected:
+	void ValidateItemRow(const FNAItemBaseTableRow* RowData, const FName RowName) const;
+	void SynchronizeItemCDOWithMeta(UClass* InItemActorClass, const FNAItemBaseTableRow* RowData, bool bShouldRecompile) const;
 		
 
 public:
