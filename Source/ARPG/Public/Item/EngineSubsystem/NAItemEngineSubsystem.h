@@ -45,24 +45,23 @@ protected:
 	bool ContainsItemMetaDataHandle(const FDataTableRowHandle& RowHandle) const;
 	bool ContainsItemMetaDataEntry(const FNAItemBaseTableRow* RowData) const;
 	bool ContainsItemMetaClass(UClass* InItemActorClass) const;
-	
-	void ValidateItemRow(const FNAItemBaseTableRow* RowData, const FName RowName) const;
-	void SynchronizeItemCDOWithMeta(UClass* InItemActorClass, const FNAItemBaseTableRow* RowData, bool bShouldRecompile) const;
-	
+
 	UClass* ResolveToSkeletalItemClass(UClass* InItemActorClass) const;
 	UClass* ResolveToGeneratedItemClass(UClass* InItemActorClass) const;
 	
 	void HandlePostEngineInit() const;
 	void HandlePostCDOCompiled(UObject* InCDO, const FObjectPostCDOCompiledContext& CompiledContext);
+	void SynchronizeItemCDOWithMeta(UClass* InItemActorClass, const FNAItemBaseTableRow* RowData, bool bShouldRecompile) const;
 #endif
+protected:
+	void ValidateItemRow(const FNAItemBaseTableRow* RowData, const FName RowName) const;
 		
 
 public:
 #if WITH_EDITOR
 	FOnItemActorCDOPatched OnItemActorCDOPatched;
-	
-	FNAItemBaseTableRow* AccessItemMetaData(UClass* InItemActorClass) const;
 #endif
+	FNAItemBaseTableRow* AccessItemMetaData(UClass* InItemActorClass) const;
 	const FNAItemBaseTableRow* GetItemMetaData(UClass* InItemActorClass) const;
 public:
 	static UNAItemEngineSubsystem* Get()

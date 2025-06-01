@@ -20,8 +20,15 @@ public class ARPG : ModuleRules
 			"GameplayTags", 
 			"GameplayTasks",
 			"AIModule",
-			"GeometryCollectionEngine",
-			"UnrealEd"
+			"GeometryCollectionEngine"
 		});
+
+		if (Target.bBuildEditor)
+		{
+			PublicDependencyModuleNames.AddRange( new string[]
+			{
+				"UnrealEd"
+			});
+		}
 	}
 }

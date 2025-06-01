@@ -12,16 +12,18 @@
 #include "Components/BillboardComponent.h"
 #include "Components/TextRenderComponent.h"
 #include "GeometryCollection/GeometryCollectionObject.h"
-#include "GeometryCollection/GeometryCollectionCache.h"
 
 #include "Engine/SCS_Node.h"
-#include "Kismet2/KismetEditorUtilities.h"
-#include "FileHelpers.h"
 #include "Abilities/GameplayAbility.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "Item/ItemActor/NAWeapon.h"
 #include "Item/ItemDataStructs/NAWeaponDataStructs.h"
 #include "Misc/ItemPatchHelper.h"
+
+#if WITH_EDITOR
+#include "FileHelpers.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#endif
 
 // 와 이것도 정적 로드로 CDO 생김 ㅁㅊ
 UNAItemEngineSubsystem::UNAItemEngineSubsystem()
@@ -291,15 +293,6 @@ bool UNAItemEngineSubsystem::ContainsItemMetaDataEntry(const FNAItemBaseTableRow
 	return false;
 }
 
-bool UNAItemEngineSubsystem::ContainsItemMetaClass(UClass* InItemActorClass) const
-{
-	if (InItemActorClass->IsChildOf<ANAItemActor>())
-	{
-		return ItemMetaDataMap.Contains(InItemActorClass);
-	}
-	return false;
-}
-
 void UNAItemEngineSubsystem::HandlePostEngineInit() const
 {
 	// 한 번만 실행되도록 바인딩 해제
@@ -335,10 +328,22 @@ void UNAItemEngineSubsystem::HandlePostCDOCompiled(UObject* InCDO, const FObject
 			UPackage* DTPackage = ItemMetaDataMap[InCDO->GetClass()].DataTable->GetOutermost();
 			DTPackage->Modify();
 
-			ItemData->CachedTransforms.RootTransform = ItemActorCDO->ItemRootShape->GetComponentTransform();
-			ItemData->CachedTransforms.MeshTransform = ItemActorCDO->ItemMesh->GetRelativeTransform();
-			ItemData->CachedTransforms.ButtonTransform = ItemActorCDO->ItemInteractionButton->GetRelativeTransform();
-			ItemData->CachedTransforms.ButtonTextTransform = ItemActorCDO->ItemInteractionButtonText->GetRelativeTransform();
+			if ( ItemActorCDO->ItemRootShape )
+			{
+				ItemData->CachedTransforms.RootTransform = ItemActorCDO->ItemRootShape->GetComponentTransform();	
+			}
+			if ( ItemActorCDO->ItemMesh )
+			{
+				ItemData->CachedTransforms.MeshTransform = ItemActorCDO->ItemMesh->GetRelativeTransform();	
+			}
+			if ( ItemActorCDO->ItemInteractionButton )
+			{
+				ItemData->CachedTransforms.ButtonTransform = ItemActorCDO->ItemInteractionButton->GetRelativeTransform();	
+			}
+			if ( ItemActorCDO->ItemInteractionButtonText )
+			{
+				ItemData->CachedTransforms.ButtonTextTransform = ItemActorCDO->ItemInteractionButtonText->GetRelativeTransform();	
+			}
 			
 			if (USphereComponent* RootSphere = Cast<USphereComponent>(ItemActorCDO->ItemRootShape))
 			{
@@ -372,7 +377,64 @@ void UNAItemEngineSubsystem::HandlePostCDOCompiled(UObject* InCDO, const FObject
 	}
 }
 
-void UNAItemEngineSubsystem:: SynchronizeItemCDOWithMeta(UClass* InItemActorClass, const FNAItemBaseTableRow* RowData , bool bShouldRecompile) const
+// 찐 블프 클래스에서 SKEL 클래스 찾기
+UClass* UNAItemEngineSubsystem::ResolveToSkeletalItemClass(UClass* InItemActorClass) const
+{
+	if (!InItemActorClass) { return nullptr;}
+	
+	const bool bCheck = InItemActorClass->IsChildOf<ANAItemActor>() && InItemActorClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
+	if (!bCheck)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[UNAItemEngineSubsystem::ResolveToSkeletalItemClass]  (%s): ANAItemActor 파생이 아닌 블루프린트 클래스였음.")
+			, *InItemActorClass->GetName());
+		return nullptr;
+	}
+	if (UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(InItemActorClass))
+	{
+		if (UBlueprint* BPAsset = Cast<UBlueprint>(BPGC->ClassGeneratedBy))
+		{
+			return BPAsset->SkeletonGeneratedClass;
+		}
+	}
+
+	// SKEL 클래스 없음
+	UE_LOG(LogTemp, Warning,
+		TEXT("[UNAItemEngineSubsystem::ResolveToSkeletalItemClass]  (%s): SKEL_ 클래스 못찾음.")
+		, *InItemActorClass->GetName());
+	return nullptr;
+}
+
+// SKEL 클래스에서 찐 블프 클래스 찾기
+UClass* UNAItemEngineSubsystem::ResolveToGeneratedItemClass(UClass* InItemActorClass) const
+{
+	if (!InItemActorClass || InItemActorClass->IsChildOf<ANAItemActor>()
+		||!InItemActorClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
+	{
+		return nullptr;
+	}
+	
+	if (UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(InItemActorClass))
+	{
+		// 여기서 ClassGeneratedBy 는 이 클래스가 속한 UBlueprint 에셋 포인터
+		if (UBlueprint* BPAsset = Cast<UBlueprint>(BPGC->ClassGeneratedBy))
+		{
+			// Blueprint->GeneratedClass 가 실제 런타임／PIE／게임에서 사용하는 BP\_…\_C 임
+			if (BPAsset->GeneratedClass)
+			{
+				return BPAsset->GeneratedClass;
+			}
+		}
+	}
+
+	// 찐 블프 클래스 없음
+	UE_LOG(LogTemp, Warning,
+		TEXT("[UNAItemEngineSubsystem::ResolveToSkeletalItemClass]  (%s): 찐 블프 클래스 못찾음.")
+		, *InItemActorClass->GetName());
+	return nullptr;
+}
+
+void UNAItemEngineSubsystem::SynchronizeItemCDOWithMeta(UClass* InItemActorClass, const FNAItemBaseTableRow* RowData , bool bShouldRecompile) const
 {
 	if (!InItemActorClass || !RowData) { return;}
 	
@@ -412,7 +474,7 @@ void UNAItemEngineSubsystem:: SynchronizeItemCDOWithMeta(UClass* InItemActorClas
 		BPAsset->Modify();
 		ItemActorBPCDO->Modify();
 
-		const EObjectFlags MetaSubobjFlags = ItemActorBPCDO->GetMaskedFlags(RF_PropagateToSubObjects) | RF_Transient | RF_DefaultSubObject;
+		const EObjectFlags MetaSubobjFlags = ItemActorBPCDO->GetMaskedFlags(RF_PropagateToSubObjects) | RF_DefaultSubObject;
 
 		TArray<UActorComponent*> OldComponents;
 
@@ -515,6 +577,9 @@ void UNAItemEngineSubsystem:: SynchronizeItemCDOWithMeta(UClass* InItemActorClas
 					}
 					OldComponent->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
 					OldComponent->DestroyComponent();
+					OldComponent->ClearFlags( RF_Standalone | RF_Public );
+					ItemActorBPCDO->MarkComponentsAsGarbage();
+					CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 					OldComponent = nullptr;
 				}
 				OldComponents.Empty();
@@ -541,62 +606,15 @@ void UNAItemEngineSubsystem:: SynchronizeItemCDOWithMeta(UClass* InItemActorClas
 	}
 }
 
-// 찐 블프 클래스에서 SKEL 클래스 찾기
-UClass* UNAItemEngineSubsystem::ResolveToSkeletalItemClass(UClass* InItemActorClass) const
+bool UNAItemEngineSubsystem::ContainsItemMetaClass(UClass* InItemActorClass) const
 {
-	if (!InItemActorClass) { return nullptr;}
-	
-	const bool bCheck = InItemActorClass->IsChildOf<ANAItemActor>() && InItemActorClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
-	if (!bCheck)
+	if (InItemActorClass->IsChildOf<ANAItemActor>())
 	{
-		UE_LOG(LogTemp, Warning,
-			TEXT("[UNAItemEngineSubsystem::ResolveToSkeletalItemClass]  (%s): ANAItemActor 파생이 아닌 블루프린트 클래스였음.")
-			, *InItemActorClass->GetName());
-		return nullptr;
+		return ItemMetaDataMap.Contains(InItemActorClass);
 	}
-	if (UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(InItemActorClass))
-	{
-		if (UBlueprint* BPAsset = Cast<UBlueprint>(BPGC->ClassGeneratedBy))
-		{
-			return BPAsset->SkeletonGeneratedClass;
-		}
-	}
-
-	// SKEL 클래스 없음
-	UE_LOG(LogTemp, Warning,
-		TEXT("[UNAItemEngineSubsystem::ResolveToSkeletalItemClass]  (%s): SKEL_ 클래스 못찾음.")
-		, *InItemActorClass->GetName());
-	return nullptr;
+	return false;
 }
-
-// SKEL 클래스에서 찐 블프 클래스 찾기
-UClass* UNAItemEngineSubsystem::ResolveToGeneratedItemClass(UClass* InItemActorClass) const
-{
-	if (!InItemActorClass || InItemActorClass->IsChildOf<ANAItemActor>()
-		||!InItemActorClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
-	{
-		return nullptr;
-	}
-	
-	if (UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(InItemActorClass))
-	{
-		// 여기서 ClassGeneratedBy 는 이 클래스가 속한 UBlueprint 에셋 포인터
-		if (UBlueprint* BPAsset = Cast<UBlueprint>(BPGC->ClassGeneratedBy))
-		{
-			// Blueprint->GeneratedClass 가 실제 런타임／PIE／게임에서 사용하는 BP\_…\_C 임
-			if (BPAsset->GeneratedClass)
-			{
-				return BPAsset->GeneratedClass;
-			}
-		}
-	}
-
-	// 찐 블프 클래스 없음
-	UE_LOG(LogTemp, Warning,
-		TEXT("[UNAItemEngineSubsystem::ResolveToSkeletalItemClass]  (%s): 찐 블프 클래스 못찾음.")
-		, *InItemActorClass->GetName());
-	return nullptr;
-}
+#endif
 
 void UNAItemEngineSubsystem::ValidateItemRow(const FNAItemBaseTableRow* RowData, const FName RowName) const
 {
@@ -617,7 +635,6 @@ void UNAItemEngineSubsystem::ValidateItemRow(const FNAItemBaseTableRow* RowData,
 			*RowName.ToString(), Slot, Inv);
 	}
 }
-#endif
 
 void UNAItemEngineSubsystem::Deinitialize()
 {
@@ -634,7 +651,6 @@ UNAItemData* UNAItemEngineSubsystem::GetRuntimeItemData(const FName& InItemID) c
 	return Value;
 }
 
-#if	WITH_EDITOR
 FNAItemBaseTableRow* UNAItemEngineSubsystem::AccessItemMetaData(UClass* InItemActorClass) const
 {
 	if (!InItemActorClass->IsChildOf<ANAItemActor>())
@@ -643,7 +659,10 @@ FNAItemBaseTableRow* UNAItemEngineSubsystem::AccessItemMetaData(UClass* InItemAc
 	}
 	if (IsItemMetaDataInitialized())
 	{
-		UClass* BPClass = ResolveToGeneratedItemClass(InItemActorClass);
+		UClass* BPClass = nullptr;
+#if WITH_EDITOR
+		BPClass = ResolveToGeneratedItemClass(InItemActorClass);
+#endif
 		BPClass = BPClass ? BPClass : InItemActorClass;
 		if (BPClass)
 		{
@@ -661,7 +680,6 @@ const FNAItemBaseTableRow* UNAItemEngineSubsystem::GetItemMetaData(UClass* InIte
 {
 	return AccessItemMetaData(InItemActorClass);
 }
-#endif
 
 UNAItemData* UNAItemEngineSubsystem::CreateItemDataBySlot(UWorld* InWorld, const FNAInventorySlot& InInventorySlot)
 {

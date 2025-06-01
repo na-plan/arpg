@@ -10,6 +10,7 @@
 #include "Components/TextRenderComponent.h"
 #include "GeometryCollection/GeometryCollectionObject.h"
 
+#if WITH_EDITOR
 #define TRANSFORM_OVERRIDE_BY_CACHE( Component, PreviousTransform, CacheTransform ) \
 	{\
 		const FTransform UpdateTransform =\
@@ -235,6 +236,7 @@ UMeshComponent* FMeshSpawnPredication::operator()( UObject* InOuter, const FName
 
 	return Result;
 }
+#endif
 
 ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

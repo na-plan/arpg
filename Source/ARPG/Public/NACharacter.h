@@ -116,6 +116,8 @@ protected:
 
 	virtual void RetrieveAsset(const AActor* InCDO) override;
 
+	virtual void OnRep_PlayerState() override;
+
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
 
@@ -153,6 +155,9 @@ protected:
 	virtual void PostNetInit() override;
 
 	virtual void PossessedBy(AController* NewController) override;
+
+	UFUNCTION( Server, Reliable )
+	void Server_RequestReviveAbility();
 
 protected:
 	virtual UChildActorComponent* GetLeftHandChildActorComponent() const override { return LeftHandChildActor; }

@@ -8,6 +8,7 @@
 #include "Item/ItemDataStructs/NAWeaponDataStructs.h"
 #include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
 
+#if WITH_EDITOR
 void FCombatUpdatePredication::operator()( AActor* InOuter, UNAMontageCombatComponent* InComponent,
                                            UNAMontageCombatComponent* InOldComponent, const FNAItemBaseTableRow* InRow,
                                            const EItemMetaDirtyFlags DirtyFlags ) const
@@ -20,7 +21,6 @@ void FCombatUpdatePredication::operator()( AActor* InOuter, UNAMontageCombatComp
 	}
 }
 
-#if WITH_EDITOR
 void ANAWeapon::ExecuteItemPatch( UClass* ClassToPatch, const FNAItemBaseTableRow* PatchData,
                                   EItemMetaDirtyFlags PatchFlags )
 {

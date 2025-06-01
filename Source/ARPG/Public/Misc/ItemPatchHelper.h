@@ -1,4 +1,5 @@
 ﻿#pragma once
+#if WITH_EDITOR
 #include "Item/ItemData/NAItemData.h"
 
 struct FItemPatchHelper
@@ -101,3 +102,4 @@ struct FItemPatchHelper
 		}
 	}
 };
+#endif
