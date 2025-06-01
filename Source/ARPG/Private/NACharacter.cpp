@@ -16,7 +16,10 @@
 #include "Ability/GameInstanceSubsystem/NAAbilityGameInstanceSubsystem.h"
 #include "ARPG/ARPG.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
+#include "HP/ActorComponent/NAVitalCheckComponent.h"
+#include "HP/GameplayAbility/NAGA_Revive.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
+#include "HP/WidgetComponent/NAReviveWidgetComponent.h"
 #include "Net/UnrealNetwork.h"
 
 #include "Interaction/NAInteractionComponent.h"
@@ -101,15 +104,23 @@ ANACharacter::ANACharacter()
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 
-	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT( "AbilitySystemComponent" ));
 	DefaultCombatComponent = CreateDefaultSubobject<UNAMontageCombatComponent>( TEXT( "DefaultCombatComponent" ) );
 	InteractionComponent = CreateDefaultSubobject<UNAInteractionComponent>(TEXT("InteractionComponent"));
 	InventoryComponent = CreateDefaultSubobject<UNAInventoryComponent>(TEXT("InventoryComponent"));
 
 	LeftHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("LeftHandChildActor"));
 	RightHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("RightHandChildActor"));
-	LeftHandChildActor->SetupAttachment(GetMesh(), LeftHandSocketName);
-	RightHandChildActor->SetupAttachment(GetMesh(), RightHandSocketName);
+
+	VitalCheckComponent = CreateDefaultSubobject<UNAVitalCheckComponent>(TEXT("VitalCheckComponent"));
+	ReviveWidget = CreateDefaultSubobject<UNAReviveWidgetComponent>( TEXT("ReviveWidgetComponent") );
+
+	if ( GetMesh()->GetSkeletalMeshAsset() )
+	{
+		LeftHandChildActor->SetupAttachment(GetMesh(), LeftHandSocketName);
+		RightHandChildActor->SetupAttachment(GetMesh(), RightHandSocketName);
+		ReviveWidget->SetupAttachment( GetMesh(), TEXT("ReviveWidgetSocket") );
+	}
 
 	GetMesh()->SetIsReplicated( true );
 	bReplicates = true;
@@ -120,6 +131,13 @@ void ANACharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
+
+	if ( HasAuthority() )
+	{
+		// 부활 기능 추가
+		const FGameplayAbilitySpec SpecHandle( UNAGA_Revive::StaticClass(), 1.f, static_cast<int32>( EAbilityInputID::Revive ) );
+		AbilitySystemComponent->GiveAbility( SpecHandle );
+	}
 	
 	// == 테스트 코드 ==
 	{
@@ -205,6 +223,9 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 		EnhancedInputComponent->BindAction(LeftMouseAttackAction, ETriggerEvent::Started, this, &ANACharacter::StartLeftMouseAttack);
 		EnhancedInputComponent->BindAction(LeftMouseAttackAction, ETriggerEvent::Completed, this, &ANACharacter::StopLeftMouseAttack);
+		
+		EnhancedInputComponent->BindAction( ReviveAction, ETriggerEvent::Started, this, &ANACharacter::TryRevive );
+		EnhancedInputComponent->BindAction( ReviveAction, ETriggerEvent::Completed, this, &ANACharacter::StopRevive );
 	}
 	else
 	{
@@ -228,7 +249,8 @@ void ANACharacter::RetrieveAsset(const AActor* InCDO)
 		// 다시 지정된 매시 기준으로 Child actor를 재부착
 		LeftHandChildActor->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, LeftHandSocketName);
 		RightHandChildActor->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, RightHandSocketName);
-
+		ReviveWidget->AttachToComponent( GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, TEXT("ReviveWidgetSocket") );
+		
 		if (HasAuthority())
 		{
 			if (const UNAAbilityGameInstanceSubsystem* AbilityGameInstanceSubsystem = GetGameInstance()->GetSubsystem<UNAAbilityGameInstanceSubsystem>())
@@ -315,6 +337,24 @@ void ANACharacter::StopLeftMouseAttack()
 		{
 			DefaultCombatComponent->StopAttack();	
 		}
+	}
+}
+
+void ANACharacter::TryRevive()
+{
+	// todo: GAS의 Input 감지를 이용할 수 있음
+	if ( AbilitySystemComponent )
+	{
+		AbilitySystemComponent->AbilityLocalInputPressed( static_cast<int32>( EAbilityInputID::Revive ) );
+	}
+}
+
+void ANACharacter::StopRevive()
+{
+	// todo: GAS의 Input 감지를 이용할 수 있음
+	if ( AbilitySystemComponent )
+	{
+		AbilitySystemComponent->AbilityLocalInputReleased( static_cast<int32>( EAbilityInputID::Revive ) );
 	}
 }
 

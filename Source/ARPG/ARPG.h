@@ -10,6 +10,12 @@ GAMEPLAYATTRIBUTE_VALUE_GETTER(PropertyName) \
 GAMEPLAYATTRIBUTE_VALUE_SETTER(PropertyName) \
 GAMEPLAYATTRIBUTE_VALUE_INITTER(PropertyName)
 
+UENUM(BLueprintType)
+enum class EAbilityInputID : uint8
+{
+	None,
+	Revive
+};
 
 struct FObjectPropertyUtility
 {

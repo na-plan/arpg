@@ -14,6 +14,7 @@ enum class EItemMetaDirtyFlags : uint8
 	MF_MeshAnim			= (1<<3),
 	MF_IxButton			= (1<<4),
 	MF_IxButtonText		= (1<<5),
+	MF_Combat           = (1<<6),
 };
 ENUM_CLASS_FLAGS(EItemMetaDirtyFlags)
 

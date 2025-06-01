@@ -7,12 +7,13 @@
 #include "NACharacter.h"
 #include "Ability/AttributeSet/NAAttributeSet.h"
 #include "Assets/Interface/NAManagedAsset.h"
+#include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "Net/UnrealNetwork.h"
 
 float ANAPlayerState::GetHealth() const
 {
 	// 캐릭터의 AbilitySystemComponent로부터 체력을 조회
-	if (const ANACharacter* Character = Cast<ANACharacter>(GetPlayerController()->GetCharacter()))
+	if (const ANACharacter* Character = Cast<ANACharacter>( GetPawn() ))
 	{
 		const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>(Character->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()));
 		return AttributeSet->GetHealth();
@@ -25,7 +26,7 @@ float ANAPlayerState::GetHealth() const
 int32 ANAPlayerState::GetMaxHealth() const
 {
 	// 캐릭터의 AbilitySystemComponent로부터 체력을 조회
-	if (const ANACharacter* Character = Cast<ANACharacter>(GetPlayerController()->GetCharacter()))
+	if (const ANACharacter* Character = Cast<ANACharacter>( GetPawn() ))
 	{
 		const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>(Character->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()));
 		return AttributeSet->Health.GetBaseValue();
@@ -37,14 +38,27 @@ int32 ANAPlayerState::GetMaxHealth() const
 
 bool ANAPlayerState::IsAlive() const
 {
-	// 캐릭터의 AbilitySystemComponent로부터 체력을 조회
-	if (const ANACharacter* Character = Cast<ANACharacter>(GetPlayerController()->GetCharacter()))
+	// 체력 컴포넌트로부터 확인
+	if ( const ANACharacter* Character = Cast<ANACharacter>( GetPawn() ) )
 	{
-		const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>(Character->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()));
-		return AttributeSet->GetHealth() > 0;
+		const ECharacterStatus CharacterStatus = Character->GetComponentByClass<UNAVitalCheckComponent>()->GetCharacterStatus();
+		return CharacterStatus == ECharacterStatus::Alive || CharacterStatus == ECharacterStatus::KnockDown;
 	}
 
-	check(false);
+	check( false );
+	return false;
+}
+
+bool ANAPlayerState::IsKnockDown() const
+{
+	// 체력 컴포넌트로부터 확인
+	if ( const ANACharacter* Character = Cast<ANACharacter>( GetPawn() ) )
+	{
+		const ECharacterStatus CharacterStatus = Character->GetComponentByClass<UNAVitalCheckComponent>()->GetCharacterStatus();
+		return CharacterStatus == ECharacterStatus::KnockDown;
+	}
+
+	check( false );
 	return false;
 }
 
@@ -99,5 +113,5 @@ void ANAPlayerState::PostNetInit()
 void ANAPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ANAPlayerState, PossessAssetName)
+	DOREPLIFETIME( ANAPlayerState, PossessAssetName )
 }

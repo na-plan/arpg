@@ -23,20 +23,22 @@ UNACombatComponent::UNACombatComponent()
 
 void UNACombatComponent::SetAttackAbility(const TSubclassOf<UGameplayAbility>& InAbility)
 {
+	TSubclassOf<UGameplayAbility> OldAbility = AttackAbility;
+	
 	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker() )
 	{
-		if ( AttackAbility && GetNetMode() != NM_Client )
+		if ( OldAbility && GetNetMode() != NM_Client )
 		{
 			Interface->GetAbilitySystemComponent()->ClearAbility( AbilitySpecHandle );
 		}
-		
-		AttackAbility = InAbility;
 
-		if ( AttackAbility && GetNetMode() != NM_Client )
+		if ( InAbility && GetNetMode() != NM_Client )
 		{
-			AbilitySpecHandle = Interface->GetAbilitySystemComponent()->GiveAbility( AttackAbility );		
+			AbilitySpecHandle = Interface->GetAbilitySystemComponent()->GiveAbility( InAbility );		
 		}
 	}
+
+	AttackAbility = InAbility;
 }
 
 void UNACombatComponent::ReplayAttack()
@@ -59,8 +61,8 @@ void UNACombatComponent::BeginPlay()
 	DoStopAttack.AddUniqueDynamic(this, &UNACombatComponent::StopAttack);
 	bCanAttack = IsAbleToAttack();
 
-	// 에디터 실행 방어 구문
-	SetAttackAbility( AttackAbility );	
+	SetAttackAbility( AttackAbility );
+	
 }
 
 void UNACombatComponent::EndPlay( const EEndPlayReason::Type EndPlayReason )
@@ -77,10 +79,19 @@ void UNACombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME_CONDITION(UNACombatComponent, bCanAttack, COND_OwnerOnly)
 }
 
+void UNACombatComponent::SetActive( bool bNewActive, bool bReset )
+{
+	Super::SetActive( bNewActive, bReset );
+	if ( !bNewActive )
+	{
+		StopAttack();	
+	}
+}
+
 bool UNACombatComponent::IsAbleToAttack()
 {
 	// Ammo, stamina, montage duration, etc...
-	return AttackAbility != nullptr;
+	return AttackAbility != nullptr && IsActive();
 }
 
 void UNACombatComponent::SetAttack(const bool NewAttack)
@@ -172,6 +183,11 @@ void UNACombatComponent::StartAttack()
 {
 	UE_LOG(LogCombatComponent, Log, TEXT("%hs: Try attack"), __FUNCTION__);
 
+	if ( !IsActive() )
+	{
+		return;
+	}
+	
 	bCanAttack = IsAbleToAttack();
 	if (bCanAttack && !bAttacking)
 	{
@@ -270,7 +286,7 @@ void UNACombatComponent::StopAttack()
 {
 	if (bAttacking)
 	{
-		SetAttack(false);
+		SetAttack( false );
 	}
 }
 

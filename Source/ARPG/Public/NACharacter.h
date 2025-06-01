@@ -10,6 +10,9 @@
 #include "Logging/LogMacros.h"
 #include "NACharacter.generated.h"
 
+class UNAReviveWidgetComponent;
+class UWidgetComponent;
+class UNAVitalCheckComponent;
 class UNAMontageCombatComponent;
 class UNAAttributeSet;
 class UGameplayEffect;
@@ -43,6 +46,12 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
 	UChildActorComponent* RightHandChildActor;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
+	UNAVitalCheckComponent* VitalCheckComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
+	UNAReviveWidgetComponent* ReviveWidget;
 	
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -63,6 +72,9 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* LeftMouseAttackAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* ReviveAction;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Asset", meta=(AllowPrivateAccess="true"))
 	FName AssetName;
 	
@@ -101,6 +113,9 @@ protected:
 	void StopLeftMouseAttack();
 	
 protected:
+	void TryRevive();
+
+	void StopRevive();
 	// APawn interface
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
@@ -123,5 +138,6 @@ public:
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	FORCEINLINE virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent; }
+	FORCEINLINE UNAReviveWidgetComponent* GetReviveWidget() const { return ReviveWidget; }
 };
 

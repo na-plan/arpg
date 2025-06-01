@@ -25,10 +25,15 @@ public:
 	UPROPERTY(VisibleAnywhere, Replicated)
 	FGameplayAttributeData AP;
 
+	// 이동속력
+	UPROPERTY(VisibleAnywhere, Replicated)
+	FGameplayAttributeData MovementSpeed;
+
 	// note: 만약 새로운 속성을 추가할 경우 아래의 매크로를 같이 추가해주어야 함!
 	ATTRIBUTE_ACCESSORS(UNAAttributeSet, Health);
 	ATTRIBUTE_ACCESSORS(UNAAttributeSet, AP);
-
+	ATTRIBUTE_ACCESSORS(UNAAttributeSet, MovementSpeed);
+	
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 };

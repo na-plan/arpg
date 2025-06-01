@@ -144,6 +144,9 @@ struct FNACachedTransform
 	FVector2D RootCapsuleSize = FVector2D::ZeroVector;
 	
 // Relative Transform ////////////////////////////////////////////////////////////////
+
+	UPROPERTY()
+	FTransform RootTransform = FTransform::Identity;
 	
 	UPROPERTY()
 	FTransform MeshTransform = FTransform::Identity;
