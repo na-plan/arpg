@@ -45,7 +45,6 @@ UNAInventoryComponent::UNAInventoryComponent()
 	SetBlendMode(EWidgetBlendMode::Masked);
 	OpacityFromTexture = 0.8f;
 	SetVisibility(false);
-	SetWindowVisibility(EWindowVisibility::SelfHitTestInvisible);
 }
 
 
@@ -53,8 +52,8 @@ UNAInventoryComponent::UNAInventoryComponent()
 void UNAInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// ...
+	
+	SetWindowVisibility(EWindowVisibility::SelfHitTestInvisible);
 	
 }
 
