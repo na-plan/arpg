@@ -12,16 +12,18 @@
 #include "Components/BillboardComponent.h"
 #include "Components/TextRenderComponent.h"
 #include "GeometryCollection/GeometryCollectionObject.h"
-#include "GeometryCollection/GeometryCollectionCache.h"
 
 #include "Engine/SCS_Node.h"
-#include "Kismet2/KismetEditorUtilities.h"
-#include "FileHelpers.h"
 #include "Abilities/GameplayAbility.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "Item/ItemActor/NAWeapon.h"
 #include "Item/ItemDataStructs/NAWeaponDataStructs.h"
 #include "Misc/ItemPatchHelper.h"
+
+#if WITH_EDITOR
+#include "FileHelpers.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#endif
 
 // 와 이것도 정적 로드로 CDO 생김 ㅁㅊ
 UNAItemEngineSubsystem::UNAItemEngineSubsystem()
@@ -412,7 +414,7 @@ void UNAItemEngineSubsystem:: SynchronizeItemCDOWithMeta(UClass* InItemActorClas
 		BPAsset->Modify();
 		ItemActorBPCDO->Modify();
 
-		const EObjectFlags MetaSubobjFlags = ItemActorBPCDO->GetMaskedFlags(RF_PropagateToSubObjects) | RF_Transient | RF_DefaultSubObject;
+		const EObjectFlags MetaSubobjFlags = ItemActorBPCDO->GetMaskedFlags(RF_PropagateToSubObjects) | RF_DefaultSubObject;
 
 		TArray<UActorComponent*> OldComponents;
 
@@ -515,6 +517,9 @@ void UNAItemEngineSubsystem:: SynchronizeItemCDOWithMeta(UClass* InItemActorClas
 					}
 					OldComponent->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
 					OldComponent->DestroyComponent();
+					OldComponent->ClearFlags( RF_Standalone | RF_Public );
+					ItemActorBPCDO->MarkComponentsAsGarbage();
+					CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 					OldComponent = nullptr;
 				}
 				OldComponents.Empty();
@@ -540,6 +545,7 @@ void UNAItemEngineSubsystem:: SynchronizeItemCDOWithMeta(UClass* InItemActorClas
 		BPAsset->MarkPackageDirty();
 	}
 }
+#endif
 
 // 찐 블프 클래스에서 SKEL 클래스 찾기
 UClass* UNAItemEngineSubsystem::ResolveToSkeletalItemClass(UClass* InItemActorClass) const
@@ -617,7 +623,6 @@ void UNAItemEngineSubsystem::ValidateItemRow(const FNAItemBaseTableRow* RowData,
 			*RowName.ToString(), Slot, Inv);
 	}
 }
-#endif
 
 void UNAItemEngineSubsystem::Deinitialize()
 {
@@ -634,7 +639,6 @@ UNAItemData* UNAItemEngineSubsystem::GetRuntimeItemData(const FName& InItemID) c
 	return Value;
 }
 
-#if	WITH_EDITOR
 FNAItemBaseTableRow* UNAItemEngineSubsystem::AccessItemMetaData(UClass* InItemActorClass) const
 {
 	if (!InItemActorClass->IsChildOf<ANAItemActor>())
@@ -661,7 +665,6 @@ const FNAItemBaseTableRow* UNAItemEngineSubsystem::GetItemMetaData(UClass* InIte
 {
 	return AccessItemMetaData(InItemActorClass);
 }
-#endif
 
 UNAItemData* UNAItemEngineSubsystem::CreateItemDataBySlot(UWorld* InWorld, const FNAInventorySlot& InInventorySlot)
 {
