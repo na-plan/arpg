@@ -103,7 +103,7 @@ void FRootShapeInstanceUpdatePredication::operator()( AActor* InOuter, UShapeCom
 
 	FTransform CachedRootWorldTransform = FTransform::Identity;
 	
-	if ( !InOuter->GetWorld()->IsPreviewWorld() )
+	if ( InOldComponent )
 	{
 		CachedRootWorldTransform = InOldComponent->GetComponentTransform();
 	}
