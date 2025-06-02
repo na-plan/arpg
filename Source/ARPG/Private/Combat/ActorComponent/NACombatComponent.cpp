@@ -39,6 +39,24 @@ void UNACombatComponent::SetAttackAbility(const TSubclassOf<UGameplayAbility>& I
 	AttackAbility = InAbility;
 }
 
+void UNACombatComponent::SetGrabAbility(const TSubclassOf<UGameplayAbility>& InAbility)
+{
+	if (const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker())
+	{
+		if (AbilitySpecHandle.IsValid() && GetNetMode() != NM_Client)
+		{
+			Interface->GetAbilitySystemComponent()->ClearAbility(AbilitySpecHandle);
+		}
+
+		if (InAbility && GetNetMode() != NM_Client)
+		{
+			AbilitySpecHandle = Interface->GetAbilitySystemComponent()->GiveAbility(InAbility);
+		}
+	}
+
+	GrabAbility = InAbility;
+}
+
 void UNACombatComponent::ReplayAttack()
 {
 	bCanAttack = IsAbleToAttack();

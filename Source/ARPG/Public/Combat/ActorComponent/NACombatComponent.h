@@ -45,6 +45,9 @@ class ARPG_API UNACombatComponent : public UActorComponent
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
 	TSubclassOf<UGameplayAbility> AttackAbility;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
+	TSubclassOf<UGameplayAbility> GrabAbility;
+
 	FGameplayAbilitySpecHandle AbilitySpecHandle;
 
 public:
@@ -62,6 +65,9 @@ public:
 	FDoStopAttack DoStopAttack;
 
 	void SetAttackAbility(const TSubclassOf<UGameplayAbility>& InAbility);
+
+	void SetGrabAbility(const TSubclassOf<UGameplayAbility>& InAbility);
+	
 
 	UFUNCTION()
 	void ReplayAttack();

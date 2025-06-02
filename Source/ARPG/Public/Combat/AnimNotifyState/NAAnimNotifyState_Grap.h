@@ -21,7 +21,7 @@ class ARPG_API UNAAnimNotifyState_Grap : public UAnimNotifyState
 	// 확인
 	virtual void NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime, const FAnimNotifyEventReference& EventReference) override;
 
-	bool SuccessGrap = false;
+	bool SuccessGrab = false;
 
 
 public:
@@ -36,9 +36,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlap", meta = (AllowPrivateAccess = "true"))
 	float SphereRadius = 20.f;
 
+	//Grap 하는 montage 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Montage", meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* Grabing;
+
 	//Grap 당할때 montage 변경이 필요한경우
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Montage", meta = (AllowPrivateAccess = "true"))
-	UAnimMontage* GrapedMontage;
+	UAnimMontage* GrabedMontage;
 
 	UPROPERTY()
 	TSet<AActor*> AppliedActors;
