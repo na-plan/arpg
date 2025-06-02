@@ -95,15 +95,15 @@ struct FItemNumericData
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category = "Item Numeric Data")
-	float ItemWeight = 0.0f;	// 아이템 무게, 아이템 스택 계산에 사용
+	//UPROPERTY(EditAnywhere, Category = "Item Numeric Data")
+	//float ItemWeight = 0.0f;	// 아이템 무게, 아이템 스택 계산에 사용
 
 	/**
-	 * 인벤토리의 슬롯 1칸에 소지 가능한 최대 수량
-	 * 1이면 인벤토리 슬롯 1칸에 1개만 들어감, 0이면 수량 제한 없음
+	 * 인벤토리의 슬롯 1칸에 들어갈 수 있는 최대 수량
+	 * 1이면 인벤토리 슬롯 1칸에 1개만 들어감
 	 * 주의! MaxSlotStackSize은  MaxInventoryStackSize보다 큰 값을 가질 수 없음!
 	 */
-	UPROPERTY(EditAnywhere, Category = "Item Numeric Data", meta = (UIMin = 0, UIMax = 999))
+	UPROPERTY(EditAnywhere, Category = "Item Numeric Data", meta = (UIMin = 1, UIMax = 999))
 	int32 MaxSlotStackSize = -1;
 
 	/**
@@ -111,10 +111,10 @@ struct FItemNumericData
 	* 1이면 인벤토리에 1개만 들어감, 0이면 수량 제한 없음
 	*/
 	UPROPERTY(EditAnywhere, Category = "Item Numeric Data", meta = (UIMin = 0))
-	int32 MaxInventoryStackSize = -1;
+	int32 MaxInventoryHoldCount = -1;
 	
 	UPROPERTY(EditAnywhere, Category = "Item Numeric Data")
-	uint8 bIsStackable : 1 = false;	// 인벤토리에 소지 가능 여부
+	uint8 bIsStackable : 1 = false;	// 인벤토리에 슬롯에 스택이 가능한지
 };
 
 USTRUCT()

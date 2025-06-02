@@ -11,7 +11,6 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/BillboardComponent.h"
 #include "Components/TextRenderComponent.h"
-#include "GeometryCollection/GeometryCollectionObject.h"
 
 #include "Engine/SCS_Node.h"
 #include "Abilities/GameplayAbility.h"
@@ -618,19 +617,19 @@ bool UNAItemEngineSubsystem::ContainsItemMetaClass(UClass* InItemActorClass) con
 void UNAItemEngineSubsystem::ValidateItemRow(const FNAItemBaseTableRow* RowData, const FName RowName) const
 {
 	const int32 Slot = RowData->NumericData.MaxSlotStackSize;
-	const int32 Inv = RowData->NumericData.MaxInventoryStackSize;
+	const int32 Inv = RowData->NumericData.MaxInventoryHoldCount;
 	if (Inv != 0 && Slot > Inv)
 	{
 		ensureMsgf(
 			false,
-			TEXT("DataTable(%s): 오류! MaxSlotStackSize(%d) > MaxInventoryStackSize(%d)"),
+			TEXT("DataTable(%s): 오류! MaxSlotStackSize(%d) > MaxInventoryHoldCount(%d)"),
 			*RowName.ToString(), Slot, Inv);
 	}
 	else if (Inv != 0 && Slot == 0)
 	{
 		ensureMsgf(
 			false,
-			TEXT("DataTable(%s): 오류! MaxInventoryStackSize(%d)이 0보다 큰데, MaxSlotStackSize(%d)이 0 이었음"),
+			TEXT("DataTable(%s): 오류! MaxInventoryHoldCount(%d)이 0보다 큰데, MaxSlotStackSize(%d)이 0 이었음"),
 			*RowName.ToString(), Slot, Inv);
 	}
 }
@@ -638,6 +637,47 @@ void UNAItemEngineSubsystem::ValidateItemRow(const FNAItemBaseTableRow* RowData,
 void UNAItemEngineSubsystem::Deinitialize()
 {
 	Super::Deinitialize();
+}
+
+UNAItemData* UNAItemEngineSubsystem::CreateItemDataCopy(const UNAItemData* SourceItemData)
+{
+	if (!IsValid(SourceItemData))
+	{
+		ensureAlwaysMsgf(false, TEXT("[UNAItemEngineSubsystem::CreateItemDataCopy]  SourceItemData was null."));
+		return nullptr;
+	}
+
+	if (SourceItemData->ItemMetaDataHandle.IsNull())
+	{
+		ensureAlwaysMsgf(false, TEXT("[UNAItemEngineSubsystem::CreateItemDataCopy]  SourceItemData's ItemMetaDataHandle was null."));
+		return nullptr;
+	}
+	
+	// 1) DuplicateObject로 원본을 복제합니다 (생성자 로직은 실행되지 않음).
+	UNAItemData* Duplicated = DuplicateObject<UNAItemData>(SourceItemData, this);
+	if (!Duplicated)
+	{
+		ensureAlwaysMsgf(false, TEXT("[UNAItemEngineSubsystem::CreateItemDataCopy]  Failed to duplicate item data."));
+		return nullptr;
+	}
+
+	// 2) 생성자가 실행되지 않았으니, IDCount를 수동으로 증가
+	//    FThreadSafeCounter::Increment()은 증가된 신규 값을 반환
+	int32 NewNumber = UNAItemData::IDCount.Increment();
+	Duplicated->IDNumber = NewNumber;
+
+	// 3) ID를 “RowName + NewNumber” 형태로 다시 세팅
+	FString NameStr;
+	NameStr = Duplicated->ItemMetaDataHandle.RowName.ToString();
+	FString CountStr = FString::FromInt(Duplicated->IDNumber);
+	FString NewItemID = NameStr + TEXT("_") + CountStr;
+
+	Duplicated->ID = FName(*NewItemID);
+
+	// 4) 새로 생성한 UNAItemData 객체의 소유권을 런타임 때 아이템 데이터 추적용 Map으로 이관
+	RuntimeItemDataMap.Emplace(Duplicated->ID, Duplicated);
+
+	return RuntimeItemDataMap[Duplicated->ID].Get();
 }
 
 UNAItemData* UNAItemEngineSubsystem::GetRuntimeItemData(const FName& InItemID) const

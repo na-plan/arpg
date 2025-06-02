@@ -44,83 +44,14 @@ void UNAInventoryGameInstanceSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-bool UNAInventoryGameInstanceSubsystem::AddItemToInventory(const FName& ItemID, int32 Stack)
+void UNAInventoryGameInstanceSubsystem::AddItemToInventory(class UNAInventoryComponent* Inventory, const FName& SlotID, const UNAItemData* ItemData)
 {
-	if (UNAItemData* InputItem = UNAItemEngineSubsystem::Get()->GetRuntimeItemData(ItemID))
-	{
-		const bool bResult = AddItemToInventory(InputItem, Stack);
-		return bResult;
-	}
-	
-	return false;
-}
-
-bool UNAInventoryGameInstanceSubsystem::AddItemToInventory(UNAItemData* InItem, int32 Stack)
-{
-	if (InItem)
-	{
-		if (GEngine)
-		{
-			UClass* ItemClass = InItem->GetClass();
-			UNAItemData* OldItem = nullptr;
-			int32 OldStack = 0;
-			for (TPair<FName,int32>& Pair : InventoryItems)
-			{
-				if (OldItem == UNAItemEngineSubsystem::Get()->GetRuntimeItemData(Pair.Key))
-				{
-					if (ItemClass == OldItem->GetItemActorClass())
-					{
-						OldStack = Pair.Value;
-						break;
-					}
-				}
-			}
-
-			if (OldItem)
-			// case 1) 새로운 아이템과 똑같은 클래스의 아이템이 있는지 확인
-			//		있다? → 두 아이템 데이터의 state가 동일한가?
-			//					→ yes: 해당 아이템이 있는 슬롯을 찾고, 찾은 슬롯에 아이템 수량을 추가. 
-			//							자동 병합 시스템? (인벤토리 안) 원래 아이템의 데이터에 새로운 아이템 데이터의 수량을 합침. 새로운 아이템 데이터는 제거(이 후처리에 대해서는 좀 더 고민할 필요)
-			//					→ no: 동일한 클래스의 아이템이 있는 슬롯의 근처에서 빈 슬롯을 찾는다. 찾은 빈 슬롯에 새로운 아이템 데이터를 할당한다.
-			{
-				if (OldItem->ItemState == InItem->ItemState)
-				{
-					
-				}
-				else
-				{
-					
-				}
-			}
-			// case 2) 아예 새로운 아이템
-			else
-			{
-		
-			}
-
-			// UNAItemData* NewItem = nullptr;
-			// if (Item->bIsCopy || Item->bIsPickup)
-			// {
-			// 	// It the item is already a copy, or is a world pickup
-			// 	NewItem = Item;
-			// 	NewItem->ResetItemFlags();
-			// }
-			// else
-			// {
-			// 	// used when splitting or dragging to/from another inventory
-			// 	NewItem = Item->CreateItemCopy();
-			// }
-			//
-			// NewItem->OwningInventory = InvComp;
-			// NewItem->SetQuantity(AmountToAdd);
-			//
-			// InventoryContents.Add(NewItem);
-			// InventoryTotalWeight += NewItem->GetItemStackWeight();
-			// OnInventoryUpdated.Broadcast();
-		}
-	}
-	
-	return false;
+	check(Inventory);
+	FNAInventorySlot NewSlotData;
+	const bool bResult = MakeSlotData(Inventory, SlotID, ItemData, NewSlotData);
+	check(bResult);
+	// @TODO: Inventory의 Owner의 컨트롤러의 서버 권한을 나타내는 문자열 형식을 만들고 이를 SlotID와 짬뽕하기
+	InventoryItems.Emplace(SlotID, NewSlotData);
 }
 
 int32 UNAInventoryGameInstanceSubsystem::RemoveItemFromInventory(const FName& ItemID, int32 Stack)
@@ -147,6 +78,23 @@ int32 UNAInventoryGameInstanceSubsystem::RemoveItemFromInventory(const FName& It
 		}
 	}
 	return false;
+}
+
+bool UNAInventoryGameInstanceSubsystem::MakeSlotData(UNAInventoryComponent* Inventory, const FName& SlotID, const UNAItemData* ItemData, FNAInventorySlot& OutSlotData)
+{
+	check(IsValid(Inventory) && IsValid(ItemData) && !SlotID.IsNone());
+	check(Inventory == ItemData->GetOwningInventory());
+	
+	OutSlotData.ItemMetaDataKey = ItemData->GetItemActorClass();
+	OutSlotData.SlotID = SlotID;
+	OutSlotData.ItemState = static_cast<uint8>(ItemData->ItemState);
+	OutSlotData.ItemSlotStack = ItemData->Quantity;
+	
+	return true;
+}
+
+void UNAInventoryGameInstanceSubsystem::SortInventory()
+{
 }
 
 bool UNAInventoryGameInstanceSubsystem::EquipItem(const FName& ItemMetaID)

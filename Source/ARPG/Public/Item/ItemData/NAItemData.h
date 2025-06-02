@@ -55,41 +55,49 @@ public:
 
 	virtual void PostInitProperties() override;
 
-	UFUNCTION(Category = "Item")
-	FORCEINLINE float GetItemStackWeight() const  // 아이템 스택 무게
-	{
-		if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct<FNAItemBaseTableRow>()) {
-			return Quantity * ItemMetaData->NumericData.ItemWeight;
-		}
-		else {
-			return -1.0f;
-		}
-	}
+	// UFUNCTION(Category = "Item")
+	// FORCEINLINE float GetItemStackWeight() const  // 아이템 스택 무게
+	// {
+	// 	if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct<FNAItemBaseTableRow>()) {
+	// 		return Quantity * ItemMetaData->NumericData.ItemWeight;
+	// 	}
+	// 	else {
+	// 		return -1.0f;
+	// 	}
+	// }
 
-	UFUNCTION(Category = "Item")
-	FORCEINLINE float GetItemSingleWeight() const	// 아이템 무게
-	{
-		if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct<FNAItemBaseTableRow>()) {
-			return  ItemMetaData->NumericData.ItemWeight;
-		}
-		else {
-			return -1.0f;
-		}
-	}
+	// UFUNCTION(Category = "Item")
+	// FORCEINLINE float GetItemSingleWeight() const	// 아이템 무게
+	// {
+	// 	if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct<FNAItemBaseTableRow>()) {
+	// 		return  ItemMetaData->NumericData.ItemWeight;
+	// 	}
+	// 	else {
+	// 		return -1.0f;
+	// 	}
+	// }
 
-	UFUNCTION(Category = "Item")
-	FORCEINLINE bool IsFullItemStack() const  // 아이템 스택이 가득 찼는지 여부
-	{
-		if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct<FNAItemBaseTableRow>()) {
-			return  Quantity == ItemMetaData->NumericData.MaxSlotStackSize;
-		}
-		else {
-			return false;
-		}
-	}
-
+	// UFUNCTION(Category = "Item")
+	// FORCEINLINE bool IsFullItemStack() const  // 아이템 스택이 가득 찼는지 여부
+	// {
+	// 	if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct<FNAItemBaseTableRow>()) {
+	// 		return  Quantity == ItemMetaData->NumericData.MaxSlotStackSize;
+	// 	}
+	// 	else {
+	// 		return false;
+	// 	}
+	// }
+	UFUNCTION(BlueprintCallable, Category = "Item Data")
+	int32 GetQuantity() const { return Quantity; }
+	
 	UFUNCTION(BlueprintCallable, Category = "Item Data")
 	void SetQuantity(const int32 NewQuantity);
+
+	UFUNCTION(BlueprintCallable, Category = "Item Data")
+	EItemState GetItemState() const { return ItemState; }
+	
+	UFUNCTION(BlueprintCallable, Category = "Item Data")
+	void SetItemState(EItemState NewItemState);
 
 	template<typename ItemDataStructT = FNAItemBaseTableRow>
 		requires TIsDerivedFrom<ItemDataStructT, FNAItemBaseTableRow>::IsDerived
@@ -97,6 +105,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Item Data")
 	FORCEINLINE FName GetItemID() const { return ID; }
+
+	UFUNCTION(BlueprintCallable, Category = "Item Data")
+	EItemType GetItemType() const;
 	
 	bool operator==(const FName& OtherID) const
 	{
@@ -104,16 +115,41 @@ public:
 	}
 
 	UClass* GetItemActorClass() const;
+	class UNAInventoryComponent* GetOwningInventory() const
+	{
+		return OwningInventory.Get();
+	}
+
+	UFUNCTION(BlueprintCallable, Category = "Item Data")
+	bool IsPickableItem() const;
+	UFUNCTION(BlueprintCallable, Category = "Item Data")
+	bool IsStackableItem() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Item Data")
+	int32 GetItemMaxSlotStackSize() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Item Data")
+	int32 GetMaxInventoryHoldCount() const;
+
+	void SetOwningInventory(class UNAInventoryComponent* NewInventory)
+	{
+		if (NewInventory != nullptr)
+		{
+			OwningInventory = NewInventory;
+		}
+	}
+
 	
 private:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Data", meta=(AllowPrivateAccess = "true"))
-	FName ID;  // 아이템 ID (DT 행 이름 + 숫자)
+	UPROPERTY(DuplicateTransient,
+		VisibleAnywhere, BlueprintReadOnly, Category = "Item Data", meta=(AllowPrivateAccess = "true"))
+	FName ID = NAME_None;  // 아이템 ID (DT 행 이름 + 숫자)
 
 	/** 객체가 생성될 때마다 ++ 하여 ID 를 뽑아 주는 원자적 카운터 */
 	static FThreadSafeCounter IDCount;
 	int32 IDNumber = -1;
 
-public:
+protected:
 	UPROPERTY(VisibleAnywhere, Category = "Item Data", meta = (UIMin = 1, UIMax = 100))
 	int32 Quantity = 1;	// 이 아이템 인스턴스의 현재 수량
 

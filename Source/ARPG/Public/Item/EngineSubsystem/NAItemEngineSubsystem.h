@@ -55,7 +55,6 @@ protected:
 #endif
 protected:
 	void ValidateItemRow(const FNAItemBaseTableRow* RowData, const FName RowName) const;
-		
 
 public:
 #if WITH_EDITOR
@@ -63,7 +62,7 @@ public:
 #endif
 	FNAItemBaseTableRow* AccessItemMetaData(UClass* InItemActorClass) const;
 	const FNAItemBaseTableRow* GetItemMetaData(UClass* InItemActorClass) const;
-public:
+	
 	static UNAItemEngineSubsystem* Get()
 	{
 		if (GEngine)
@@ -144,10 +143,10 @@ public:
 
 		NewItemData->ItemMetaDataHandle = ItemMetaDTRowHandle;
 		FString NameStr;
-		if (bIsCDOActor)
-		{
-			NameStr = TEXT("CDO_");
-		}
+		// if (bIsCDOActor)
+		// {
+		// 	NameStr = TEXT("CDO_");
+		// }
 		NameStr += ItemMetaDTRowHandle.RowName.ToString();
 		FString CountStr = FString::FromInt(NewItemData->IDCount.GetValue());
 		FString NewItemID = NameStr + TEXT("_") + CountStr;
@@ -159,6 +158,8 @@ public:
 
 		return RuntimeItemDataMap[NewItemData->ID].Get();
 	}
+
+	UNAItemData* CreateItemDataCopy(const UNAItemData* SourceItemData);
 	
 	UNAItemData* GetRuntimeItemData(const FName& InItemID) const;
 

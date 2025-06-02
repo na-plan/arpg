@@ -3,7 +3,6 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/Actor.h"
 #include "Interaction/NAInteractableInterface.h"
-#include "Item/ItemData/NAItemData.h"
 #include "Misc/ItemPatchHelper.h"
 #include "NAItemActor.generated.h"
 

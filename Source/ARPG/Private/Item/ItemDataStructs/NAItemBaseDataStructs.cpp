@@ -17,25 +17,35 @@ void FNAItemBaseTableRow::OnDataTableChanged(const UDataTable* InDataTable, cons
 	
 	if (ItemRowStruct == this)
 	{
-		if (NumericData.MaxInventoryStackSize < 0)
+		if (!NumericData.bIsStackable)
 		{
-			NumericData.MaxInventoryStackSize = FMath::Max(NumericData.MaxInventoryStackSize, -1);
-			NumericData.MaxSlotStackSize = FMath::Max(NumericData.MaxInventoryStackSize, -1);
+			NumericData.MaxSlotStackSize = 1;
 		}
-		else if (NumericData.MaxInventoryStackSize == 0)
+		
+		if (NumericData.MaxInventoryHoldCount < 0)
 		{
-			NumericData.MaxSlotStackSize = 0;
+			NumericData.MaxInventoryHoldCount = 0;
+			NumericData.MaxSlotStackSize = 1;
 		}
-		else if (NumericData.MaxInventoryStackSize > 0)
+		else if (NumericData.MaxInventoryHoldCount == 0)
 		{
-			if (NumericData.MaxSlotStackSize <= 0)
+			if (!ensure(NumericData.MaxSlotStackSize >= 1))
 			{
-				NumericData.MaxSlotStackSize = NumericData.MaxInventoryStackSize;
+				NumericData.MaxSlotStackSize = 1;
 			}
-			else if (NumericData.MaxInventoryStackSize < NumericData.MaxSlotStackSize)
+		}
+		else if (NumericData.MaxInventoryHoldCount > 0)
+		{
+			if (!ensure(NumericData.MaxSlotStackSize >= 1
+				&& NumericData.MaxSlotStackSize <= NumericData.MaxInventoryHoldCount))
 			{
-				NumericData.MaxSlotStackSize = NumericData.MaxInventoryStackSize;
+				NumericData.MaxSlotStackSize = NumericData.MaxInventoryHoldCount;
 			}
+		}
+
+		if (TextData.Name.IsEmpty())
+		{
+			TextData.Name = FText::FromName(InRowName);
 		}
 	}
 }
