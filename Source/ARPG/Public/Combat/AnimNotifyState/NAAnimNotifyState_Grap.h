@@ -23,6 +23,7 @@ class ARPG_API UNAAnimNotifyState_Grap : public UAnimNotifyState
 
 	bool SuccessGrap = false;
 
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlap", meta = (AllowPrivateAccess = "true"))
 	float OverlapInterval = 0.01f;

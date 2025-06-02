@@ -14,6 +14,28 @@ void UNAAnimNotifyState_Grap::NotifyBegin(USkeletalMeshComponent* MeshComp, UAni
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
 
+	// Player의 잡기와 monster의 잡기를 구분..
+	 
+	 
+	// Monster가 사용하면 잡기 시전 애니메이션이 먼저 나가고 해당 범위 내에 플레이어가
+	// 존재할 경우 플레이어도 잡기 저항(잡기 도중) 모션이 나가도록 하고
+	// 이후 일정 스택 이상 공격 성공시 또는 다른 플레이어가 근접공격 성공시 떨어져 나가도록 하기
+
+
+
+	
+	// 플레이어가 사용할 경우 
+	// null offset에 monster의 root고정 시켜야 됌		//bone 보니까 이건 세팅 안한거 같음.. 일정 위치로 해야 할거 같음
+	// 상대 몬스터의 회전 확인(뒤쪽일것) -> 가능하도록 하기 ㄱㄱ
+	// 무기에 따른 공격이니까 idle에서 해당 notify를 불러내서 사용하면 되려나?
+	// 권총, ㄴ무기 = splex	//	knife =  knifeAction으로
+
+	// idle에서 호출했다고 치고 그러면 begin 할때 구체 만들어서 몬스터의 rot 가져오고 위치는 구체 하나 박아 놓고 
+	// 해당 구체에 닿으면 추가적인 ui를 보이게 한다거나 tick에서 보여주게 하고 tick중에 해당 트리거 on하면 바로 애니메이션 몽타주 재생
+
+
+
+
 	AActor* OwnerActor = MeshComp->GetOwner();
 
 #if WITH_EDITOR
@@ -24,14 +46,7 @@ void UNAAnimNotifyState_Grap::NotifyBegin(USkeletalMeshComponent* MeshComp, UAni
 	{
 		if (MeshComp->GetOwner()->HasAuthority())
 		{
-			//const TScriptInterface<IAbilitySystemInterface>& SourceInterface = MeshComp->GetOwner();
-
-			//if (!SourceInterface)
-			//{
-			//	// GAS가 없는 객체로부터 시도됨
-			//	check(false);
-			//	return;
-			//}
+			
 			if (UAbilitySystemComponent* OwnerASC = OwnerActor->FindComponentByClass<UAbilitySystemComponent>())
 			{
 				const FVector SocketLocation = MeshComp->GetSocketLocation(SocketName);
@@ -174,7 +189,8 @@ void UNAAnimNotifyState_Grap::NotifyTick(USkeletalMeshComponent* MeshComp, UAnim
 						}
 					}
 				}
-				//검사 목록에서 NACharacter 검출 -> 이후 근접 공격 어빌리티 사용을 하는지 확인후 
+
+				// 검사 목록에서 NACharacter 검출-> 
 				for (AActor* CheckActor : AppliedActors)
 				{
 					//Player Cast로 Playcheck 
@@ -183,12 +199,14 @@ void UNAAnimNotifyState_Grap::NotifyTick(USkeletalMeshComponent* MeshComp, UAnim
 						UAbilitySystemComponent* PlayerASC = Player->GetAbilitySystemComponent();
 						// 공격을 하는게 combatcomponent네? 얘를 가지고 와서 해야하나?
 						UNAMontageCombatComponent* PlayerCombatComponent = Player->FindComponentByClass<UNAMontageCombatComponent>();
-						float ParryAngle = FVector::DotProduct(Player->GetActorForwardVector(), MeshComp->GetOwner()->GetActorForwardVector());
+						float GrapAngle = FVector::DotProduct(Player->GetActorForwardVector(), MeshComp->GetOwner()->GetActorForwardVector());
 
 						//	상대 공격에 맞지 않아도 공격한 상태면 패링이 되는 문제가 있음 -> 이건 어떻게 해야할까?...
 						//	생대 mesh와 owner mesh의 각도를 구해서 가져온뒤에 일정 각도 이하로 설정 ㄱ
-						// 30도 이하 + 공격중
-						if (PlayerCombatComponent->IsAttacking() && ParryAngle < -0.85) { SuccessGrap = true; }
+						
+
+						// 플레이어가 공격중이 아닐경우 잡기 성공	parry도 같이넣어서 공격중이면 패링 ㄱ
+						if (!PlayerCombatComponent->IsAttacking()) { SuccessGrap = true; }
 						else { SuccessGrap = false; }
 
 					}
