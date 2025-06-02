@@ -9,6 +9,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/OverlapResult.h"
 #include "NACharacter.h"
+#include "Combat/ActorComponent/NAMontageCombatComponent.h"
+
 
 void UNAAnimNotifyState_ParryAreaTest::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration, const FAnimNotifyEventReference& EventReference)
 {
@@ -68,19 +70,54 @@ void UNAAnimNotifyState_ParryAreaTest::NotifyBegin(USkeletalMeshComponent* MeshC
 void UNAAnimNotifyState_ParryAreaTest::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
-	/*End에서 사용할경우*/
-	if (UAbilitySystemComponent* OwnerASC = MeshComp->GetOwner()->FindComponentByClass<UAbilitySystemComponent>()) 
-	{
-		UAnimInstance* AnimInstance = OwnerASC->AbilityActorInfo->GetAnimInstance();
-		if (Check)
-		{
-			AnimInstance->Montage_Stop(0.2f);
-			AnimInstance->Montage_Play(StunMontage);
 
-			
+
+	if (MeshComp->GetWorld()->IsGameWorld())
+	{
+		/* 공격 판정 apply */
+		if (UAbilitySystemComponent* OwnerASC = MeshComp->GetOwner()->FindComponentByClass<UAbilitySystemComponent>())
+		{
+			UAnimInstance* AnimInstance = OwnerASC->AbilityActorInfo->GetAnimInstance();
+			//패링 성공시 데미지를 입지 않고 stun상태가 됩니다
+			if (SuccessParry)
+			{
+				AnimInstance->Montage_Stop(0.2f);
+				AnimInstance->Montage_Play(StunMontage);
+			}
+			//패링 실패시 대상에게 데미지를 주도록 합시다
+			//AppliedActors 에 set되어있는 액터중 NACharacter만 가지고 와서 데미지 ㄱㄱ
+			else
+			{
+				for (AActor* CheckActor : AppliedActors)
+				{
+					if (ANACharacter* Player = Cast<ANACharacter>(CheckActor))
+					{
+						const TScriptInterface<IAbilitySystemInterface>& SourceInterface = MeshComp->GetOwner();
+						
+						UAbilitySystemComponent* PlayerASC = Player->GetAbilitySystemComponent();
+						SourceInterface->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget
+							(
+								*SpecHandle.Data.Get(),
+								PlayerASC
+							);				
+
+					}
+				}
+
+			}
+
+		}
+
+		//재사용성을 위해 clear 및 empty
+		if (MeshComp->GetOwner()->HasAuthority())
+		{
+			SpecHandle.Clear();
+			ContextHandle.Clear();
+			AppliedActors.Empty();
 		}
 
 	}
+
 }
 
 void UNAAnimNotifyState_ParryAreaTest::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime, const FAnimNotifyEventReference& EventReference)
@@ -139,20 +176,30 @@ void UNAAnimNotifyState_ParryAreaTest::NotifyTick(USkeletalMeshComponent* MeshCo
 						if (!AppliedActors.Contains(OverlapResult.GetActor()))
 						{
 							UE_LOG(LogTemp, Log, TEXT("[%hs]: Found target %s"), __FUNCTION__, *OverlapResult.GetActor()->GetName());
-							SourceInterface->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget
-							(
-								*SpecHandle.Data.Get(),
-								TargetInterface->GetAbilitySystemComponent()
-							);
-
+							//AppiedActor
 							AppliedActors.Add(OverlapResult.GetActor());
 						}
 					}
 				}
 				//검사 목록에서 NACharacter 검출 -> 이후 근접 공격 어빌리티 사용을 하는지 확인후 
-				for (AActor* Test : AppliedActors)
+				for (AActor* CheckActor : AppliedActors)
 				{
-					//if(AppliedActors)
+					//Player Cast로 Playcheck 
+					if (ANACharacter* Player = Cast<ANACharacter>(CheckActor))
+					{
+						UAbilitySystemComponent* PlayerASC =  Player->GetAbilitySystemComponent();
+						// 공격을 하는게 combatcomponent네? 얘를 가지고 와서 해야하나?
+						UNAMontageCombatComponent* PlayerCombatComponent = Player->FindComponentByClass<UNAMontageCombatComponent>();
+						float ParryAngle = FVector::DotProduct(Player->GetActorForwardVector(), MeshComp->GetOwner()->GetActorForwardVector());
+
+						//	상대 공격에 맞지 않아도 공격한 상태면 패링이 되는 문제가 있음 -> 이건 어떻게 해야할까?...
+						//	생대 mesh와 owner mesh의 각도를 구해서 가져온뒤에 일정 각도 이하로 설정 ㄱ
+						// 30도 이하 + 공격중
+						if (PlayerCombatComponent->IsAttacking() && ParryAngle < -0.85) { SuccessParry = true; }
+						else{ SuccessParry = false; }
+
+					}
+					
 				}
 				
 
