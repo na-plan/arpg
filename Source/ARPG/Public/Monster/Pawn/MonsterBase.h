@@ -77,6 +77,9 @@ public:
 	UAnimMontage* GetSpawnMontage() const { return SpawnMontage; }
 
 	FDataTableRowHandle GetSkillData() const { return OwnSkills; }
+	int GetComboState() const { return SelectedCombo; }
+	void SaveCombo() { ++SelectedCombo; }
+	void ResetCombo() { SelectedCombo = 0; }
 
 	void SetSelectSkillMontage(UAnimMontage* SelectSkillMontage) { CurrentSkillMontage = SelectSkillMontage; }
 	UAnimMontage* GetSelectSkillMontage() const { return CurrentSkillMontage; }
@@ -110,7 +113,7 @@ protected:
 
 	float CheckTimer = 0;
 	float CheckHP = 0;
-	int	SelectedSkillNum = 0;
+	int	SelectedCombo = 0;
 
 	//이거 데이터화 시키고 get을 데이터테이블로 보내는게 낫지않나? 싶은데...
 public:

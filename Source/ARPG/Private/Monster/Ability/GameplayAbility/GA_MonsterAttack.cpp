@@ -20,31 +20,41 @@ void UGA_MonsterAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 
 		if (AMonsterBase* MonsterBase = CastChecked<AMonsterBase>(ActorInfo->AvatarActor.Get()))
 		{
-			UAnimMontage* MonsterAttackMontage = MonsterBase->GetAttackMontage();
 			UAbilitySystemComponent* MonsterASC =  MonsterBase->GetAbilitySystemComponent();
+			//AttackCombo
+			TArray<UAnimMontage*> AttackComboMontage = MonsterBase->GetAttackMontageCombo();
+			uint8 MonsterAttackComboMontageNum = AttackComboMontage.Num();
+			// 하나만 있을때
+			UAnimMontage* MonsterAttackMontage = MonsterBase->GetAttackMontage();
 
-			// 들어오는거 확인 모두 보유중
-			if (MonsterAttackMontage && MonsterASC)
+			if (MonsterASC)
 			{
-				// 재생완료
 				UAnimInstance* AnimInstance = MonsterASC->GetAvatarActor()->FindComponentByClass<USkeletalMeshComponent>()->GetAnimInstance();
 				if (AnimInstance)
 				{
-					float PlayingMontage = MonsterASC->PlayMontage(this, CurrentActivationInfo, MonsterAttackMontage, 1.0f);
+					if (MonsterAttackComboMontageNum > 0)
+					{
+						float PlayingMontage = MonsterASC->PlayMontage(this, CurrentActivationInfo, AttackComboMontage[MonsterBase->GetComboState()], 1.0f);
+						EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+
+						MonsterBase->SaveCombo();						
+						if (MonsterBase->GetComboState() >= MonsterAttackComboMontageNum) { MonsterBase->ResetCombo(); }
+					}
+					else 
+					{
+						if (MonsterAttackMontage)
+						{
+							// 재생완료						
+							float PlayingMontage = MonsterASC->PlayMontage(this, CurrentActivationInfo, MonsterAttackMontage, 1.0f);
+							EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+						}
+
+					}
+
 				}
 
-
-
-				//추가 수정		AbilityTask를 만든 뒤에 사용해주세요
-				//UAbilityTask_PlayMontageAndWait* PlayMontageTask= UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, TEXT("NONE"), MonsterAttackMontage, 1.0f);
-				//PlayMontageTask->OnCompleted.AddDynamic(this, &UGA_MonsterAttack::OnComplete);
-				//// 플레이어가 특정 행동을 강제하거나, 상태 이상(스턴 등)으로 인해 능력이 취소되도록 하는것도 좋을거 같음
-				//PlayMontageTask->OnCancelled.AddDynamic(this, &UGA_MonsterAttack::OnCancelled);
-				//PlayMontageTask->ReadyForActivation();
-
-
-				EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 			}
+
 		}
 	}
 }
