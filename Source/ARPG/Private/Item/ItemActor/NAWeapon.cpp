@@ -8,61 +8,6 @@
 #include "Item/ItemDataStructs/NAWeaponDataStructs.h"
 #include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
 
-#if WITH_EDITOR
-void FCombatUpdatePredication::operator()( AActor* InOuter, UNAMontageCombatComponent* InComponent,
-                                           UNAMontageCombatComponent* InOldComponent, const FNAItemBaseTableRow* InRow,
-                                           const EItemMetaDirtyFlags DirtyFlags ) const
-{
-	if ( Cast<ANAWeapon>( InOuter ) )
-	{
-		const FNAWeaponTableRow* WeaponRow = static_cast<const FNAWeaponTableRow*>( InRow );
-		InComponent->SetAttackMontage( WeaponRow->FirearmStatistics.FirearmMontage );
-		InComponent->SetAttackAbility( WeaponRow->FirearmStatistics.GameplayAbility );
-	}
-}
-
-void ANAWeapon::ExecuteItemPatch( UClass* ClassToPatch, const FNAItemBaseTableRow* PatchData,
-                                  EItemMetaDirtyFlags PatchFlags )
-{
-	Super::ExecuteItemPatch(ClassToPatch, PatchData, PatchFlags);
-	
-	if (HasAnyFlags(RF_ClassDefaultObject) || !GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
-	{
-		return;
-	}
-	
-	TArray<UActorComponent*> OldComponents;
-	const EObjectFlags SubobjFlags = GetMaskedFlags(RF_PropagateToSubObjects) | RF_DefaultSubObject;
-	
-	FItemPatchHelper::UpdateDirtyComponent<
-		UNAMontageCombatComponent,
-		EItemMetaDirtyFlags::MF_Combat,
-		FItemPatchHelper::FDefaultSpawnPredication<UNAMontageCombatComponent>,
-		FCombatUpdatePredication>
-	(
-		PatchFlags,
-		OldComponents,
-		this,
-		&CombatComponent,
-		PatchData,
-		TEXT( "CombatComponent" ),
-		SubobjFlags,
-		true
-	);
-
-	if (!OldComponents.IsEmpty())
-	{
-		for (UActorComponent* OldComponent : OldComponents)
-		{
-			OldComponent->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
-			OldComponent->DestroyComponent();
-			OldComponent = nullptr;
-		}
-		OldComponents.Empty();
-	}
-}
-#endif
-
 // Sets default values
 ANAWeapon::ANAWeapon() : ANAPickableItemActor(FObjectInitializer::Get())
 {

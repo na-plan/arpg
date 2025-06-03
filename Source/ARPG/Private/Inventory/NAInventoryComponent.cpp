@@ -5,8 +5,8 @@
 
 #include "Inventory/GameInstance/NAInventoryGameInstanceSubsystem.h"
 #include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
-#include "Item/ItemActor/NAItemActor.h"
 #include "Inventory/Widget/NAInventoryWidget.h"
+#include "Item/ItemActor/NAWeapon.h"
 
 // 슬롯 ID에서 문자열 추출 헬퍼 함수
 static int32 ExtractSlotNumber(const FName& SlotID)
@@ -50,22 +50,21 @@ UNAInventoryComponent::UNAInventoryComponent()
 		// 인벤토리 슬롯 초기화
 		InventoryContents.Reserve(MaxTotalSlots);
 	
-		// 인벤토리 슬롯 25개: 1~25까지 Inven_nn 슬롯 키를 채우고, 값은 nullptr (TWeakObjectPtr이므로 nullptr 가능)
-		for (int32 i = 1; i <= MaxInventorySlots; ++i)
+		// 인벤토리 슬롯 25개: 0~24까지 Inven_nn 슬롯 키를 채우고, 값은 nullptr (TWeakObjectPtr이므로 nullptr 가능)
+		for (int32 i = 0; i <= MaxInventorySlots; ++i)
 		{
 			FString SlotNameStr = FString::Printf(TEXT("Inven_%02d"), i);
 			InventoryContents.Add(FName(*SlotNameStr), nullptr);
 		}
 	
-		// 무기 슬롯 4개: 1~4까지 Weapon_nn 슬롯 키를 채우고, 값은 nullptr
-		for (int32 i = 1; i <= MaxWeaponSlots; ++i)
+		// 무기 슬롯 4개: 0~3까지 Weapon_nn 슬롯 키를 채우고, 값은 nullptr
+		for (int32 i = 0; i <= MaxWeaponSlots; ++i)
 		{
 			FString SlotNameStr = FString::Printf(TEXT("Weapon_%02d"), i);
 			InventoryContents.Add(FName(*SlotNameStr), nullptr);
 		}
 	}
 }
-
 
 // Called when the game starts
 void UNAInventoryComponent::BeginPlay()
@@ -76,46 +75,104 @@ void UNAInventoryComponent::BeginPlay()
 	
 }
 
-void UNAInventoryComponent::HandleRemoveSingleItemData(UNAItemData* ItemDataToRemove)
+bool UNAInventoryComponent::HandleRemoveItem(const FName& SlotID)
 {
-	//InventoryContents.RemoveSingle(ItemToRemove);
-	//OnInventoryUpdated.Broadcast();
-
-	if (!IsValid(ItemDataToRemove))
+	if (IsEmptySlot(SlotID))
 	{
-		ensure(false);
-		return;
+		return false;
 	}
+
+	UNAItemData* ItemToRemove = InventoryContents[SlotID].Get();
+	if (!ItemToRemove) { return false; }
+	if (ItemToRemove->GetOwningInventory() != this) { return ensure(false); }
 	
 	if (UNAInventoryGameInstanceSubsystem* InvenSubsys = UNAInventoryGameInstanceSubsystem::Get(GetWorld()))
 	{
-		InvenSubsys->RemoveItemFromInventory(ItemDataToRemove->GetItemID(), );
+		UNAItemData* RemovedItem = InvenSubsys->RemoveItemFromInventory(ItemToRemove);
+		if (!RemovedItem || ItemToRemove != RemovedItem) { return ensure(false); }
+		RemovedItem->SetOwningInventory(nullptr);
+		return true;
 	}
-}
-
-int32 UNAInventoryComponent::HandleRemoveAmountOfItems(UNAItemData* ItemToRemove, int32 DesiredAmountToRemove)
-{
-	const int32 ActualAmountToRemove = FMath::Min(DesiredAmountToRemove, ItemToRemove->Quantity);
-	ItemToRemove->SetQuantity(ItemToRemove->Quantity - ActualAmountToRemove);
-	InventoryTotalWeight -= ActualAmountToRemove * ItemToRemove->GetItemSingleWeight();
-
-	//OnInventoryUpdated.Broadcast();
-	return ActualAmountToRemove;
+	
+	return ensure(false);
 }
 
 void UNAInventoryComponent::SortInventoryItems()
 {
-	
+    // 1) 채워진 Inven_ 슬롯만 모으기
+    TArray<TPair<FName, UNAItemData*>> FilledSlots;
+    FilledSlots.Reserve(MaxInventorySlots);
+
+    for (auto& Pair : InventoryContents)
+    {
+        const FName& SlotID = Pair.Key;
+        FString SlotStr = SlotID.ToString();
+        if (SlotStr.StartsWith(TEXT("Inven_")) && Pair.Value.IsValid())
+        {
+            FilledSlots.Emplace(SlotID, Pair.Value.Get());
+        }
+    }
+
+    // 2) 정렬: ItemType ↑, ClassName ↑, Quantity ↓
+    FilledSlots.Sort([](const TPair<FName, UNAItemData*>& A, const TPair<FName, UNAItemData*>& B) {
+        const UNAItemData* ItemA = A.Value;
+        const UNAItemData* ItemB = B.Value;
+        
+        // 2-1) 타입 비교
+        EItemType TypeA = ItemA->GetItemType();
+        EItemType TypeB = ItemB->GetItemType();
+        if (TypeA != TypeB)
+        {
+            return static_cast<uint8>(TypeA) < static_cast<uint8>(TypeB);
+        }
+        
+        // 2-2) 클래스 이름 비교
+        FString ClassNameA = ItemA->GetItemActorClass()->GetName();
+        FString ClassNameB = ItemB->GetItemActorClass()->GetName();
+        if (ClassNameA != ClassNameB)
+        {
+            return ClassNameA < ClassNameB;
+        }
+        
+        // 2-3) 같은 클래스면 수량 내림차순
+        return ItemA->GetQuantity() > ItemB->GetQuantity();
+    });
+
+    // 3) 모든 Inven_ 슬롯을 비우기
+    for (int32 i = 1; i <= MaxInventorySlots; ++i)
+    {
+        FString SlotNameStr = FString::Printf(TEXT("Inven_%02d"), i);
+        FName SlotID = FName(*SlotNameStr);
+        InventoryContents[SlotID] = nullptr;
+    }
+
+    // 4) 정렬된 순서대로 순차적 재배치
+    int32 TargetIndex = 1;
+    for (auto& Pair : FilledSlots)
+    {
+        UNAItemData* ItemData = Pair.Value;
+        FString NewSlotName = FString::Printf(TEXT("Inven_%02d"), TargetIndex);
+        FName NewSlotID = FName(*NewSlotName);
+
+        InventoryContents[NewSlotID] = ItemData;
+        // ItemData->SetOwningInventory(this); // 이미 세팅되어 있으면 호출 불필요
+        
+        ++TargetIndex;
+    }
+
+    // 5) UI 쪽에 갱신 알리기 (필요 시)
+    //OnInventoryUpdated.Broadcast(this);
+    // 혹은, GetInventoryContents() 를 호출해 바인딩된 위젯을 리프레시
 }
 
-void UNAInventoryComponent::SplitExistingStack(UNAItemData* ItemToSplit, const int32 AmountToSplit)
-{
-	if (InventoryContents.Num() + 1 <= InventorySlotsCapacity)
-	{
-		HandleRemoveAmountOfItems(ItemToSplit, AmountToSplit);
-		HandleAddNewItem(ItemToSplit, AmountToSplit);
-	}
-}
+// void UNAInventoryComponent::SplitExistingStack(UNAItemData* ItemToSplit, const int32 AmountToSplit)
+// {
+// 	if (InventoryContents.Num() + 1 <= InventorySlotsCapacity)
+// 	{
+// 		HandleRemoveAmountOfItems(ItemToSplit, AmountToSplit);
+// 		HandleAddNewItem(ItemToSplit, AmountToSplit);
+// 	}
+// }
 
 TArray<UNAItemData*> UNAInventoryComponent::GetInventoryContents() const
 {
@@ -130,247 +187,132 @@ TArray<UNAItemData*> UNAInventoryComponent::GetInventoryContents() const
 	return InventoryContentsArray;
 }
 
-FNAItemAddResult UNAInventoryComponent::AddNonStackableItem_Internal(UNAItemData* InputItem, const TArray<FName>& InEmptySlots)
+FNAItemAddResult UNAInventoryComponent::AddNonStackableItem(UNAItemData* InputItem, const TArray<FName>& InEmptySlots)
 {
-	if (InputItem && InputItem->GetItemMaxSlotStackSize() == 1 && InputItem->GetMaxInventoryHoldCount() >= 0)
+	FString FailReason;
+	// 1) 사전 검증: nullptr, MaxSlotStackSize==1인지, Quantity==1인지, MaxInventoryHoldCount 검사 등
+	if (!IsValidForNonStackable(InputItem, FailReason))
 	{
-		if (const FNAItemBaseTableRow* InputItemData = InputItem->GetItemMetaDataStruct())
-		{
-			if (InEmptySlots.IsEmpty())
-			{
-				return FNAItemAddResult::AddedNone(FText::Format(
-						FText::FromString("Could not add {0} to the inventory. All inventory slots are full."),
-						InputItemData->TextData.Name));
-			}
-		
-			// check if in the input item has a valid quantity (non-stackable item's quantity must be 1)
-			if (InputItem->GetQuantity() != 1)
-			{
-				ensure(false);
-				return FNAItemAddResult::AddedNone(FText::Format(
-					FText::FromString("Could not add {0} to the inventory. Item has a invalid quantity value."),
-					InputItemData->TextData.Name));
-			}
-
-			// check MaxInventoryHoldCount
-			int32 MaxInventoryHoldCount = InputItem->GetMaxInventoryHoldCount();
-			if (MaxInventoryHoldCount == 1)
-			{
-				UClass* InputItemActorClass = InputItem->GetItemActorClass();
-				if (HasSameItemClass(InputItemActorClass))
-				{
-					return FNAItemAddResult::AddedNone(FText::Format(
-					FText::FromString("Could not add {0} to the inventory. This item cannot be carried more than once."),
-					InputItemData->TextData.Name));
-				}
-			}
-	
-			const bool bSucceed = HandleAddNewItem(InputItem, InEmptySlots[0]);
-			if (bSucceed)
-			{
-				return FNAItemAddResult::AddedAll(1, FText::Format(
-				   FText::FromString("Successfully added a single {0} to the inventory."), InputItemData->TextData.Name));
-			}
-		}
+		return FNAItemAddResult::AddedNone(FText::FromString(FailReason));
 	}
 
-	ensureAlwaysMsgf(false, TEXT("[UNAInventoryComponent::HandleNonStackableItems]  Failed to add the non-stackable item to the inventory."));
-	return FNAItemAddResult::AddedNone(FText::FromString("Failed to add the non-stackable item to the inventory."));
+	// 2) 빈 슬롯이 하나라도 있어야 추가 가능
+	if (InEmptySlots.IsEmpty())
+	{
+		return FNAItemAddResult::AddedNone(
+			FText::FromString(TEXT("인벤토리에 빈 슬롯이 없습니다."))
+		);
+	}
+
+	// 3) 첫 번째 빈 슬롯에만 추가
+	const FName TargetSlot = InEmptySlots[0];
+	const bool bSucceed = HandleAddNewItem(InputItem, TargetSlot);
+	if (bSucceed)
+	{
+		// 비-스택형이므로 Always Distributed = 1
+		const FText ItemName = FText::FromString(InputItem->GetItemName());
+		return FNAItemAddResult::AddedAll(
+			1,
+			FText::Format(
+				FText::FromString(TEXT("'{0}' 아이템을 성공적으로 추가했습니다.")),
+				ItemName
+			)
+		);
+	}
+
+	// 4) 만약 HandleAddNewItem에서 실패한 경우
+	return FNAItemAddResult::AddedNone(
+		FText::FromString(TEXT("알 수 없는 이유로 추가에 실패했습니다."))
+	);
 }
 
-FNAItemAddResult UNAInventoryComponent::AddStackableItem_Internal(UNAItemData* InputItem, const TArray<FName>& InEmptySlots)
+FNAItemAddResult UNAInventoryComponent::AddStackableItem(UNAItemData* InputItem, const TArray<FName>& PartialSlots, const TArray<FName>& EmptySlots)
 {
-	if (InputItem && InputItem->GetQuantity() > 0 && InputItem->GetMaxInventoryHoldCount() >= 0)
+	// 1) 기본 입력 검증
+    if (!InputItem)
+    {
+        return FNAItemAddResult::AddedNone(
+            FText::FromString(TEXT("아이템이 nullptr입니다."))
+        );
+    }
+    const int32 OriginalQuantity = InputItem->GetQuantity();
+    if (OriginalQuantity <= 0)
+    {
+        return FNAItemAddResult::AddedNone(
+            FText::FromString(TEXT("추가할 수량이 0 이하입니다."))
+        );
+    }
+    const int32 MaxHold = InputItem->GetMaxInventoryHoldCount();
+    if (MaxHold < 0)
+    {
+        return FNAItemAddResult::AddedNone(
+            FText::FromString(TEXT("유효하지 않은 MaxInventoryHoldCount입니다."))
+        );
+    }
+
+    // 2) Partial 슬롯과 Empty 슬롯 기반으로 실제로 추가 가능한 총량 계산
+    int32 AllowedAmount = ComputeDistributableAmount(InputItem, PartialSlots, EmptySlots);
+    if (AllowedAmount <= 0)
+    {
+        return FNAItemAddResult::AddedNone(
+            FText::FromString(TEXT("인벤토리 공간 또는 소지 한도가 부족합니다."))
+        );
+    }
+
+    // 3) 실제 슬롯에 수량 분배 (Partial → Empty)
+    // DistributeToSlots: 원본 데이터를 그대로 슬롯에 등록한 경우 - 원본 Quantity 수정 x
+	//					  원본에서 복제한 데이터를 슬롯에 등록한 경우 - 원본 Quantity에서 슬롯의 최대 용량만큼 차감
+	//					  복제 데이터를 만들어서 슬롯에 아이템 수량을 분배한 뒤,
+	//					  -> 빈 슬롯이 남았다: 원본 데이터를 슬롯에 등록 - 원본 Quantity는 해당 슬롯의 용량을 나타냄
+	//					  -> 빈 슬롯이 없다: 아이템이 부분 추가되었으므로, 원본 데이터의 Quantity는 차감된 상태로 월드에 잔여
+    int32 Distributed = DistributeToSlots(InputItem, AllowedAmount, PartialSlots, EmptySlots);
+    if (Distributed <= 0)
+    {
+        return FNAItemAddResult::AddedNone(
+            FText::FromString(TEXT("아이템 분배 중 오류가 발생했습니다."))
+        );
+    }
+
+    // 4) 결과 메시지: 전부 추가 vs 부분 추가
+    const FText ItemName = FText::FromString(InputItem->GetItemName());
+	if (Distributed == OriginalQuantity)
 	{
-		if (const FNAItemBaseTableRow* InputItemData = InputItem->GetItemMetaDataStruct())
-		{
-			int32 RequestedAddAmount = InputItem->GetQuantity();
-			int32 MaxInventoryHoldCount = InputItem->GetMaxInventoryHoldCount();
-			int32 MaxSlotStackSize = InputItem->GetItemMaxSlotStackSize();
-			int32 RemainingHoldCount = 0;
-			int32 AmountToDistribute = 0;
-			int32 ActualAddAmount = 0;
-			
-			TArray<FName> AddableSlots;
-			UClass* InputItemActorClass = InputItem->GetItemActorClass();
-			const bool bHasSameItemSlots = HasSameItemClass(InputItemActorClass);
-			const bool bHasEmptySlots = !InEmptySlots.IsEmpty();
-			if (!bHasSameItemSlots && !bHasEmptySlots)
-			{
-				// 추가 가능한 슬롯 없음
-				return FNAItemAddResult::AddedNone(FText::FromString("Failed to add the stackable item to the inventory."));
-			}
-			
-			if (bHasSameItemSlots)
-			{
-				int32 CurrentTotalHoldCount = 0;
-				for (const FName& Slot : AddableSlots)
-				{
-					if (!InventoryContents.Contains(Slot))
-					{
-						ensure(false);
-						continue;
-					}
-					CurrentTotalHoldCount += InventoryContents[Slot]->GetQuantity();
-				}
-
-				// MaxInventoryHoldCount == 0 이면 소지 상한 없음
-				RemainingHoldCount = MaxInventoryHoldCount == 0 ? RequestedAddAmount : MaxInventoryHoldCount - CurrentTotalHoldCount;
-				if (RemainingHoldCount <= 0)
-				{
-					// 인벤토리 소지 상한 초과
-					return FNAItemAddResult::AddedNone(FText::FromString("Failed to add the stackable item to the inventory."));
-				}
-
-				AmountToDistribute =  FMath::Min(RequestedAddAmount, RemainingHoldCount);
-				
-				for (const FName& Slot : AddableSlots)
-				{
-					if (!InventoryContents.Contains(Slot))
-					{
-						ensure(false);
-						continue;
-					}
-		
-					int32 ExtraStackAmount = CalculateNumberForFullSlotStack(Slot);
-					if (ExtraStackAmount <= 0)
-					{
-						continue;
-					}
-					int32 StackToAdd = FMath::Min(ExtraStackAmount, AmountToDistribute);
-					if (StackToAdd > 0)
-					{
-						int32 NewQuantity = InputItem->GetQuantity() + StackToAdd;
-						InventoryContents[Slot]->SetQuantity(NewQuantity);
-						AmountToDistribute -= StackToAdd;
-						ActualAddAmount += StackToAdd;
-					}
-					
-					if (AmountToDistribute == 0)
-					{
-						// 새 슬롯에 아이템 추가하지 않고 add item process 종료, 모든 아이템 추가 성공
-						if (RequestedAddAmount == ActualAddAmount)
-						{
-							return FNAItemAddResult::AddedAll(ActualAddAmount, FText::Format(
-						   FText::FromString("Successfully added all of {0} to the inventory."),InputItemData->TextData.Name));
-						}
-
-						// 같은 아이템이 있던 슬롯에 새로운 아이템을 채워넣는 도중 상한 선에 걸림, 부분 추가만 성공
-						return FNAItemAddResult::AddedPartial(ActualAddAmount, FText::Format(
-							FText::FromString("Added partial amount of {0} to the inventory."),InputItemData->TextData.Name));
-					}
-				}
-
-				ensure(AmountToDistribute > 0);
-				// 같은 아이템이 있던 슬롯에 새로운 아이템을 채워넣고 난 후, 남은 추가 수량이 있음
-				if (AmountToDistribute > 0)
-				{
-					// 빈 슬롯 없음
-					if (!bHasEmptySlots)
-					{
-						if (ActualAddAmount <= 0)
-						{
-							// 하나도 추가 못함 && 추가 가능한 빈 슬롯 없음
-							return FNAItemAddResult::AddedNone(FText::FromString("Failed to add the stackable item to the inventory."));
-						}
-
-						// 부분 추가 성공 && 남은 빈 슬롯 없음
-						return FNAItemAddResult::AddedPartial(ActualAddAmount, FText::Format(
-							FText::FromString("Added partial amount of {0} to the inventory."),InputItemData->TextData.Name));
-					}
-
-					// 빈 슬롯 있고, 인벤토리 소지 상한 없음 (무한) || RequestedAddAmount가 인벤토리 소지 상한에 걸리지 않음
-					// 빈 슬롯 개수가 모자라면 부분 추가, 안 모자르면 전부 추가 성공
-					// 빈 슬롯이 있지만, RequestedAddAmount가 인벤토리 소지 상한에 걸림 - 부분 추가
-					for (const FName& Slot : InEmptySlots)
-					{
-						if (InventoryContents[Slot].IsValid())
-						{
-							UE_LOG(LogTemp, Warning, TEXT("[::] 왜 안비어있는데"));
-							continue;
-						}
-						int32 StackToAdd = FMath::Min(AmountToDistribute, MaxSlotStackSize);
-						if (StackToAdd > 0)
-						{
-							int32 NewQuantity = InputItem->GetQuantity() + StackToAdd;
-							InputItem->SetQuantity(NewQuantity);
-							const bool bSucceed = HandleAddNewItem(InputItem, Slot);
-							if (bSucceed)
-							{
-								AmountToDistribute -= StackToAdd;
-								ActualAddAmount += StackToAdd;
-							}
-						}
-						if (AmountToDistribute == 0 && RequestedAddAmount == ActualAddAmount)
-						{
-							return FNAItemAddResult::AddedAll(ActualAddAmount, FText::Format(
-							FText::FromString("Successfully added all of {0} to the inventory."),InputItemData->TextData.Name));
-						}
-					}
-
-					// 추가 해야할 수량이 남았지만, 더 이상 빈 슬롯 없음 or 인벤토리 소지 상한에 걸림
-					return FNAItemAddResult::AddedPartial(ActualAddAmount, FText::Format(
-							FText::FromString("Added partial amount of {0} to the inventory."),InputItemData->TextData.Name));
-				}
-			}
-
-			ensure(!bHasSameItemSlots && bHasEmptySlots);
-			// 아예 처음 들어온 아이템 추가 && 새 슬롯에 아이템 추가
-			for (const FName& Slot : InEmptySlots)
-			{
-				if (InventoryContents[Slot].IsValid())
-				{
-					UE_LOG(LogTemp, Warning, TEXT("[::] 왜 안비어있는데"));
-					continue;
-				}
-				int32 StackToAdd = FMath::Min(AmountToDistribute, MaxSlotStackSize);
-				if (StackToAdd > 0)
-				{
-					int32 NewQuantity = InputItem->GetQuantity() + StackToAdd;
-					InputItem->SetQuantity(NewQuantity);
-					const bool bSucceed = HandleAddNewItem(InputItem, Slot);
-					if (bSucceed)
-					{
-						AmountToDistribute -= StackToAdd;
-						ActualAddAmount += StackToAdd;
-					}
-				}
-				if (AmountToDistribute == 0 && RequestedAddAmount == ActualAddAmount)
-				{
-					// 빈 슬롯 전부 순회하기 전에 아이템 전부 추가 완료
-					return FNAItemAddResult::AddedAll(ActualAddAmount, FText::Format(
-					FText::FromString("Successfully added all of {0} to the inventory."),InputItemData->TextData.Name));
-				}
-			}
-
-			// 추가 해야할 수량이 남았지만, 더 이상 빈 슬롯 없음 
-			ensure(AmountToDistribute > 0);
-			return FNAItemAddResult::AddedPartial(ActualAddAmount, FText::Format(
-					FText::FromString("Added partial amount of {0} to the inventory."),InputItemData->TextData.Name));
-		}
+		// 원본이 완전히 인벤토리로 옮겨진 케이스 (Quantity는 0)
+		return FNAItemAddResult::AddedAll(
+			Distributed,
+			FText::Format(
+				FText::FromString(TEXT("'{0}' 아이템 {1}개를 전부 인벤토리에 추가했습니다.")),
+				ItemName,
+				Distributed
+			)
+		);
 	}
-	
-	return FNAItemAddResult::AddedNone(FText::FromString("Failed to add the stackable item to the inventory."));
+	else
+	{
+		// 일부만 옮겨진 케이스 (Quantity는 “남은” 양)
+		const int32 Remaining = OriginalQuantity - Distributed;
+		return FNAItemAddResult::AddedPartial(
+			Distributed,
+			FText::Format(
+				FText::FromString(TEXT("'{0}' 아이템 중 {1}개만 인벤토리에 추가했습니다. 남은 {2}개")),
+				ItemName,
+				Distributed,
+				Remaining
+			)
+		);
+	}
 }
 
-// int32 UNAInventoryComponent::CalculateWeightAddAmount(UNAItemData* InItem, int32 RequestedAddAmount)
-// {
-// 	const int32 WeightMaxAddAmount = FMath::FloorToInt((GetWeightCapacity() - InventoryTotalWeight) / InItem->GetItemSingleWeight());
-// 	if (WeightMaxAddAmount >= RequestedAddAmount)
-// 	{
-// 		return RequestedAddAmount;
-// 	}
-// 	return WeightMaxAddAmount;
-// }
-
-int32 UNAInventoryComponent::CalculateNumberForFullSlotStack(const FName& SlotID) const
+int32 UNAInventoryComponent::GetNumToFillSlot(const FName& SlotID) const
 {
-	int32 Result = -1;
-	if (!IsEmptySlot(SlotID))
+	if (!InventoryContents.Contains(SlotID) || IsEmptySlot(SlotID))
 	{
-		return InventoryContents[SlotID]->GetMaxInventoryHoldCount() - InventoryContents[SlotID]->GetQuantity();
+		return -1;
 	}
-	return Result;
+
+	const int32 CurrentQuantity = InventoryContents[SlotID]->GetQuantity();
+	const int32 MaxHoldCount = InventoryContents[SlotID]->GetMaxInventoryHoldCount();
+	return FMath::Max(MaxHoldCount - CurrentQuantity, 0);
 }
 
 // Called every frame
@@ -383,86 +325,130 @@ void UNAInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 
 int32 UNAInventoryComponent::TryAddItem(UNAItemData* ItemToAdd)
 {
-	if (ItemToAdd)
+	if (!ItemToAdd)
 	{
-		if (ItemToAdd->IsPickableItem())
-		{
-			TArray<FName> EmptySlots;
-			int32 RequestedAddAmount = ItemToAdd->GetQuantity();
-			FNAItemAddResult Result;
-			if (ItemToAdd->IsStackableItem())
-			{
-				GetEmptyInventorySlotIDs(EmptySlots);
-				Result = AddStackableItem_Internal(ItemToAdd, EmptySlots);
-				if (Result.OperationResult != ENAItemAddStatus::IAR_NoItemAdded)
-				{
-					SortInventoryItems();
-					return  RequestedAddAmount - Result.ActualAmountAdded;
-				}
-				return -1;
-			}
+		UE_LOG(LogTemp, Warning, TEXT("[TryAddItem] ItemToAdd가 nullptr입니다."));
+		return -1;
+	}
+	if (!ItemToAdd->IsPickableItem())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[TryAddItem] 인벤토리에 소지 불가능한 아이템입니다."));
+		return -1;
+	}
 
-			if (ItemToAdd->GetItemType() == EItemType::IT_Weapon)
-			{
-				GetEmptyWeaponSlotIDs(EmptySlots);
-			}
-			else
-			{
-				GetEmptyInventorySlotIDs(EmptySlots);
-			}
-			Result = AddNonStackableItem_Internal(ItemToAdd, EmptySlots);
-			if (Result.OperationResult != ENAItemAddStatus::IAR_NoItemAdded)
-			{
-				SortInventoryItems();
-				return RequestedAddAmount - Result.ActualAmountAdded;
-			}
-			return -1;
+	const bool bIsStackable = ItemToAdd->IsStackableItem();
+	const UClass* ItemClass = ItemToAdd->GetItemActorClass();
+
+	// 원본 요청 수량을 미리 저장
+	const int32 OriginalQuantity = ItemToAdd->GetQuantity();
+	
+	FNAItemAddResult Result;
+
+	if (bIsStackable)
+	{
+		// ─────────────────────────────────────────────────
+		// 1) Stackable인 경우: Partial 슬롯 + Empty 슬롯 수집
+		TArray<FName> PartialSlots;
+		TArray<FName> EmptySlots;
+
+		GatherPartialSlots(const_cast<UClass*>(ItemClass), PartialSlots);
+		GatherEmptySlots(const_cast<UClass*>(ItemClass), EmptySlots);
+
+		// 2) Internal 함수 호출
+		Result = AddStackableItem(ItemToAdd, PartialSlots, EmptySlots);
+	}
+	else
+	{
+		// ─────────────────────────────────────────────────
+		// 2) Non-stackable인 경우: Empty 슬롯만 수집
+		TArray<FName> EmptySlots;
+		GatherEmptySlots(const_cast<UClass*>(ItemClass), EmptySlots);
+
+		// 3) Internal 함수 호출
+		Result = AddNonStackableItem(ItemToAdd, EmptySlots);
+	}
+
+	// 반환값을 OriginalQuantity – ActualAmountAdded 형태로 계산
+	if (Result.OperationResult == ENAItemAddStatus::IAR_AddedAll ||
+		Result.OperationResult == ENAItemAddStatus::IAR_AddedPartial)
+	{
+		// 성공(전부 혹은 일부 추가)이므로 정렬 실행
+		SortInventoryItems();
+
+		const int32 Added = Result.ActualAmountAdded;
+		// “전부 추가”인 경우 Added == OriginalQuantity 이므로 (Remaining = 0) 
+		// “부분 추가”인 경우 Remaining > 0
+		return OriginalQuantity - Added;
+	}
+	else
+	{
+		// 전혀 추가되지 못했을 때
+		return -1;
+	}
+}
+
+UNAItemData* UNAInventoryComponent::TryRemoveItem(const FName& SlotID, int32 RequestedAmount)
+{
+	if (IsEmptySlot(SlotID)) { return nullptr; }
+	if (RequestedAmount <= 0) { return nullptr; }
+	UNAItemData* ItemToRemove = InventoryContents[SlotID].Get();
+	if (!ItemToRemove) { return nullptr; }
+	if (ItemToRemove->GetOwningInventory() != this) { ensure(false); return nullptr; }
+	if (ItemToRemove->GetItemMaxSlotStackSize() < RequestedAmount) { return nullptr; }
+	
+	int32 NewQuantity = ItemToRemove->GetQuantity() - RequestedAmount;
+	if (NewQuantity <= 0)
+	{
+		const bool bSucceed = HandleRemoveItem(SlotID);
+		if (bSucceed)
+		{
+			SortInventoryItems();
 		}
-		UE_LOG(LogTemp, Warning, TEXT("[UNAInventoryComponent::TryAddItem]  인벤토리에 소지 불가능한 아이템."));
+		return bSucceed ? ItemToRemove : nullptr;
 	}
 	
-	UE_LOG(LogTemp, Warning, TEXT("[UNAInventoryComponent::TryAddItem]  ItemToAdd was null."));
-	return -1;
+	ItemToRemove->SetQuantity(NewQuantity);
+	// @TODO: 인벤토리 슬롯 UI에서 수량 표시 부분 리드로우 요청
+	return ItemToRemove;
 }
 
-bool UNAInventoryComponent::HasSameItemClass(UClass* ClassToCheck, TArray<FName>* OutSlotList) const
+bool UNAInventoryComponent::HasItemOfClass(const UClass* ItemClass) const
 {
-	if (ClassToCheck == nullptr)
-	{
-		return false;
-	}
-
-	bool bFoundAny = false;
+	if (!ItemClass) { return false; }
 	for (const auto& Pair : InventoryContents)
 	{
-		if (Pair.Value.IsValid())
+		if (Pair.Value.IsValid() && Pair.Value->GetItemActorClass() == ItemClass)
 		{
-			if (ClassToCheck == Pair.Value->GetItemActorClass())
-			{
-				bFoundAny =  true;
-				if (OutSlotList)
-				{
-					OutSlotList->Add(Pair.Key);
-				}
-				else
-				{
-					return bFoundAny;
-				}
-			}
+			return true;
 		}
 	}
-	return bFoundAny;
+	return false;
 }
 
-int32 UNAInventoryComponent::GetRemainingStackCapacityInSlot(const FName& SlotID) const
+void UNAInventoryComponent::GetSlotIDsWithItemClass(const UClass* ItemClass, TArray<FName>& OutSlotIDs) const
 {
-	if (!IsEmptySlot(SlotID))
+	OutSlotIDs.Reset();
+	if (!ItemClass) { return; }
+	for (const auto& Pair : InventoryContents)
 	{
-		const int32 CurrentStackSize = InventoryContents[SlotID]->GetQuantity();
-		const int32 MaxStackSize = InventoryContents[SlotID]->GetItemMaxSlotStackSize();
-		return MaxStackSize - CurrentStackSize;
+		if (Pair.Value.IsValid() && Pair.Value->GetItemActorClass() == ItemClass)
+		{
+			OutSlotIDs.Add(Pair.Key);
+		}
 	}
-	return -1;
+}
+
+int32 UNAInventoryComponent::GetSlotRemainingStack(const FName& SlotID) const
+{
+	// 슬롯에 데이터가 없거나, nullptr이거나, IsEmptySlot일 때
+	if (!InventoryContents.Contains(SlotID) || IsEmptySlot(SlotID))
+	{
+		return -1;
+	}
+
+	const int32 CurrentStackSize = InventoryContents[SlotID]->GetQuantity();
+	const int32 MaxStackSize = InventoryContents[SlotID]->GetItemMaxSlotStackSize();
+	return FMath::Max(MaxStackSize - CurrentStackSize, 0); // 0 미만 반환 방지
 }
 
 bool UNAInventoryComponent::IsEmptySlot(const FName& SlotID) const
@@ -474,14 +460,14 @@ bool UNAInventoryComponent::IsEmptySlot(const FName& SlotID) const
 	return false;
 }
 
-void UNAInventoryComponent::GetEmptyInventorySlotIDs(TArray<FName>& OutEmptySlots) const
+void UNAInventoryComponent::GatherEmptyInventorySlots(TArray<FName>& OutEmptySlots) const
 {
 	OutEmptySlots.Empty();
 	OutEmptySlots.Reserve(MaxInventorySlots);
 
 	for (const auto& Pair : InventoryContents)
 	{
-		// 1) 값이 비어있으면서(FName→값이 nullptr) “Inven_”으로 시작하는 Key만 수집
+		// 값이 비어있으면서(FName→값이 nullptr) “Inven_”으로 시작하는 Key만 수집
 		const FName& SlotID = Pair.Key;
 		if (!Pair.Value.IsValid())
 		{
@@ -492,23 +478,15 @@ void UNAInventoryComponent::GetEmptyInventorySlotIDs(TArray<FName>& OutEmptySlot
 			}
 		}
 	}
-
-	// 2) 언더바 뒤 숫자 기준으로 오름차순 정렬
-	// OutEmptySlots.Sort(
-	// 	[](const FName& A, const FName& B)
-	// 	{
-	// 		return ExtractSlotNumber(A) < ExtractSlotNumber(B);
-	// 	}
-	// );
 }
-void UNAInventoryComponent::GetEmptyWeaponSlotIDs(TArray<FName>& OutEmptySlots) const
+void UNAInventoryComponent::GatherEmptyWeaponSlots(TArray<FName>& OutEmptySlots) const
 {
 	OutEmptySlots.Empty();
 	OutEmptySlots.Reserve(MaxWeaponSlots);
 
 	for (const auto& Pair : InventoryContents)
 	{
-		// 1) 값이 비어있으면서 “Weapon_”으로 시작하는 Key만 수집
+		// 값이 비어있으면서 “Weapon_”으로 시작하는 Key만 수집
 		const FName& SlotID = Pair.Key;
 		if (!Pair.Value.IsValid())
 		{
@@ -519,31 +497,18 @@ void UNAInventoryComponent::GetEmptyWeaponSlotIDs(TArray<FName>& OutEmptySlots) 
 			}
 		}
 	}
-
-	// 2) 언더바 뒤 숫자 기준으로 오름차순 정렬
-	// OutEmptySlots.Sort(
-	// 	[](const FName& A, const FName& B)
-	// 	{
-	// 		return ExtractSlotNumber(A) < ExtractSlotNumber(B);
-	// 	}
-	// );
 }
 
-int32 UNAInventoryComponent::GetCurrentTotalHoldCount(UClass* ClassToCheck) const
-{
-	return 0;
-}
-
-bool UNAInventoryComponent::IsSlotFull(const FName& SlotID) const
+bool UNAInventoryComponent::IsFullSlot(const FName& SlotID) const
 {
 	if (!IsEmptySlot(SlotID))
 	{
-		return CalculateNumberForFullSlotStack(SlotID) <= 0;
+		return GetNumToFillSlot(SlotID) <= 0;
 	}
 	return false;
 }
 
-bool UNAInventoryComponent::IsOutOfSlot() const
+bool UNAInventoryComponent::HasNoEmptySlot() const
 {
 	for (const auto& Pair : InventoryContents)
 	{
@@ -555,11 +520,11 @@ bool UNAInventoryComponent::IsOutOfSlot() const
 	return true;
 }
 
-bool UNAInventoryComponent::IsInventoryFull() const
+bool UNAInventoryComponent::IsAtFullCapacity() const
 {
 	for (const auto& Pair : InventoryContents)
 	{
-		if (IsEmptySlot(Pair.Key) || !IsSlotFull(Pair.Key))
+		if (IsEmptySlot(Pair.Key) || !IsFullSlot(Pair.Key))
 		{
 			return false;
 		}
@@ -567,9 +532,224 @@ bool UNAInventoryComponent::IsInventoryFull() const
 	return true;
 }
 
-FName UNAInventoryComponent::FindMatchingItem(UNAItemData* InItem) const
+void UNAInventoryComponent::GatherPartialSlots(UClass* ItemClass, TArray<FName>& OutPartialSlots) const
 {
-	if (InItem)
+	if (!ItemClass) { ensure(false); return; }
+	
+	OutPartialSlots.Empty();
+	for (const auto& Pair : InventoryContents)
+	{
+		if (Pair.Value.IsValid() && Pair.Value->GetItemActorClass() == ItemClass)
+		{
+			// 해당 슬롯의 현재 수량이 최대 슬롯 스택에 도달하지 않았으면 후보로 추가
+			const int32 CurrQty = Pair.Value->GetQuantity();
+			const int32 MaxSlotStack = Pair.Value->GetItemMaxSlotStackSize();
+			if (CurrQty < MaxSlotStack)
+			{
+				OutPartialSlots.Add(Pair.Key);
+			}
+		}
+	}
+}
+
+void UNAInventoryComponent::GatherEmptySlots(UClass* ItemClass, TArray<FName>& OutEmptySlots) const
+{
+	if (!ItemClass) { ensure(false); return; }
+	
+	OutEmptySlots.Empty();
+	// ItemClass가 Weapon이면 Weapon 슬롯만, 아니면 Inven 슬롯만
+	const bool bIsWeapon = ItemClass->IsChildOf<ANAWeapon>();
+    
+	for (const auto& Pair : InventoryContents)
+	{
+		if (!Pair.Value.IsValid())
+		{
+			const FString SlotStr = Pair.Key.ToString();
+			if (bIsWeapon ? SlotStr.StartsWith(TEXT("Weapon_")) : SlotStr.StartsWith(TEXT("Inven_")))
+			{
+				OutEmptySlots.Add(Pair.Key);
+			}
+		}
+	}
+}
+
+int32 UNAInventoryComponent::ComputeDistributableAmount(UNAItemData* InputItem, const TArray<FName>& PartialSlots, const TArray<FName>& EmptySlots) const
+{
+	if (!InputItem) { return 0; }
+	const int32 RequestedAmount = InputItem->GetQuantity();
+	const int32 MaxInvHoldCount = InputItem->GetMaxInventoryHoldCount();
+
+	// 1) Partial 슬롯에 이미 들어있는 수량
+	int32 CurrTotalHold = 0;
+	for (const FName& Slot : PartialSlots)
+	{
+		if (!InventoryContents[Slot].IsValid()) { continue; }
+		CurrTotalHold += InventoryContents[Slot]->GetQuantity();
+	}
+	const int32 RemainingHold = MaxInvHoldCount == 0 ?
+									RequestedAmount :
+									FMath::Max(0, MaxInvHoldCount - CurrTotalHold);
+	if (RemainingHold <= 0) { return 0; }
+
+	// 2) Partial 슬롯들의 여유 공간 합산
+	int32 PartialCapacity = 0;
+	for (const FName& Slot : PartialSlots)
+	{
+		if (!InventoryContents[Slot].IsValid()) { continue; }
+		PartialCapacity +=
+			InventoryContents[Slot]->GetItemMaxSlotStackSize() - InventoryContents[Slot]->GetQuantity();
+	}
+	
+	// 3) Empty 슬롯에서 만들 수 있는 신규 슬롯 여유 공간 합산
+	int32 EmptyCapacity = 0;
+	if (EmptySlots.Num() > 0)
+	{
+		const int32 MaxSlotStack = InputItem->GetItemMaxSlotStackSize();
+		EmptyCapacity = EmptySlots.Num() * MaxSlotStack;
+	}
+
+	// 4) 최종으로 담을 수 있는 총 용량
+	const int32 TotalSlotCapacity = PartialCapacity + EmptyCapacity;
+	const int32 MaxAddableBySlot = FMath::Min(TotalSlotCapacity, RemainingHold);
+
+	return FMath::Min(RequestedAmount, MaxAddableBySlot);
+}
+
+int32 UNAInventoryComponent::DistributeToSlots(UNAItemData* InputItem, int32 AmountToDistribute, const TArray<FName>& PartialSlots, const TArray<FName>& EmptySlots)
+{
+	 int32 Distributed = 0;
+
+    // 1) Partial 슬롯 우선 채우기 (기존 슬롯을 최대치까지 채우며, 원본 수량만큼 차감)
+    for (const FName& Slot : PartialSlots)
+    {
+        if (AmountToDistribute <= 0) { break; }
+        UNAItemData* SlotItem = InventoryContents[Slot].Get();
+        if (!SlotItem) { continue; }
+
+        const int32 CurrQty   = SlotItem->GetQuantity();
+        const int32 MaxSlot   = SlotItem->GetItemMaxSlotStackSize();
+        const int32 CanAdd    = MaxSlot - CurrQty;
+        if (CanAdd <= 0) { continue; }
+
+        // 이 슬롯에 채울 수 있는 양
+        const int32 ToAdd = FMath::Min(CanAdd, AmountToDistribute);
+
+        // ─── 기존 슬롯에 수량 반영 ─────────────────────────────────
+        SlotItem->SetQuantity(CurrQty + ToAdd);
+
+        // ─── 원본 아이템 수량 차감 ─────────────────────────────────
+        InputItem->SetQuantity(InputItem->GetQuantity() - ToAdd);
+
+        AmountToDistribute -= ToAdd;
+        Distributed       += ToAdd;
+    }
+
+    // 2) 남은 수량이 있으면 빈 슬롯에 채우기
+    for (const FName& Slot : EmptySlots)
+    {
+        if (AmountToDistribute <= 0) { break; }
+        if (InventoryContents[Slot].IsValid())
+        {
+            // 이미 다른 프로세스에서 채워졌거나, 슬롯에 데이터가 있는 경우 건너뜀
+            continue;
+        }
+
+        // 현재 원본에 남은 수량
+        const int32 RemainQty = InputItem->GetQuantity();
+        if (RemainQty <= 0)
+        {
+            break;
+        }
+
+        // 한 슬롯에 채울 수 있는 최대치
+        const int32 MaxSlot = InputItem->GetItemMaxSlotStackSize();
+
+        // 기본적으로 이 슬롯에 채울 양
+        int32 ToAdd = FMath::Min(MaxSlot, AmountToDistribute);
+
+        // ─── 원본 수량 전부를 이 슬롯에 넣을 수 있다면, 복제 대신 원본을 이동 ───────────────────────
+        if (ToAdd >= RemainQty)
+        {
+            // (1) 이 슬롯에 들어갈 양을 “원본 수량(RemainQty)”으로 조정
+            ToAdd = RemainQty;
+
+            // (2) 원본 데이터(InputItem)를 그대로 이 슬롯에 등록
+            HandleAddNewItem(InputItem, Slot);
+
+        	// ───── *중요* ─────  
+        	// 이제 InputItem 객체는 “인벤토리 슬롯에 들어간 데이터”가 되므로, 
+        	// InputItem->Quantity(==RemainQty) 값을 바꿀 필요가 없습니다.
+        	// (절대로 InputItem->SetQuantity(0) 하지 마세요.)
+        	
+            Distributed       += ToAdd;
+            AmountToDistribute -= ToAdd;
+
+        	// 원본을 완전히 이동했으므로, 더 이상 빈 슬롯 순회를 하지 않고 루프 종료
+            break;
+        }
+        // ─── 원본 수량 전부를 이 슬롯에 다 넣을 수 없다면, “복제본”을 만들어 슬롯에 일부 채우기 ──────────
+        else
+        {
+            // (1) 원본 데이터(InputItem)의 복제본 생성
+            UNAItemData* Duplicated = UNAItemEngineSubsystem::Get()->CreateItemDataCopy(InputItem);
+            if (!Duplicated)
+            {
+                // 복제 실패 시, 이 슬롯도 채우지 않고 루프 종료
+                break;
+            }
+
+            // (2) 복제본의 수량을 이 슬롯에 들어갈 양(ToAdd)으로 설정
+            Duplicated->SetQuantity(ToAdd);
+
+            // (3) 복제본을 슬롯에 등록
+            HandleAddNewItem(Duplicated, Slot);
+
+            // (4) 원본 수량에서ToAdd를 차감
+            InputItem->SetQuantity(RemainQty - ToAdd);
+
+            AmountToDistribute -= ToAdd;
+            Distributed       += ToAdd;
+
+            // 원본에 여전히 수량이 남아있으므로 루프는 계속
+        }
+    }
+
+    return Distributed;
+}
+
+bool UNAInventoryComponent::IsValidForNonStackable(UNAItemData* InputItem, FString& OutFailReason) const
+{
+	if (!InputItem)
+	{
+		OutFailReason = TEXT("ItemToAdd was null.");
+		return false;
+	}
+	// 1) 슬롯 1개에만 들어가는 아이템인지 확인
+	const int32 MaxSlot = InputItem->GetItemMaxSlotStackSize();
+	if (MaxSlot != 1)
+	{
+		OutFailReason = TEXT("비-스택형 아이템이 아닙니다.");
+		return false;
+	}
+	// 2) 수량이 1인지
+	if (InputItem->GetQuantity() != 1)
+	{
+		OutFailReason = TEXT("비-스택형 아이템의 수량은 1이어야 합니다.");
+		return false;
+	}
+	// 3) 최대 소지 개수 검사
+	const int32 MaxHold = InputItem->GetMaxInventoryHoldCount();
+	if (MaxHold == 1 && HasItemOfClass(InputItem->GetItemActorClass()))
+	{
+		OutFailReason = TEXT("이미 동일한 아이템을 소지중입니다.");
+		return false;
+	}
+	return true;
+}
+
+UNAItemData* UNAInventoryComponent::FindMatchingItemByClass(const UClass* ItemClass) const
+{
+	if (ItemClass)
 	{
 		for (const auto& Pair : InventoryContents)
 		{
@@ -578,30 +758,14 @@ FName UNAInventoryComponent::FindMatchingItem(UNAItemData* InItem) const
 				continue;
 			}
 
-			if (Pair.Value.Get() == InItem)
+			if (Pair.Value->GetItemActorClass() == ItemClass)
 			{
-				return Pair.Key;
+				return Pair.Value.Get();
 			}
 		}
 	}
-	return NAME_None;
+	return nullptr;
 }
-
-// UNAItemData* UNAInventoryComponent::FindNextPartialStack(UNAItemData* InItem) const
-// {
-// 	if (InItem)
-// 	{
-// 		if (const TArray<UNAItemData*>::ElementType* Result =
-// 			InventoryContents.FindByPredicate([&InItem](const UNAItemData* InventoryItem)
-// 			{
-// 				return InventoryItem->GetItemID() == InItem->GetItemID() && !InventoryItem->IsFullItemStack();
-// 			}))
-// 		{
-// 			return *Result;
-// 		}
-// 	}
-// 	return nullptr;
-// }
 
 bool UNAInventoryComponent::HandleAddNewItem(UNAItemData* NewItemToAdd, const FName& SlotID)
 {

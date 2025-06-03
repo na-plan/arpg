@@ -8,19 +8,22 @@
 UENUM(BlueprintType)
 enum class EItemType : uint8
 {
-	IT_None                UMETA(DisplayName = "None"),		// 초기화 필요
+	IT_None					UMETA(DisplayName = "None"), // 초기화 필요
 
-	IT_Tool                UMETA(DisplayName = "Tool"),
-	IT_Weapon          UMETA(DisplayName = "Weapon"),
-	IT_Ammo          UMETA(DisplayName = "Ammo"),
-	IT_Armor               UMETA(DisplayName = "Armor"),
-	IT_UpgradeItem               UMETA(DisplayName = "Upgrade Item"),
-	IT_Consumable      UMETA(DisplayName = "Consumable"),
-	IT_QuestItem           UMETA(DisplayName = "Quest Item"),
-	IT_Material                UMETA(DisplayName = "Material"),
-	IT_Currency            UMETA(DisplayName = "Currency"),
-	IT_KeyItem             UMETA(DisplayName = "Key Item"),
-	IT_Misc                UMETA(DisplayName = "Miscellaneous"),
+	IT_Weapon				UMETA(DisplayName = "Weapon"),
+	IT_Tool					UMETA(DisplayName = "Tool"),
+	IT_Armor				UMETA(DisplayName = "Armor"),
+
+	IT_Ammo					UMETA(DisplayName = "Ammo"),
+	IT_Consumable			UMETA(DisplayName = "Consumable"),
+	IT_WeaponEnhancement	UMETA(DisplayName = "Weapon Upgrade Material"),
+	IT_ArmorEnhancement		UMETA(DisplayName = "Armor Upgrade Material"),
+	IT_Material				UMETA(DisplayName = "Material"),
+	IT_QuestItem			UMETA(DisplayName = "Quest Item"),
+	IT_Currency				UMETA(DisplayName = "Currency"),
+	IT_Misc					UMETA(DisplayName = "Miscellaneous"),
+
+	IT_EnvObject			UMETA(DisplayName = "Environment Object"),
 };
 
 USTRUCT()
@@ -123,39 +126,10 @@ struct FNAIconAssetData
 	GENERATED_BODY()
 	
 	UPROPERTY(EditAnywhere, Category = "Item Icon Asset Data")
-	TObjectPtr<UTexture2D> Icon = nullptr;
-};
+	TObjectPtr<UTexture2D> ItemIcon = nullptr;
 
-USTRUCT()
-struct FNACachedTransform
-{
-	GENERATED_BODY()
-	
-// Size ////////////////////////////////////////////////////////////////
-	
-	UPROPERTY()
-	float RootSphereRadius = 0.f;
-
-	UPROPERTY()
-	FVector RootBoxExtent = FVector::ZeroVector;
-
-	// X = Radius, Y = Half Height
-	UPROPERTY()
-	FVector2D RootCapsuleSize = FVector2D::ZeroVector;
-	
-// Relative Transform ////////////////////////////////////////////////////////////////
-
-	UPROPERTY()
-	FTransform RootTransform = FTransform::Identity;
-	
-	UPROPERTY()
-	FTransform MeshTransform = FTransform::Identity;
-
-	UPROPERTY()
-	FTransform ButtonTransform = FTransform::Identity;
-	
-	UPROPERTY()
-	FTransform ButtonTextTransform = FTransform::Identity;
+	UPROPERTY(EditAnywhere, Category = "Item Icon Asset Data")
+	TObjectPtr<UTexture2D> IxButtonIcon = nullptr;
 };
 
 class ANAItemActor;
@@ -167,6 +141,9 @@ struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 
 	FNAItemBaseTableRow(UClass* InItemClass = nullptr);
 	
+	UPROPERTY(EditAnywhere, Category ="Item Base Data")
+	EItemType ItemType = EItemType::IT_None;
+
 	// meta=(BlueprintBaseOnly): 블루프린트 클래스만 노출하도록 강제하는 지정자인데, 5.6 미만에서 버그 있음(언리얼피셜)
 	// https://forums.unrealengine.com/t/uproperty-specifier-blueprintbaseonly-is-not-working-this-is-clearly-bug/2334795/6
 	// https://issues.unrealengine.com/issue/UE-210088
@@ -174,47 +151,61 @@ struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, Category = "Item Base Data", meta=(BlueprintBaseOnly, AllowAbstract="false"))
 	TSubclassOf<ANAItemActor> ItemClass = nullptr;
 
-	UPROPERTY(EditAnywhere, Category ="Item Base Data")
-	EItemType ItemType = EItemType::IT_None;
-
-	UPROPERTY(EditAnywhere, Category = "Item Base Data")
+	UPROPERTY(EditAnywhere, Category = "Item Root Shape")
 	EItemRootShapeType RootShapeType = EItemRootShapeType::IRT_Sphere;
 
+	UPROPERTY(EditAnywhere, Category = "Item Root Shape",
+		meta=(EditCondition="RootShapeType==EItemRootShapeType::IRT_Sphere", EditConditionHides,ClampMin= "0.0"))
+	float RootSphereRadius = 0.f;
+
+	UPROPERTY(EditAnywhere, Category = "Item Root Shape",
+			meta=(EditCondition="RootShapeType==EItemRootShapeType::IRT_Box", EditConditionHides, ClampMin= "0.0"))
+	FVector RootBoxExtent = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, Category = "Item Root Shape",
+			meta=(EditCondition="RootShapeType==EItemRootShapeType::IRT_Capsule", EditConditionHides, ClampMin= "0.0"))
+	FVector2D RootCapsuleSize = FVector2D::ZeroVector;
+	
 	/* ANAItemActor의 메쉬 타입*/
-	UPROPERTY(EditAnywhere, Category = "Item Base Data")
+	UPROPERTY(EditAnywhere, Category = "Item Mesh")
 	EItemMeshType MeshType = EItemMeshType::IMT_Static;
 	
-	/** Static Mesh 에셋, 2D 아이콘 텍스처 포함 */
-	UPROPERTY(EditAnywhere, Category = "Item Base Data",
+	/** Static Mesh 에셋*/
+	UPROPERTY(EditAnywhere, Category = "Item Mesh",
 		meta=(EditCondition="MeshType==EItemMeshType::IMT_Static", EditConditionHides))
 	FNAStaticMeshItemAssetData StaticMeshAssetData;
-
-	/** Skeletal  Mesh  에셋, 2D 아이콘 텍스처 포함 */
-	UPROPERTY(EditAnywhere, Category = "Item Base Data",
+	
+	/** Skeletal  Mesh  에셋 */
+	UPROPERTY(EditAnywhere, Category = "Item Mesh",
 		meta=(EditCondition="MeshType==EItemMeshType::IMT_Skeletal", EditConditionHides))
 	FNASkeletalMeshItemAssetData SkeletalMeshAssetData;
 	
-	UPROPERTY(EditAnywhere, Category ="Item Base Data")
-	FNAIconAssetData IconAssetData;
+	UPROPERTY(EditAnywhere, Category = "Item Mesh")
+	FTransform MeshTransform = FTransform::Identity;
 	
-	UPROPERTY(EditAnywhere, Category = "Item Base Data")
+	UPROPERTY(EditAnywhere, Category ="Item Icon")
+	FNAIconAssetData IconAssetData;
+
+	UPROPERTY(EditAnywhere, Category ="Item Icon")
+	FTransform IxButtonTransform = FTransform::Identity;
+
+	UPROPERTY(EditAnywhere, Category ="Item Icon")
+	FTransform IxButtonTextTransform = FTransform::Identity;
+	
+	UPROPERTY(EditAnywhere, Category = "Item Text", meta=(ShowOnlyInnerProperties))
 	FItemTextData TextData;
 
-	UPROPERTY(EditAnywhere, Category = "Item Base Data")
+	UPROPERTY(EditAnywhere, Category = "Item Numeric Statics", meta=(ShowOnlyInnerProperties))
 	FItemNumericData NumericData;
 
 protected:
 	friend class INAInteractableInterface;
 	UPROPERTY(EditAnywhere,/* Category = "Item Interactable Data", */meta=(ShowOnlyInnerProperties))
 	FNAInteractableData InteractableData;
-
-public:
-	// 서브 오브젝트 트랜스폼 캐싱
-	// 직접 편집 ㄴㄴ
-	UPROPERTY(meta=(TextExportTransient))
-	FNACachedTransform CachedTransforms;
-
+	
+#if WITH_EDITOR
 protected:
 	virtual void OnDataTableChanged(const UDataTable* InDataTable, const FName InRowName) override;
+#endif
 };
 

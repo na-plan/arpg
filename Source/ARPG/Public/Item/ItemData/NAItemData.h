@@ -3,21 +3,6 @@
 
 #include "NAItemData.generated.h"
 
-UENUM()
-enum class EItemMetaDirtyFlags : uint8
-{
-	MF_None	= (0x0),
-	
-	MF_RootShape		= (1<<0),
-	MF_Mesh				= (1<<1),
-	MF_MeshAsset		= (1<<2),
-	MF_MeshAnim			= (1<<3),
-	MF_IxButton			= (1<<4),
-	MF_IxButtonText		= (1<<5),
-	MF_Combat           = (1<<6),
-};
-ENUM_CLASS_FLAGS(EItemMetaDirtyFlags)
-
 UENUM(BlueprintType)
 enum class EItemState : uint8
 {
@@ -37,7 +22,6 @@ enum class EItemState : uint8
 	IS_PreviewOnly     UMETA(DisplayName = "PreviewOnly"),          // 월드에 있지만 상호작용할 수 없는 상태 (예: 상점 프리뷰)
 };
 
-
 /**
  * @TODO: UNAItemData의 생성 방법 정립하기: UNAItemData의 생성/파괴 생명 주기 관리는 !반드시 UNAItemGameInstanceSubsystem에 의해서만 수행되어야 함!
  * @TODO: 1) ANAItemActor의 PostRegisterAllComponents 단계에서(ANAItemActor::InitItemData_Internal), UNAItemGameInstanceSubsystem::CreateItemData에 의해 생성됨 => 즉 아이템 객체(Data + Actor) 생성 순서가 Actor → Data인 경우 [0]
@@ -55,38 +39,6 @@ public:
 
 	virtual void PostInitProperties() override;
 
-	// UFUNCTION(Category = "Item")
-	// FORCEINLINE float GetItemStackWeight() const  // 아이템 스택 무게
-	// {
-	// 	if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct<FNAItemBaseTableRow>()) {
-	// 		return Quantity * ItemMetaData->NumericData.ItemWeight;
-	// 	}
-	// 	else {
-	// 		return -1.0f;
-	// 	}
-	// }
-
-	// UFUNCTION(Category = "Item")
-	// FORCEINLINE float GetItemSingleWeight() const	// 아이템 무게
-	// {
-	// 	if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct<FNAItemBaseTableRow>()) {
-	// 		return  ItemMetaData->NumericData.ItemWeight;
-	// 	}
-	// 	else {
-	// 		return -1.0f;
-	// 	}
-	// }
-
-	// UFUNCTION(Category = "Item")
-	// FORCEINLINE bool IsFullItemStack() const  // 아이템 스택이 가득 찼는지 여부
-	// {
-	// 	if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct<FNAItemBaseTableRow>()) {
-	// 		return  Quantity == ItemMetaData->NumericData.MaxSlotStackSize;
-	// 	}
-	// 	else {
-	// 		return false;
-	// 	}
-	// }
 	UFUNCTION(BlueprintCallable, Category = "Item Data")
 	int32 GetQuantity() const { return Quantity; }
 	
@@ -119,7 +71,9 @@ public:
 	{
 		return OwningInventory.Get();
 	}
-
+	
+	FString GetItemName() const;
+	
 	UFUNCTION(BlueprintCallable, Category = "Item Data")
 	bool IsPickableItem() const;
 	UFUNCTION(BlueprintCallable, Category = "Item Data")
@@ -131,14 +85,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item Data")
 	int32 GetMaxInventoryHoldCount() const;
 
-	void SetOwningInventory(class UNAInventoryComponent* NewInventory)
-	{
-		if (NewInventory != nullptr)
-		{
-			OwningInventory = NewInventory;
-		}
-	}
-
+	void SetOwningInventory(UNAInventoryComponent* NewInventory);
 	
 private:
 	UPROPERTY(DuplicateTransient,

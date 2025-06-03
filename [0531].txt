@@ -45,3 +45,16 @@ Y 위치 +38
 [06/02]
 ◎ 월드에서 아이템 줍기 -> 인벤토리에 아이템 보관 
 
+
+[06/03]
+
+[01, IT_Consumable, SmallPostion_C, 10], [03, IT_Consumable, SmallPostion_C, 2], [07, IT_Ammo, Ammo01_C, 50], 
+[12, IT_Consumable, BigPostion_C, 8], [14, IT_Ammo, MechineGunAmmo_C, 90], [15, IT_Ammo, MechineGunAmmo_C, 100],
+[19, IT_Ammo, MechineGunAmmo_C, 80],  [20, IT_Ammo, Ammo01_C, 50],  [25, IT_Consumable, GreatPostion_C, 5]   
+
+[01, IT_Consumable, BigPostion_C, 8], [02, IT_Consumable, GreatPostion_C, 5], [03,  IT_Consumable, SmallPostion_C, 10],
+[04, IT_Consumable, SmallPostion_C, 2],  [05, IT_Ammo, Ammo01_C, 50],  [06, IT_Ammo, Ammo01_C, 50],
+[07, IT_Ammo, MechineGunAmmo_C, 100], [08, IT_Ammo, MechineGunAmmo_C, 90], [09, IT_Ammo, MechineGunAmmo_C, 80]
+
+아니 도대체 왜 Outer가 날라가 있냐고 미쳣냐고
+

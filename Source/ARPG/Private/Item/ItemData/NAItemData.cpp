@@ -55,18 +55,8 @@ void UNAItemData::SetQuantity(const int32 NewQuantity)
 	if (NewQuantity != Quantity)
 	{
 		if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct<FNAItemBaseTableRow>()) {
-			Quantity = FMath::Clamp(NewQuantity, 0, ItemMetaData->NumericData.bIsStackable ? ItemMetaData->NumericData.MaxSlotStackSize : 1);
-			if (OwningInventory.IsValid())
-			{
-				if (Quantity <= 0)
-				{
-					OwningInventory->HandleRemoveSingleItemData(this);
-				}
-			}
-			else
-			{
-				UE_LOG(LogTemp, Error, TEXT("[UNAItemData::SetQuantity]  OwningInventory was null!"));
-			}
+			Quantity = FMath::Clamp(NewQuantity, 0,
+				ItemMetaData->NumericData.bIsStackable ? ItemMetaData->NumericData.MaxSlotStackSize : 1);
 		}
 	}
 }
@@ -96,6 +86,15 @@ UClass* UNAItemData::GetItemActorClass() const
 		return ItemMetaData->ItemClass.Get();
 	}
 	return nullptr;
+}
+
+FString UNAItemData::GetItemName() const
+{
+	if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct())
+	{
+		return ItemMetaData->TextData.Name.ToString();
+	}
+	return {};
 }
 
 bool UNAItemData::IsPickableItem() const
@@ -132,4 +131,12 @@ int32 UNAItemData::GetMaxInventoryHoldCount() const
 		return ItemMetaData->NumericData.MaxInventoryHoldCount;
 	}
 	return -1;
+}
+
+void UNAItemData::SetOwningInventory(UNAInventoryComponent* NewInventory)
+{
+	if (NewInventory != nullptr)
+	{
+		OwningInventory = NewInventory;
+	}
 }
