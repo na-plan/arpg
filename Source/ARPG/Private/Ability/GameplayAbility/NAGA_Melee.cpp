@@ -43,13 +43,29 @@ void UNAGA_Melee::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 
 	if (UNAMontageCombatComponent* CombatComponent = ActorInfo->AvatarActor->GetComponentByClass<UNAMontageCombatComponent>())
 	{
-		ActorInfo->AbilitySystemComponent->PlayMontage
-		(
-			this,
-			ActivationInfo,
-			CombatComponent->GetMontage(),
-			CombatComponent->GetMontagePlayRate()
-		);
+		// grabmontage 이면 montage 바꾸도록 하기
+		if (bUseGrabMontage)
+		{
+			ActorInfo->AbilitySystemComponent->PlayMontage
+			(
+				this,
+				ActivationInfo,
+				CombatComponent->GetGrabMontage(),
+				CombatComponent->GetMontagePlayRate()
+			);
+		}
+		else
+		{
+			ActorInfo->AbilitySystemComponent->PlayMontage
+			(
+				this,
+				ActivationInfo,
+				CombatComponent->GetMontage(),
+				CombatComponent->GetMontagePlayRate()
+			);
+		}
+
+		
 
 		if ( HasAuthority( &ActivationInfo ) )
 		{

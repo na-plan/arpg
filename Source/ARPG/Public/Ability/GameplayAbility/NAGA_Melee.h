@@ -16,6 +16,11 @@ class ARPG_API UNAGA_Melee : public UGameplayAbility
 
 	UNAGA_Melee();
 
+	bool bUseGrabMontage;
+
+public:
+	void ChangeMontageGrab(bool IsUseSuplex) {bUseGrabMontage = IsUseSuplex; }
+
 protected:
 	UFUNCTION()
 	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
