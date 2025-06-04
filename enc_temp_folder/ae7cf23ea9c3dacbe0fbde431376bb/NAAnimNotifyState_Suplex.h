@@ -13,6 +13,7 @@ UCLASS()
 class ARPG_API UNAAnimNotifyState_Suplex : public UAnimNotifyState
 {
 	GENERATED_BODY()
+	
 
 	// 시작
 	virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration, const FAnimNotifyEventReference& EventReference) override;
