@@ -239,7 +239,7 @@ void UNACombatComponent::OnAttack()
 		}
 
 		// 공격이 가능하고 공격을 시도하는 중이라면
-		if (bCanAttack && bAttacking)
+		if (bCanAttack && bAttacking&& !bCanGrab)
 		{
 			// 공격을 수행하고
 			if ( const TScriptInterface<IAbilitySystemInterface> Interface = GetAttacker();
@@ -271,7 +271,40 @@ void UNACombatComponent::OnAttack()
 				// Commit Ability에서 실패할 경우에도 공격을 중단
 				SetAttack(false);
 			}
-		}	
+		}
+		//잡기 가능하면
+		else if (bAttacking && bCanGrab)
+		{
+			if (const TScriptInterface<IAbilitySystemInterface> Interface = GetAttacker();
+				Interface && Interface->GetAbilitySystemComponent()->TryActivateAbilityByClass(AttackAbility))
+			{
+				OnAttack_Implementation();
+
+				// 만약 재수행이 설정돼 있다면 Timer로 예약
+				if (bReplay)
+				{
+					const float NextTime = GetNextAttackTime();
+					GetWorld()->GetTimerManager().SetTimer
+					(
+						AttackTimerHandler,
+						this,
+						&UNACombatComponent::ReplayAttack,
+						NextTime,
+						true
+					);
+				}
+				else
+				{
+					// 아니라면 공격을 강제 중단
+					SetAttack(false);
+				}
+			}
+			else
+			{
+				// Commit Ability에서 실패할 경우에도 공격을 중단
+				SetAttack(false);
+			}
+		}
 	}
 }
 
