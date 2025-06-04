@@ -162,7 +162,7 @@ void ANACharacter::BeginPlay()
 			// 기본 공격이 정의되어있지 않음!
 			check( DefaultCombatComponent->GetMontage() && DefaultCombatComponent->GetAttackAbility() );
 			// Grap Ability 를 만들어야 하네?~
-			check( DefaultCombatComponent->GetGrabMontage() && DefaultCombatComponent->GetAttackAbility() );
+			//check( DefaultCombatComponent->GetGrabMontage() && DefaultCombatComponent->GetAttackAbility() );
 			
 			// 데미지
 			FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
