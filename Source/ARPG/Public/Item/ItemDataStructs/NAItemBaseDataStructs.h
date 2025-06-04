@@ -92,14 +92,15 @@ enum class EItemMeshType : uint8
 	IMT_Skeletal	UMETA(DisplayName = "Skeletal"),
 };
 
-// Weight Capacity: 인벤토리에 적재 가능한 최대 아이템 스택 계산에 사용됨. 아이템의 스택 = 아이템 무게 * 아이템 수량
+
+/**
+ * 무기의 경우: bIsStackable이 true면 무조건 MaxSlotStackSize == 1 && MaxInventoryHoldCount == 1
+ *			 bIsStackable이 false면 무조건 MaxSlotStackSize == -1 && MaxInventoryHoldCount == -1
+*/
 USTRUCT()
 struct FItemNumericData
 {
 	GENERATED_BODY()
-
-	//UPROPERTY(EditAnywhere, Category = "Item Numeric Data")
-	//float ItemWeight = 0.0f;	// 아이템 무게, 아이템 스택 계산에 사용
 
 	/**
 	 * 인벤토리의 슬롯 1칸에 들어갈 수 있는 최대 수량
@@ -138,7 +139,6 @@ struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 {
 	GENERATED_BODY()
 
-
 	FNAItemBaseTableRow(UClass* InItemClass = nullptr);
 	
 	UPROPERTY(EditAnywhere, Category ="Item Base Data")
@@ -154,6 +154,11 @@ struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, Category = "Item Root Shape")
 	EItemRootShapeType RootShapeType = EItemRootShapeType::IRT_Sphere;
 
+	// Scale: 인스턴스 별로 다를 수 있음
+	// Scale Factor: 기본 스케일에 곱연산할 계수
+	UPROPERTY(EditAnywhere, Category = "Item Root Shape")
+	FVector RootShapeScaleFactor = FVector::OneVector;
+	
 	UPROPERTY(EditAnywhere, Category = "Item Root Shape",
 		meta=(EditCondition="RootShapeType==EItemRootShapeType::IRT_Sphere", EditConditionHides,ClampMin= "0.0"))
 	float RootSphereRadius = 0.f;
@@ -205,6 +210,7 @@ protected:
 	
 #if WITH_EDITOR
 protected:
+	virtual void OnPostDataImport(const UDataTable* InDataTable, const FName InRowName, TArray<FString>& OutCollectedImportProblems) override;
 	virtual void OnDataTableChanged(const UDataTable* InDataTable, const FName InRowName) override;
 #endif
 };

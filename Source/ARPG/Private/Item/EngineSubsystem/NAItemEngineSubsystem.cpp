@@ -114,6 +114,8 @@ void UNAItemEngineSubsystem::VerifyItemMetaDataRowHandle(UClass* ItemClass, cons
 		if (ItemMetaDataMap[ItemClass].IsNull())
 		{
 			ensureAlwaysMsgf(false, TEXT("[VerifyItemMetaDataRowHandle] 왜 어째서 메타데이터 핸들이 null입니까 휴먼."));
+			ItemMetaDataMap[ItemClass].DataTable = InDataTable;
+			ItemMetaDataMap[ItemClass].RowName = InRowName;
 			return;
 		}
 

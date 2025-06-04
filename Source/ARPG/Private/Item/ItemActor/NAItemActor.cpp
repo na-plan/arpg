@@ -15,10 +15,7 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	ItemRootShape = CreateDefaultSubobject<USphereComponent>(TEXT("ItemRootShape(Sphere)"));
-	SetRootComponent(ItemRootShape);
-
 	ItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh(Static)"));
-	ItemMesh->SetupAttachment(ItemRootShape);
 	
 	ItemInteractionButton = CreateDefaultSubobject<UBillboardComponent>(TEXT("ItemInteractionButton"));
 	ItemInteractionButton->SetupAttachment(ItemMesh);
@@ -38,30 +35,35 @@ void ANAItemActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 
 void ANAItemActor::OnConstruction(const FTransform& Transform)
 {
-	Super::OnConstruction(Transform);
-
-	if (!UNAItemEngineSubsystem::Get() || !UNAItemEngineSubsystem::Get()->IsItemMetaDataInitialized())
+ 	Super::OnConstruction(Transform);
+ 	
+	if (HasAnyFlags(RF_ClassDefaultObject))
 	{
 		return;
 	}
-
-	if (!HasAnyFlags(RF_ClassDefaultObject) && !GetWorld()->IsPreviewWorld())
+	
+	if (!UNAItemEngineSubsystem::Get()
+		|| !UNAItemEngineSubsystem::Get()->IsItemMetaDataInitialized()
+#if WITH_EDITOR
+		|| !UNAItemEngineSubsystem::Get()->IsRegisteredItemMetaClass(GetClass()))
+#endif
 	{
-		if (ItemDataID.IsNone())
-		{
-			InitItemData();
-		}
+		return;
 	}
+	
+	if (ItemDataID.IsNone() && !GetWorld()->IsPreviewWorld())
+	{
+		InitItemData();
+	}
+
 	const FNAItemBaseTableRow* MetaData = UNAItemEngineSubsystem::Get()->GetItemMetaDataByClass(GetClass());
 	if (!MetaData) { return; }
 	
 	EItemSubobjDirtyFlags DirtyFlags = CheckDirtySubobjectFlags(MetaData);
 	FTransform CachedRootWorldTransform = GetRootComponent()->GetComponentTransform();
-	TArray<USceneComponent*> NewComponents;
-	NewComponents.Reset();
 	if (DirtyFlags != EItemSubobjDirtyFlags::MF_None)
 	{
-		EObjectFlags SubobjFlags = GetMaskedFlags(RF_PropagateToSubObjects) | RF_DefaultSubObject;
+		EObjectFlags SubobjFlags = GetMaskedFlags(RF_PropagateToSubObjects);
 		
 		TArray<UActorComponent*> OldComponents;
 		OldComponents.Reset();
@@ -76,14 +78,6 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			switch (MetaData->RootShapeType)
 			{
 			case EItemRootShapeType::IRT_Sphere:
-				if (USphereComponent* RootSphere = GetComponentByClass<USphereComponent>())
-				{
-					if (IsValid(RootSphere))
-					{
-						ItemRootShape = RootSphere;
-					}
-					break;
-				}
 				ItemRootShape = NewObject<USphereComponent>(this, TEXT("ItemRootShape(Sphere)"), SubobjFlags);
 				break;
 			case EItemRootShapeType::IRT_Box:
@@ -96,10 +90,7 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 				ensure(false);
 				break;
 			}
-			if (ensure(ItemRootShape != nullptr))
-			{
-				NewComponents.Add(ItemRootShape);
-			}
+			ensure(ItemRootShape != nullptr);
 		}
 		
 		if (EnumHasAnyFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_Mesh))
@@ -112,14 +103,6 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			switch (MetaData->MeshType)
 			{
 			case EItemMeshType::IMT_Static:
-				if (UStaticMeshComponent* StaticMeshComp = GetComponentByClass<UStaticMeshComponent>())
-				{
-					if (IsValid(StaticMeshComp))
-					{
-						ItemMesh =  StaticMeshComp;
-					}
-					break;
-				}
 				ItemMesh = NewObject<UStaticMeshComponent>(this, TEXT("ItemMesh(Static)"), SubobjFlags);
 				break;
 			case EItemMeshType::IMT_Skeletal:
@@ -130,10 +113,7 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 				break;
 			}
 
-			if (ensure(ItemMesh != nullptr))
-			{
-				NewComponents.Add(ItemMesh);
-			}
+			ensure(ItemMesh != nullptr);
 		}
 		
 		if (EnumHasAnyFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_IxButtonSprite))
@@ -154,31 +134,24 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		{
 			for (UActorComponent* OldComponent : OldComponents)
 			{
-				OldComponent->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
 				OldComponent->ClearFlags(RF_Standalone | RF_Public);
 				OldComponent->DestroyComponent();
 				
 				// Actor의 Components 배열에서도 제거
 				if (AActor* MyOwner = OldComponent->GetOwner())
 				{
-					MyOwner->RemoveOwnedComponent(OldComponent);
 					MyOwner->RemoveInstanceComponent(OldComponent);
 				}
 			}
 			OldComponents.Empty();
 		}
-			
-		if (!NewComponents.IsEmpty())
-		{
-			for (USceneComponent* NewComponent : NewComponents)
-			{
-				NewComponent->RegisterComponent();
-				AddInstanceComponent(NewComponent);
-			}
-			NewComponents.Empty();
-		}
 	}
-
+	
+	SetRootComponent(ItemRootShape);
+	ItemMesh->AttachToComponent(ItemRootShape, FAttachmentTransformRules::KeepRelativeTransform);
+	ItemInteractionButton->AttachToComponent(ItemMesh, FAttachmentTransformRules::KeepRelativeTransform);
+	ItemInteractionButtonText->AttachToComponent(ItemInteractionButton, FAttachmentTransformRules::KeepRelativeTransform);
+	
 	for (UActorComponent* OwnedComponent : GetComponents().Array())
 	{
 		if (USceneComponent* OwnedSceneComp = Cast<USceneComponent>(OwnedComponent))
@@ -188,6 +161,8 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 				|| OwnedSceneComp == ItemInteractionButton
 				|| OwnedSceneComp == ItemInteractionButtonText)
 			{
+				OwnedSceneComp->RegisterComponent();
+				AddInstanceComponent(OwnedSceneComp);
 				continue;
 			}
 
@@ -202,14 +177,12 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			}
 			AttachedChildren.Empty();
 
-			OwnedSceneComp->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
 			OwnedSceneComp->ClearFlags(RF_Standalone | RF_Public);
 			OwnedSceneComp->DestroyComponent();
 
 			// Actor의 Components 배열에서도 제거
 			if (AActor* MyOwner = OwnedSceneComp->GetOwner())
 			{
-				MyOwner->RemoveOwnedComponent(OwnedSceneComp);
 				MyOwner->RemoveInstanceComponent(OwnedSceneComp);
 			}
 		}
@@ -239,14 +212,10 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		SkeletalMeshComp->SetSkeletalMesh(MetaData->SkeletalMeshAssetData.SkeletalMesh);
 		SkeletalMeshComp->SetAnimClass(MetaData->SkeletalMeshAssetData.AnimClass);
 	}
-	
-	SetRootComponent(ItemRootShape);
-	ItemMesh->AttachToComponent(ItemRootShape, FAttachmentTransformRules::KeepRelativeTransform);
-	ItemInteractionButton->AttachToComponent(ItemMesh, FAttachmentTransformRules::KeepRelativeTransform);
-	ItemInteractionButtonText->AttachToComponent(ItemInteractionButton, FAttachmentTransformRules::KeepRelativeTransform);
 
 	// 트랜스폼 및 콜리전, 피직스 등등 설정 여기에
 	ItemRootShape->SetWorldTransform(CachedRootWorldTransform);
+	ItemRootShape->SetWorldScale3D(ItemRootShape->GetComponentScale() * MetaData->RootShapeScaleFactor);
 	ItemMesh->SetRelativeTransform(MetaData->MeshTransform);
 	ItemInteractionButton->SetRelativeTransform(MetaData->IxButtonTransform);
 	ItemInteractionButtonText->SetRelativeTransform(MetaData->IxButtonTextTransform);

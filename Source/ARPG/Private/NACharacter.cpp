@@ -100,7 +100,6 @@ ANACharacter::ANACharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
-	FollowCamera->bCameraMeshHiddenInGame =  false;
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
@@ -121,9 +120,9 @@ ANACharacter::ANACharacter()
 	InventoryComponent->SetupAttachment(InventoryWidgetBoom, USpringArmComponent::SocketName);
 	InventoryAngleBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("InventoryAngleBoom"));
 	InventoryAngleBoom->SetupAttachment(RootComponent);
-	InventoryAngleBoom-> bUsePawnControlRotation = false;
-	InventoryAngleBoom-> bInheritPitch = false;
-	InventoryAngleBoom-> bInheritYaw = false;
+	InventoryAngleBoom-> bUsePawnControlRotation = true;
+	InventoryAngleBoom-> bInheritPitch = true;
+	InventoryAngleBoom-> bInheritYaw = true;
 	InventoryAngleBoom-> bInheritRoll = false;
 	
 	LeftHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("LeftHandChildActor"));
@@ -429,7 +428,7 @@ void ANACharacter::ToggleInventoryWidget()
 {
 	if (ensure(InventoryComponent != nullptr))
 	{
-		if (InventoryComponent->IsWidgetVisible())
+		if (InventoryComponent->IsInventoryWidgetVisible())
 		{
 			if (APlayerController* PC = Cast<APlayerController>(Controller))
 			{

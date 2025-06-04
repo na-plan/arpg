@@ -1,5 +1,5 @@
 #include "Item/ItemDataStructs/NAItemBaseDataStructs.h"
-#include "Item/ItemActor/NAItemActor.h"
+#include "Item/ItemActor/NAWeapon.h"
 #include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
 
 FNAItemBaseTableRow::FNAItemBaseTableRow(UClass* InItemClass)
@@ -13,6 +13,12 @@ FNAItemBaseTableRow::FNAItemBaseTableRow(UClass* InItemClass)
 }
 
 #if WITH_EDITOR
+void FNAItemBaseTableRow::OnPostDataImport(const UDataTable* InDataTable, const FName InRowName,
+	TArray<FString>& OutCollectedImportProblems)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[FNAItemBaseTableRow::OnPostDataImport]  호출 시점 체크"));
+}
+
 void FNAItemBaseTableRow::OnDataTableChanged(const UDataTable* InDataTable, const FName InRowName)
 {
 	FNAItemBaseTableRow* ItemRowStruct = InDataTable->FindRow<FNAItemBaseTableRow>(InRowName, TEXT("On Data Table Changed"));
@@ -33,6 +39,21 @@ void FNAItemBaseTableRow::OnDataTableChanged(const UDataTable* InDataTable, cons
 				{
 					UNAItemEngineSubsystem::Get()->VerifyItemMetaDataRowHandle(ItemActorClass, InDataTable, InRowName);
 				}
+			}
+		}
+
+		if (ItemType == EItemType::IT_Weapon
+			|| ItemClass.Get()->IsChildOf<ANAWeapon>())
+		{
+			if (NumericData.bIsStackable)
+			{
+				NumericData.MaxSlotStackSize = 1;
+				NumericData.MaxInventoryHoldCount = 1;
+			}
+			else
+			{
+				NumericData.MaxSlotStackSize = -1;
+				NumericData.MaxInventoryHoldCount = -1;
 			}
 		}
 			

@@ -30,7 +30,6 @@ class ARPG_API ANAItemActor : public AActor, public INAInteractableInterface
 	friend class UNAItemEngineSubsystem;
 public:
 	ANAItemActor(const FObjectInitializer& ObjectInitializer);
-
 	virtual void OnConstruction(const FTransform& Transform) override;
 	
 #if WITH_EDITOR
@@ -60,10 +59,10 @@ private:
 	void VerifyInteractableData();
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Root Shape")
+	UPROPERTY(Instanced, VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Root Shape")
 	TObjectPtr<UShapeComponent> ItemRootShape;
 	
-	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Mesh")
+	UPROPERTY(Instanced, VisibleAnywhere, Category = "Item Actor | Mesh")
 	TObjectPtr<UMeshComponent> ItemMesh;
 
 	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Static Mesh")
@@ -72,10 +71,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Static Mesh")
 	TObjectPtr<class UGeometryCollectionCache> ItemFractureCache;
 
-	UPROPERTY(VisibleAnywhere, Category="Item Actor | Interaction Button")
+	UPROPERTY(Instanced, VisibleAnywhere, Category="Item Actor | Interaction Button")
 	TObjectPtr<UBillboardComponent> ItemInteractionButton;
 
-	UPROPERTY(VisibleAnywhere, Category="Item Actor | Interaction Button")
+	UPROPERTY(Instanced, VisibleAnywhere, Category="Item Actor | Interaction Button")
 	TObjectPtr<UTextRenderComponent> ItemInteractionButtonText;
 
 private:
