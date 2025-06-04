@@ -51,6 +51,8 @@ public:
 	// Sets default values for this component's properties
 	UNACombatComponent();
 
+	virtual void SetActive(bool bNewActive, bool bReset = false) override;
+
 	// 공격을 시작할 경우 사용하는 델레게이트 
 	UPROPERTY(BlueprintAssignable)
 	FDoStartAttack DoStartAttack;
@@ -85,6 +87,10 @@ public:
 	TSubclassOf<UGameplayAbility> GetAttackAbility() const;
 	
 protected:
+
+	UFUNCTION( Server, Reliable )
+	void Server_RequestAttackAbility();
+	
 	// Called when the game starts
 	virtual void BeginPlay() override;
 

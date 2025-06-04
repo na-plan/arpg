@@ -29,13 +29,16 @@ void UNAMontageCombatComponent::BeginPlay()
 
 bool UNAMontageCombatComponent::IsAbleToAttack()
 {
-	bool bResult = true;
+	bool bResult = Super::IsAbleToAttack();
 
 	// 캐릭터가 몽타주를 실행중이지 않을 경우
 	// todo: 캐릭터가 공격중이지 않은 경우로?
-	if (const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker())
+	if ( bResult )
 	{
-		bResult &= Interface->GetAbilitySystemComponent()->GetCurrentMontage() == nullptr;
+		if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker() )
+		{
+			bResult &= Interface->GetAbilitySystemComponent()->GetCurrentMontage() == nullptr;
+		}
 	}
 	
 	return bResult;

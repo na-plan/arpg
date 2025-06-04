@@ -1,11 +1,79 @@
 #pragma once
 
+#include "Components/SphereComponent.h"
 #include "GameFramework/Actor.h"
 #include "Interaction/NAInteractableInterface.h"
 #include "Item/ItemData/NAItemData.h"
+#include "Misc/ItemPatchHelper.h"
 #include "NAItemActor.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnItemActorInitialized, ANAItemActor*, InitializedItemActor);
+class UTextRenderComponent;
+class UNAMontageCombatComponent;
+class UBillboardComponent;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnItemActorInitialized, ANAItemActor*, InitializedItemActor );
+
+#if WITH_EDITOR
+struct FMeshUpdatePredication : FItemPatchHelper::FDefaultUpdatePredication<UMeshComponent>
+{
+	virtual void operator()( AActor* InOuter, UMeshComponent* InComponent, UMeshComponent* InOldComponent,
+		const FNAItemBaseTableRow* InRow, const EItemMetaDirtyFlags DirtyFlags ) const override;
+};
+
+struct FMeshInstanceUpdatePredication : FMeshUpdatePredication
+{
+	virtual void operator()( AActor* InOuter, UMeshComponent* InComponent, UMeshComponent* InOldComponent,
+		const FNAItemBaseTableRow* InRow, const EItemMetaDirtyFlags DirtyFlags ) const override;
+};
+
+struct FRootShapeUpdatePredication : FItemPatchHelper::FDefaultUpdatePredication<UShapeComponent>
+{
+	virtual void operator()( AActor* InOuter, UShapeComponent* InComponent, UShapeComponent* InOldComponent,
+		const FNAItemBaseTableRow* InRow, const EItemMetaDirtyFlags DirtyFlags ) const override;
+};
+
+struct FRootShapeInstanceUpdatePredication : FRootShapeUpdatePredication
+{
+	virtual void operator()( AActor* InOuter, UShapeComponent* InComponent, UShapeComponent* InOldComponent,
+		const FNAItemBaseTableRow* InRow, const EItemMetaDirtyFlags DirtyFlags ) const override;
+};
+
+struct FInteractionButtonUpdatePredication : FItemPatchHelper::FDefaultUpdatePredication<UBillboardComponent>
+{
+	virtual void operator()( AActor* InOuter, UBillboardComponent* InComponent, UBillboardComponent* InOldComponent,
+		const FNAItemBaseTableRow* InRow, const EItemMetaDirtyFlags DirtyFlags ) const override;
+};
+
+struct FInteractionButtonInstanceUpdatePredication : FInteractionButtonUpdatePredication
+{
+	virtual void operator()( AActor* InOuter, UBillboardComponent* InComponent, UBillboardComponent* InOldComponent,
+		const FNAItemBaseTableRow* InRow, const EItemMetaDirtyFlags DirtyFlags ) const override;
+};
+
+struct FInteractionButtonTextUpdatePredication : FItemPatchHelper::FDefaultUpdatePredication<UTextRenderComponent>
+{
+	virtual void operator()( AActor* InOuter, UTextRenderComponent* InComponent, UTextRenderComponent* InOldComponent,
+		const FNAItemBaseTableRow* InRow, const EItemMetaDirtyFlags DirtyFlags ) const override;
+};
+
+struct FInteractionButtonTextInstanceUpdatePredication : FInteractionButtonTextUpdatePredication
+{
+	virtual void operator()( AActor* InOuter, UTextRenderComponent* InComponent, UTextRenderComponent* InOldComponent,
+		const FNAItemBaseTableRow* InRow, const EItemMetaDirtyFlags DirtyFlags ) const override;
+};
+
+struct FRootShapeSpawnPredication : FItemPatchHelper::FDefaultSpawnPredication<UShapeComponent>
+{
+	virtual UShapeComponent* operator()( UObject* InOuter, const FName& InComponentName, const EObjectFlags InObjectFlags,
+	                                     const FNAItemBaseTableRow* InRow ) const override;
+};
+
+struct FMeshSpawnPredication : FItemPatchHelper::FDefaultSpawnPredication<UMeshComponent>
+{
+	virtual UMeshComponent* operator()( UObject* InOuter, const FName& InComponentName, const EObjectFlags InObjectFlags,
+	                                    const FNAItemBaseTableRow* InRow ) const override;
+};
+#endif
 
 UCLASS(Abstract)
 class ARPG_API ANAItemActor : public AActor, public INAInteractableInterface
@@ -13,6 +81,10 @@ class ARPG_API ANAItemActor : public AActor, public INAInteractableInterface
 	GENERATED_BODY()
 
 	friend class UNAItemEngineSubsystem;
+	friend struct FRootShapeUpdatePredication;
+	friend struct FMeshUpdatePredication;
+	friend struct FInteractionButtonUpdatePredication;
+	friend struct FInteractionButtonTextUpdatePredication;
 public:
 	ANAItemActor(const FObjectInitializer& ObjectInitializer);
 
@@ -26,12 +98,10 @@ public:
 #if WITH_EDITOR
 	// 블루프린트 에디터에서 프로퍼티 바뀔 때
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-
-private:
-	void ExecuteItemPatch(UClass* ClassToPatch, const FNAItemBaseTableRow* PatchData, EItemMetaDirtyFlags PatchFlags);
-#endif
 	
 protected:
+	virtual void ExecuteItemPatch(UClass* ClassToPatch, const FNAItemBaseTableRow* PatchData, EItemMetaDirtyFlags PatchFlags);
+#endif
 	virtual void BeginPlay() override;
 
 public:
@@ -74,15 +144,15 @@ protected:
 	TObjectPtr<UMeshComponent> ItemMesh;
 
 	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Static Mesh")
-	TObjectPtr<class UGeometryCollection> ItemFractureCollection;
+	TObjectPtr<UGeometryCollection> ItemFractureCollection;
 	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Static Mesh")
-	TObjectPtr<class UGeometryCollectionCache> ItemFractureCache;
+	TObjectPtr<UGeometryCollectionCache> ItemFractureCache;
 
 	UPROPERTY(Instanced, VisibleAnywhere, Category="Item Actor | Interaction Button")
 	TObjectPtr<UBillboardComponent> ItemInteractionButton;
 
 	UPROPERTY(Instanced, VisibleAnywhere, Category="Item Actor | Interaction Button")
-	TObjectPtr<class UTextRenderComponent> ItemInteractionButtonText;
+	TObjectPtr<UTextRenderComponent> ItemInteractionButtonText;
 
 private:
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Item Actor", meta = (AllowPrivateAccess = "true"))
@@ -164,7 +234,7 @@ private:
 		return false;
 	}
 	// 이 변수 건들면 안됨
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, DuplicateTransient)
 	uint8 bCDOSynchronizedWithMeta : 1 = false;
 
 //======================================================================================================================
@@ -172,7 +242,7 @@ private:
 //======================================================================================================================
 public:
 	virtual FNAInteractableData GetInteractableData_Implementation() const override;
-	virtual const FNAInteractableData& GetInteractableData_Internal() const override;
+	virtual bool GetInteractableData_Internal(FNAInteractableData& OutIxData) const override;
 	virtual void SetInteractableData_Implementation(const FNAInteractableData& NewInteractableData) override;
 	virtual bool CanUseRootAsTriggerShape_Implementation() const override;
 	virtual bool CanInteract_Implementation() const override;

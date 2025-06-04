@@ -25,18 +25,18 @@ void UNACombatComponent::SetAttackAbility(const TSubclassOf<UGameplayAbility>& I
 {
 	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker() )
 	{
-		if ( AttackAbility && GetNetMode() != NM_Client )
+		if ( AbilitySpecHandle.IsValid() && GetNetMode() != NM_Client )
 		{
 			Interface->GetAbilitySystemComponent()->ClearAbility( AbilitySpecHandle );
 		}
-		
-		AttackAbility = InAbility;
 
-		if ( AttackAbility && GetNetMode() != NM_Client )
+		if ( InAbility && GetNetMode() != NM_Client )
 		{
-			AbilitySpecHandle = Interface->GetAbilitySystemComponent()->GiveAbility( AttackAbility );		
+			AbilitySpecHandle = Interface->GetAbilitySystemComponent()->GiveAbility( InAbility );		
 		}
 	}
+
+	AttackAbility = InAbility;
 }
 
 void UNACombatComponent::ReplayAttack()
@@ -59,8 +59,11 @@ void UNACombatComponent::BeginPlay()
 	DoStopAttack.AddUniqueDynamic(this, &UNACombatComponent::StopAttack);
 	bCanAttack = IsAbleToAttack();
 
-	// 에디터 실행 방어 구문
-	SetAttackAbility( AttackAbility );	
+	// 클라이언트의 BeginPlay에 맞춰서 초기화
+	if ( GetAttacker()->GetController() == GetWorld()->GetFirstPlayerController() )
+	{
+		Server_RequestAttackAbility();
+	}
 }
 
 void UNACombatComponent::EndPlay( const EEndPlayReason::Type EndPlayReason )
@@ -77,10 +80,19 @@ void UNACombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME_CONDITION(UNACombatComponent, bCanAttack, COND_OwnerOnly)
 }
 
+void UNACombatComponent::SetActive( bool bNewActive, bool bReset )
+{
+	Super::SetActive( bNewActive, bReset );
+	if ( !bNewActive )
+	{
+		StopAttack();	
+	}
+}
+
 bool UNACombatComponent::IsAbleToAttack()
 {
 	// Ammo, stamina, montage duration, etc...
-	return AttackAbility != nullptr;
+	return AttackAbility != nullptr && IsActive();
 }
 
 void UNACombatComponent::SetAttack(const bool NewAttack)
@@ -172,6 +184,11 @@ void UNACombatComponent::StartAttack()
 {
 	UE_LOG(LogCombatComponent, Log, TEXT("%hs: Try attack"), __FUNCTION__);
 
+	if ( !IsActive() )
+	{
+		return;
+	}
+	
 	bCanAttack = IsAbleToAttack();
 	if (bCanAttack && !bAttacking)
 	{
@@ -266,11 +283,16 @@ TSubclassOf<UGameplayAbility> UNACombatComponent::GetAttackAbility() const
 	return AttackAbility;
 }
 
+void UNACombatComponent::Server_RequestAttackAbility_Implementation()
+{
+	SetAttackAbility( AttackAbility );
+}
+
 void UNACombatComponent::StopAttack()
 {
 	if (bAttacking)
 	{
-		SetAttack(false);
+		SetAttack( false );
 	}
 }
 

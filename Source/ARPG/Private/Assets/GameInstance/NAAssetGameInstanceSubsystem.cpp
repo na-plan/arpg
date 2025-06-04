@@ -20,14 +20,14 @@ void UNAAssetGameInstanceSubsystem::OnPreWorldInitialization(UWorld* InWorld,
 	if (InWorld && InWorld->IsGameWorld())
 	{
 		FOnActorSpawned::FDelegate Delegate;
-		Delegate.BindUObject(this, &UNAAssetGameInstanceSubsystem::OnActorSpawned);
-		OnAssetSpawnedDelegate = GetWorld()->AddOnActorSpawnedHandler(Delegate);
+		Delegate.BindUObject( this, &UNAAssetGameInstanceSubsystem::OnActorSpawned );
+		OnAssetSpawnedDelegate = InWorld->AddOnActorSpawnedHandler(Delegate);
 	}
 }
 
 void UNAAssetGameInstanceSubsystem::OnPostWorldCleanup(UWorld* World, bool /*bArg*/, bool /*bCond*/)
 {
-	if (OnAssetSpawnedDelegate.IsValid() && World->IsGameWorld())
+	if ( OnAssetSpawnedDelegate.IsValid() && World->IsGameWorld() )
 	{
 		World->RemoveOnActorSpawnedHandler(OnAssetSpawnedDelegate);
 	}

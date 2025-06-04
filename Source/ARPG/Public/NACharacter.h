@@ -10,6 +10,9 @@
 #include "Logging/LogMacros.h"
 #include "NACharacter.generated.h"
 
+class UNAReviveWidgetComponent;
+class UWidgetComponent;
+class UNAVitalCheckComponent;
 class UNAMontageCombatComponent;
 class UNAAttributeSet;
 class UGameplayEffect;
@@ -43,6 +46,12 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
 	UChildActorComponent* RightHandChildActor;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
+	UNAVitalCheckComponent* VitalCheckComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
+	UNAReviveWidgetComponent* ReviveWidget;
 	
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -63,14 +72,35 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* LeftMouseAttackAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* ReviveAction;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Asset", meta=(AllowPrivateAccess="true"))
 	FName AssetName;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UNAInteractionComponent> InteractionComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction", meta=(AllowPrivateAccess="true"))
+	/* Interaction Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* InteractionAction;
+
+	/* Inventory*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UNAInventoryComponent> InventoryComponent;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USpringArmComponent> InventoryWidgetBoom;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class USplineComponent> InventoryCamOrbitSpline;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* InventoryAction ;
+
+	/* Inventory IMC */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputMappingContext* InventoryMappingContext;
 
 	// 양손에 무기가 없을때 사용되는 전투 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Combat", meta=(AllowPrivateAccess="true"))
@@ -86,6 +116,8 @@ protected:
 
 	virtual void RetrieveAsset(const AActor* InCDO) override;
 
+	virtual void OnRep_PlayerState() override;
+
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
 
@@ -99,8 +131,19 @@ protected:
 	// 오른 클릭으로 공격을 시작할 경우
 	UFUNCTION()
 	void StopLeftMouseAttack();
+
+	// Interaction Input
+	UFUNCTION()
+	void TryInteract();
+
+	// Inventory Input
+	UFUNCTION()
+	void ToggleInventoryWidget();
 	
 protected:
+	void TryRevive();
+
+	void StopRevive();
 	// APawn interface
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
@@ -113,6 +156,9 @@ protected:
 
 	virtual void PossessedBy(AController* NewController) override;
 
+	UFUNCTION( Server, Reliable )
+	void Server_RequestReviveAbility();
+
 protected:
 	virtual UChildActorComponent* GetLeftHandChildActorComponent() const override { return LeftHandChildActor; }
 	virtual UChildActorComponent* GetRightHandChildActorComponent() const override { return RightHandChildActor; }
@@ -123,5 +169,6 @@ public:
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	FORCEINLINE virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent; }
+	FORCEINLINE UNAReviveWidgetComponent* GetReviveWidget() const { return ReviveWidget; }
 };
 

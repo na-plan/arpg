@@ -13,10 +13,13 @@
 #include "InputActionValue.h"
 #include "InputMappingContext.h"
 #include "NAPlayerState.h"
-#include "Ability/GameInstanceSubsystem/NAAbilityGameInstanceSubsystem.h"
 #include "ARPG/ARPG.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
+#include "Components/SplineComponent.h"
+#include "HP/ActorComponent/NAVitalCheckComponent.h"
+#include "HP/GameplayAbility/NAGA_Revive.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
+#include "HP/WidgetComponent/NAReviveWidgetComponent.h"
 #include "Net/UnrealNetwork.h"
 
 #include "Interaction/NAInteractionComponent.h"
@@ -104,22 +107,53 @@ ANACharacter::ANACharacter()
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	DefaultCombatComponent = CreateDefaultSubobject<UNAMontageCombatComponent>( TEXT( "DefaultCombatComponent" ) );
 	InteractionComponent = CreateDefaultSubobject<UNAInteractionComponent>(TEXT("InteractionComponent"));
+	InventoryWidgetBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("InventorySpringArm"));
+	InventoryWidgetBoom->SetupAttachment(RootComponent);
+	InventoryWidgetBoom-> bUsePawnControlRotation = false;
+	InventoryWidgetBoom-> bInheritPitch = false;
+	InventoryWidgetBoom-> bInheritYaw = false;
+	InventoryWidgetBoom-> bInheritRoll = false;
+	InventoryWidgetBoom->SetRelativeRotation(FRotator(0.0f, 190.0f, 0.0f));
+	InventoryWidgetBoom->TargetArmLength = 10.f;
+	InventoryWidgetBoom->bDoCollisionTest = false;
 	InventoryComponent = CreateDefaultSubobject<UNAInventoryComponent>(TEXT("InventoryComponent"));
-
+	InventoryComponent->SetupAttachment(InventoryWidgetBoom, USpringArmComponent::SocketName);
+	InventoryCamOrbitSpline = CreateDefaultSubobject<USplineComponent>(TEXT("InventoryCamOrbitSpline"));
+	
 	LeftHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("LeftHandChildActor"));
 	RightHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("RightHandChildActor"));
-	LeftHandChildActor->SetupAttachment(GetMesh(), LeftHandSocketName);
-	RightHandChildActor->SetupAttachment(GetMesh(), RightHandSocketName);
+
+	VitalCheckComponent = CreateDefaultSubobject<UNAVitalCheckComponent>(TEXT("VitalCheckComponent"));
+	ReviveWidget = CreateDefaultSubobject<UNAReviveWidgetComponent>( TEXT("ReviveWidgetComponent") );
+
+	if ( GetMesh()->GetSkeletalMeshAsset() )
+	{
+		LeftHandChildActor->SetupAttachment(GetMesh(), LeftHandSocketName);
+		RightHandChildActor->SetupAttachment(GetMesh(), RightHandSocketName);
+		ReviveWidget->SetupAttachment( GetMesh(), TEXT("ReviveWidgetSocket") );
+	}
 
 	GetMesh()->SetIsReplicated( true );
 	bReplicates = true;
 	ACharacter::SetReplicateMovement( true );
+
+	AbilitySystemComponent->SetNetAddressable();
+	DefaultCombatComponent->SetNetAddressable();
 }
 
 void ANACharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
+
+	// 클라이언트의 BeginPlay에 맞춰 직접 RPC로 요청
+	// 서버에서 직접 수행할 경우 클라이언트에서의 순서:
+	// - Character -> BeginPlay -> GiveAbility -> PlayerState -> AbilityComponent 초기화
+	// 초기화가 되지 않은 시점에서의 GiveAbility의 Replication을 받은 Client은 제대로된 값을 받지 못함
+	if ( GetController() == GetWorld()->GetFirstPlayerController() )
+	{
+		Server_RequestReviveAbility();
+	}
 	
 	// == 테스트 코드 ==
 	{
@@ -154,7 +188,7 @@ void ANACharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
-	if (HasAuthority())
+	if ( HasAuthority() )
 	{
 		if (AbilitySystemComponent)
 		{
@@ -176,6 +210,13 @@ void ANACharacter::PossessedBy(AController* NewController)
 	}
 }
 
+void ANACharacter::Server_RequestReviveAbility_Implementation()
+{
+	// 부활 기능 추가
+	const FGameplayAbilitySpec SpecHandle( UNAGA_Revive::StaticClass(), 1.f, static_cast<int32>( EAbilityInputID::Revive ) );
+	AbilitySystemComponent->GiveAbility( SpecHandle );
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Input
 
@@ -187,6 +228,7 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
+			Subsystem->AddMappingContext(InventoryMappingContext, 1);
 		}
 	}
 	
@@ -205,6 +247,13 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 		EnhancedInputComponent->BindAction(LeftMouseAttackAction, ETriggerEvent::Started, this, &ANACharacter::StartLeftMouseAttack);
 		EnhancedInputComponent->BindAction(LeftMouseAttackAction, ETriggerEvent::Completed, this, &ANACharacter::StopLeftMouseAttack);
+		
+		EnhancedInputComponent->BindAction( ReviveAction, ETriggerEvent::Started, this, &ANACharacter::TryRevive );
+		EnhancedInputComponent->BindAction( ReviveAction, ETriggerEvent::Completed, this, &ANACharacter::StopRevive );
+		// Interact
+		EnhancedInputComponent->BindAction(InteractionAction, ETriggerEvent::Started, this, &ANACharacter::TryInteract);
+		// Inventory
+		EnhancedInputComponent->BindAction(InventoryAction, ETriggerEvent::Started, this, &ANACharacter::ToggleInventoryWidget);
 	}
 	else
 	{
@@ -216,48 +265,81 @@ void ANACharacter::RetrieveAsset(const AActor* InCDO)
 {
 	if (const ANACharacter* DefaultAsset = Cast<ANACharacter>(InCDO))
 	{
-		const FTransform Transform = DefaultAsset->GetMesh()->GetRelativeTransform();
-		
-		GetMesh()->SetRelativeTransform(Transform);
-		GetMesh()->SetSkeletalMeshAsset(DefaultAsset->GetMesh()->GetSkeletalMeshAsset());
-		GetMesh()->SetAnimInstanceClass(DefaultAsset->GetMesh()->GetAnimClass());
-
-		// 리플리케이션을 위한 Mesh Offset
-		CacheInitialMeshOffset(Transform.GetLocation(), Transform.Rotator() );
-
-		// 다시 지정된 매시 기준으로 Child actor를 재부착
-		LeftHandChildActor->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, LeftHandSocketName);
-		RightHandChildActor->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, RightHandSocketName);
-
-		if (HasAuthority())
+		// 블루프린트의 컴포넌트 속성 복사
+		for ( TFieldIterator<FObjectProperty> It(GetClass()); It; ++It  )
 		{
-			if (const UNAAbilityGameInstanceSubsystem* AbilityGameInstanceSubsystem = GetGameInstance()->GetSubsystem<UNAAbilityGameInstanceSubsystem>())
+			if ( It->PropertyClass->IsChildOf( UActorComponent::StaticClass() ) &&
+				 !It->PropertyClass->IsChildOf( UInputComponent::StaticClass() ) )
 			{
-				if (const UDataTable* DataTable = AbilityGameInstanceSubsystem->GetAttributeDataTable(GetAssetName()); DataTable && AbilitySystemComponent)
+				UActorComponent* ThisComponent = Cast<UActorComponent>( It->GetObjectPropertyValue_InContainer( this ) );
+				UActorComponent* OriginComponent = Cast<UActorComponent>( It->GetObjectPropertyValue_InContainer( DefaultAsset ) );
+
+				if ( !ThisComponent || !OriginComponent )
 				{
-					for (const FAttributeDefaults& Attribute : DefaultAsset->GetAbilitySystemComponent()->DefaultStartingData)
+					continue;
+				}
+				
+				// 프로퍼티 복사 후 컴포넌트 재등록하면서 갱신
+				ThisComponent->UnregisterComponent();
+				if ( IsValid( GEngine ) )
+				{
+					GEngine->CopyPropertiesForUnrelatedObjects( OriginComponent, ThisComponent );	
+				}
+
+				// Scene Component이면...
+				if ( USceneComponent* OriginSceneComponent = Cast<USceneComponent>( OriginComponent ) )
+				{
+					// 부모로 부착된 컴포넌트가 있는지 확인하고...
+					if ( USceneComponent* OriginParentComponent = OriginSceneComponent->GetAttachParent() )
 					{
-						if (!AbilitySystemComponent->GetAttributeSet(Attribute.Attributes))
+						bool bAttached = false;
+						// 똑같은 컴포넌트를 프로퍼티로 찾아서...
+						for ( TFieldIterator<FObjectProperty> ParentIt( GetClass() ); ParentIt; ++ParentIt )
 						{
-							AbilitySystemComponent->InitStats(Attribute.Attributes, DataTable);	
+							if ( ParentIt->PropertyClass->IsChildOf( USceneComponent::StaticClass() ) )
+							{
+								USceneComponent* ComponentPtrFromOrigin = Cast<USceneComponent>( ParentIt->GetObjectPropertyValue_InContainer( DefaultAsset ) );
+
+								// 이 객체의 프로퍼티에 있는 컴포넌트에 똑같이 적용
+								if ( ComponentPtrFromOrigin == OriginParentComponent )
+								{
+									USceneComponent* ThisParentComponent = Cast<USceneComponent>( ParentIt->GetObjectPropertyValue_InContainer( this ) );
+									USceneComponent* ThisSceneComponent = Cast<USceneComponent>( ThisComponent );
+									ThisSceneComponent->AttachToComponent( ThisParentComponent, FAttachmentTransformRules::KeepRelativeTransform, OriginSceneComponent->GetAttachSocketName() );
+									bAttached = true;
+									break;
+								}
+							}
 						}
+
+						// 모종의 이유로 부착에 실패
+						check( bAttached );
 					}
 				}
-				else
-				{
-					ensureMsgf(DataTable, TEXT("Designated table is not found"));
-				}
+				
+				ThisComponent->RegisterComponent();
 			}
-			else
-			{
-				ensureMsgf(AbilityGameInstanceSubsystem, TEXT("Ability game instance subsystem is not initialized"));
-			}
-		
 		}
 
 		FObjectPropertyUtility::CopyClassPropertyIfTypeEquals<ANACharacter, UInputMappingContext, UInputAction>( this, DefaultAsset );
-		FObjectPropertyUtility::CopyClassPropertyIfTypeEquals<UNAMontageCombatComponent, UAnimMontage, TSubclassOf<UGameplayAbility>>( DefaultCombatComponent, DefaultAsset->GetComponentByClass<UNAMontageCombatComponent>() );
+
+		const FTransform Transform = DefaultAsset->GetMesh()->GetRelativeTransform();
+		
+		GetMesh()->SetRelativeTransform(Transform);
+		// 리플리케이션을 위한 Mesh Offset
+		CacheInitialMeshOffset( Transform.GetLocation(), Transform.Rotator() );
 	}
+}
+
+void ANACharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+
+	GetAbilitySystemComponent()->InitAbilityActorInfo
+	(
+		GetPlayerState<ANAPlayerState>(),
+		this
+	);
 }
 
 void ANACharacter::Move(const FInputActionValue& Value)
@@ -315,6 +397,47 @@ void ANACharacter::StopLeftMouseAttack()
 		{
 			DefaultCombatComponent->StopAttack();	
 		}
+	}
+}
+
+void ANACharacter::TryInteract()
+{
+	if (ensure(InteractionComponent != nullptr))
+	{
+		InteractionComponent->BeginInteraction();
+	}
+}
+
+void ANACharacter::ToggleInventoryWidget()
+{
+	if (ensure(InventoryComponent != nullptr))
+	{
+		if (InventoryComponent->IsWidgetVisible())
+		{
+			InventoryComponent->CollapseInventoryWidget();
+		}
+		else
+		{
+			InventoryComponent->ReleaseInventoryWidget();
+		}
+	}
+}
+
+void ANACharacter::TryRevive()
+{
+	// todo: GAS의 Input 감지를 이용할 수 있음
+	if ( AbilitySystemComponent )
+	{
+		AbilitySystemComponent->AbilityLocalInputPressed( static_cast<int32>( EAbilityInputID::Revive ) );
+	}
+}
+
+void ANACharacter::StopRevive()
+{
+	// todo: GAS의 Input 감지를 이용할 수 있음
+	if ( AbilitySystemComponent )
+	{
+		AbilitySystemComponent->AbilityLocalInputReleased( static_cast<int32>( EAbilityInputID::Revive ) );
 	}
 }
 

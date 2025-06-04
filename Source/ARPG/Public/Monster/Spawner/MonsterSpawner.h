@@ -30,8 +30,13 @@ protected:
 	virtual void PostDuplicate(EDuplicateMode::Type DuplicateMode) override;
 	virtual void PostLoad() override;
 	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;
+#endif
+
+#if WITH_EDITORONLY_DATA
+	UPROPERTY()
 	AActor* PreviewActor;
 #endif
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Class", meta = (AllowPrivateAccess = "true"))
 	FName AssetName;
 

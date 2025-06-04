@@ -62,7 +62,7 @@ AMonsterBase::AMonsterBase()
 	AIPerceptionComponent->ConfigureSense(*AISenseConfig_Sight);
 	
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
-	DefaultCombatComponent = CreateDefaultSubobject<UNAMontageCombatComponent>(TEXT("DefaultCombatComponent"));
+	//DefaultCombatComponent = CreateDefaultSubobject<UNAMontageCombatComponent>(TEXT("DefaultCombatComponent"));
 
 	AutoPossessAI = EAutoPossessAI::Spawned;
 }

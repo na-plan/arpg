@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "{4692BE94-4634-EB72-0373-AA9B7D903E25}",
+	"EngineAssociation": "{ADB1F274-49B2-24DA-BFA7-72BF666E870E}",
 	"Category": "",
 	"Description": "",
 	"Modules": [
@@ -25,6 +25,10 @@
 		},
 		{
 			"Name": "GameplayAbilities",
+			"Enabled": true
+		},
+		{
+			"Name": "USDImporter",
 			"Enabled": true
 		}
 	]
