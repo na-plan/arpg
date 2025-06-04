@@ -175,20 +175,16 @@ void UNAAnimNotifyState_Suplex::NotifyTick(USkeletalMeshComponent* MeshComp, UAn
 							FGameplayAbilitySpec* PlayerGA_Melee = PlayerASC->FindAbilitySpecFromClass(UNAGA_Melee::StaticClass());
 
 							//그러면 여기에서 gameability를 재생시켜버릴까?
-							//PlayerASC->PlayMontage(this, PlayerASC->AbilityActorInfo, SuplexMontage, SuplexMontage->GetPlayLength());							
 							if (PlayerASC->GetAvatarActor()->HasAuthority())
 							{
 								FGameplayAbilitySpec* AbilitySpec = PlayerASC->FindAbilitySpecFromClass(UNAGA_Melee::StaticClass());
 								TArray<FGameplayAbilitySpec*> ActiveAbilities;
 
-								//PlayerASC->PlayMontage(this, PlayerASC->AbilityActorInfo, SuplexMontage, SuplexMontage->GetPlayLength());
-								//PlayerASC->GetActivatableAbilities(ActiveAbilities);
-								//PlayerASC->GetAbilityInstances()
+								//Gameability 만들어서 재생시켜야됌
+								PlayerAnimInstance->Montage_Play(SuplexMontage);
+								
 							}
 							
-
-
-
 							AnimInstance->Montage_Stop(0.2f);
 							AnimInstance->Montage_Play(SuplexedMontage);
 
