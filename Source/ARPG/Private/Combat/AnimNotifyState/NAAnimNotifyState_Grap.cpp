@@ -21,6 +21,8 @@ void UNAAnimNotifyState_Grap::NotifyBegin(USkeletalMeshComponent* MeshComp, UAni
 	// 존재할 경우 플레이어도 잡기 저항(잡기 도중) 모션이 나가도록 하고
 	// 이후 일정 스택 이상 공격 성공시 또는 다른 플레이어가 근접공격 성공시 떨어져 나가도록 하기
 
+	// state는 grabbing 으로 하고 주변 플레이어 위치를 받고 
+
 
 
 	
@@ -87,33 +89,25 @@ void UNAAnimNotifyState_Grap::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimS
 		if (UAbilitySystemComponent* OwnerASC = MeshComp->GetOwner()->FindComponentByClass<UAbilitySystemComponent>())
 		{
 			UAnimInstance* AnimInstance = OwnerASC->AbilityActorInfo->GetAnimInstance();
-			//패링 성공시 데미지를 입지 않고 stun상태가 됩니다
-			//if (SuccessGrap)
-			//{
-			//	AnimInstance->Montage_Stop(0.2f);
-			//	AnimInstance->Montage_Play(StunMontage);
-			//}
-			//패링 실패시 대상에게 데미지를 주도록 합시다
-			//AppliedActors 에 set되어있는 액터중 NACharacter만 가지고 와서 데미지 ㄱㄱ
-		//	else
-		//	{
-		//		for (AActor* CheckActor : AppliedActors)
-		//		{
-		//			if (ANACharacter* Player = Cast<ANACharacter>(CheckActor))
-		//			{
-		//				const TScriptInterface<IAbilitySystemInterface>& SourceInterface = MeshComp->GetOwner();
 
-		//				UAbilitySystemComponent* PlayerASC = Player->GetAbilitySystemComponent();
-		//				SourceInterface->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget
-		//				(
-		//					*SpecHandle.Data.Get(),
-		//					PlayerASC
-		//				);
+			//grap 성공시 
+			if (SuccessGrab)
+			{
+				AnimInstance->Montage_Stop(0.2f);
+				AnimInstance->Montage_Play(Grabing);
 
-		//			}
-		//		}
-
-		//	}
+				// 지속딜 attribute 에 Grap 넣고 지속딜 넣어야 할듯함
+				for (AActor* CheckActor : AppliedActors)
+				{
+					if (ANACharacter* Player = Cast<ANACharacter>(CheckActor))
+					{
+						UAbilitySystemComponent* PlayerASC = Player->GetAbilitySystemComponent();
+						UAnimInstance* PlayerAnimInstance = PlayerASC->AbilityActorInfo->GetAnimInstance();
+						PlayerAnimInstance->Montage_Stop(0.2f);
+						PlayerAnimInstance->Montage_Play(GrabedMontage);
+					}
+				}
+			}
 
 		}
 
@@ -176,6 +170,7 @@ void UNAAnimNotifyState_Grap::NotifyTick(USkeletalMeshComponent* MeshComp, UAnim
 					check(false);
 					return;
 				}
+
 				//AppliedActors 에 새로운 대상이 추가되면 검사 목록에 추가
 				for (const FOverlapResult& OverlapResult : OverlapResults)
 				{
@@ -201,25 +196,14 @@ void UNAAnimNotifyState_Grap::NotifyTick(USkeletalMeshComponent* MeshComp, UAnim
 						UNAMontageCombatComponent* PlayerCombatComponent = Player->FindComponentByClass<UNAMontageCombatComponent>();
 						float GrapAngle = FVector::DotProduct(Player->GetActorForwardVector(), MeshComp->GetOwner()->GetActorForwardVector());
 
-						//	상대 공격에 맞지 않아도 공격한 상태면 패링이 되는 문제가 있음 -> 이건 어떻게 해야할까?...
-						//	생대 mesh와 owner mesh의 각도를 구해서 가져온뒤에 일정 각도 이하로 설정 ㄱ
-						
-
 						// 플레이어가 공격중이 아닐경우 잡기 성공	parry도 같이넣어서 공격중이면 패링 ㄱ
-						if (!PlayerCombatComponent->IsAttacking()) { SuccessGrap = true; }
-						else { SuccessGrap = false; }
+						if (!PlayerCombatComponent->IsAttacking()) { SuccessGrab = true; }
+						else { SuccessGrab = false; }
 
 					}
-
 				}
-
-
 			}
-
 			OverlapElapsed = 0.f;
 		}
-
 	}
-
-
 }

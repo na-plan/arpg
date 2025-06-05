@@ -177,6 +177,8 @@ void ANACharacter::BeginPlay()
 		{
 			// 기본 공격이 정의되어있지 않음!
 			check( DefaultCombatComponent->GetMontage() && DefaultCombatComponent->GetAttackAbility() );
+			// Grap Ability 를 만들어야 하네?~
+			check( DefaultCombatComponent->GetGrabMontage() && DefaultCombatComponent->GetAttackAbility() );
 			
 			// 데미지
 			FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
@@ -270,6 +272,10 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(InteractionAction, ETriggerEvent::Started, this, &ANACharacter::TryInteract);
 		// Inventory
 		EnhancedInputComponent->BindAction(InventoryAction, ETriggerEvent::Started, this, &ANACharacter::ToggleInventoryWidget);
+
+		// Grab			TryInteract에서 cast 된 대상이 monster일 경우 활성화 시키면 될거 같음
+		EnhancedInputComponent->BindAction(GrabAction, ETriggerEvent::Started, this, &ANACharacter::TryInteract);
+
 	}
 	else
 	{
