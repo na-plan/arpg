@@ -183,7 +183,7 @@ void UNAAnimNotifyState_Suplex::NotifyTick(USkeletalMeshComponent* MeshComp, UAn
 
 								FGameplayAbilitySpec* AbilitySpec = PlayerASC->FindAbilitySpecFromClass(UNAGA_Melee::StaticClass());
 								UNAGA_Melee* NAGA_Melee = Cast<UNAGA_Melee>(AbilitySpec->Ability);								
-								PlayerAnimInstance->Montage_Stop(0.2f);
+								//PlayerAnimInstance->Montage_Stop(0.2f);
 								PlayerASC->PlayMontage(NAGA_Melee, AbilitySpec->ActivationInfo, SuplexMontage, 1);								
 							}
 							
