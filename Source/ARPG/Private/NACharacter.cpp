@@ -138,6 +138,15 @@ ANACharacter::ANACharacter()
 	DefaultCombatComponent->SetNetAddressable();
 	LeftHandChildActor->SetNetAddressable();
 	RightHandChildActor->SetNetAddressable();
+
+	LeftHandChildActor->SetIsReplicated( true );
+	RightHandChildActor->SetIsReplicated( true );
+
+	if ( HasAuthority() )
+	{
+		LeftHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
+		RightHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
+	}
 }
 
 void ANACharacter::ApplyAttachments() const
@@ -425,6 +434,16 @@ void ANACharacter::OnConstruction( const FTransform& Transform )
 		ApplyAttachments();	
 	}
 #endif
+}
+
+void ANACharacter::SetChildActorOwnership( AActor* Actor )
+{
+	Actor->SetOwner( this );
+
+	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = Actor )
+	{
+		Interface->GetAbilitySystemComponent()->InitAbilityActorInfo( this, Actor );
+	}
 }
 
 void ANACharacter::Move(const FInputActionValue& Value)

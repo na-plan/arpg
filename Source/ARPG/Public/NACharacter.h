@@ -121,6 +121,8 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 protected:
+	void SetChildActorOwnership( AActor* Actor );
+	
 	virtual void SetAssetNameDerivedImplementation(const FName& InAssetName) override { AssetName = InAssetName; }
 
 	virtual FName GetAssetName() const override { return AssetName; }
