@@ -23,9 +23,9 @@ class ARPG_API UNAAnimNotifyState_Suplex : public UAnimNotifyState
 
 	bool SuccessSuplex = false;
 public:
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlap", meta = (AllowPrivateAccess = "true"))
-	//float OverlapInterval = 0.01f;
-	//float OverlapElapsed;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlap", meta = (AllowPrivateAccess = "true"))
+	float ClearInterval = 0.3f;
+	float OverlapElapsed;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlap", meta = (AllowPrivateAccess = "true"))
 	FName SocketName;
