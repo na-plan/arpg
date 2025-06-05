@@ -42,7 +42,6 @@ AMonsterBase::AMonsterBase()
 	if someone Use UFloatingPawnMovement Delete this Comment And Used it plz or someone do not need this delete all this codes*/
 	MovementComponent = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("MovementComponent"));
 	check(MovementComponent);
-
 	/*Use this Afeter Create StateComponent*/
 	//StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
 	//check(StatusComponent);
@@ -81,6 +80,10 @@ void AMonsterBase::PossessedBy(AController* NewController)
 		{
 			// 플레이어 스테이트 없이 몬스터가 처리
 			AbilitySystemComponent->InitAbilityActorInfo(this, this);
+
+			MovementComponent->SetPlaneConstraintEnabled(true);
+			MovementComponent->SetPlaneConstraintNormal(FVector(0, 0, 1));
+			MovementComponent->SetPlaneConstraintOrigin(GetOwner()->GetActorLocation());
 		}
 
 		SetOwner(NewController);
