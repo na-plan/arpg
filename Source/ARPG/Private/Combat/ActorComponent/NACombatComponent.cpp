@@ -23,7 +23,7 @@ UNACombatComponent::UNACombatComponent()
 
 void UNACombatComponent::SetAttackAbility(const TSubclassOf<UGameplayAbility>& InAbility)
 {
-	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker() )
+	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner() )
 	{
 		if ( AbilitySpecHandle.IsValid() && GetNetMode() != NM_Client )
 		{
@@ -221,7 +221,7 @@ APawn* UNACombatComponent::GetAttacker() const
 {
 	if ( bConsiderChildActor )
 	{
-		Cast<APawn>( GetOwner()->GetParentActor() );
+		return Cast<APawn>( GetOwner()->GetAttachParentActor() );
 	}
 	
 	return Cast<APawn>( GetOwner() );
@@ -245,7 +245,7 @@ void UNACombatComponent::OnAttack()
 		if (bCanAttack && bAttacking&& !bCanGrab)
 		{
 			// 공격을 수행하고
-			if ( const TScriptInterface<IAbilitySystemInterface> Interface = GetAttacker();
+			if ( const TScriptInterface<IAbilitySystemInterface> Interface = GetOwner();
 				 Interface && Interface->GetAbilitySystemComponent()->TryActivateAbilityByClass( AttackAbility ) )
 			{
 				OnAttack_Implementation();
@@ -278,7 +278,7 @@ void UNACombatComponent::OnAttack()
 		//잡기 가능하면
 		else if (bAttacking && bCanGrab)
 		{
-			if (const TScriptInterface<IAbilitySystemInterface> Interface = GetAttacker();
+			if (const TScriptInterface<IAbilitySystemInterface> Interface = GetOwner();
 				Interface && Interface->GetAbilitySystemComponent()->TryActivateAbilityByClass(AttackAbility))
 			{
 				OnAttack_Implementation();
