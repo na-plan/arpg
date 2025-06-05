@@ -33,11 +33,6 @@ public:
 		InteractingCharacter(nullptr)
 	{
 	}
-	
-	bool IsModifiedFromBaseline() const
-	{
-		return bModifiedFromBaseline ;
-	}
 
 	UPROPERTY(EditInstanceOnly, Category = "Item Interactable Data")
 	ENAInteractableType InteractableType;
@@ -53,9 +48,4 @@ public:
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Item Interactable Data")
 	TWeakObjectPtr<class ANACharacter> InteractingCharacter;
-
-private:
-	friend class INAInteractableInterface;
-	
-	uint8 bModifiedFromBaseline : 1 = false;
 };
