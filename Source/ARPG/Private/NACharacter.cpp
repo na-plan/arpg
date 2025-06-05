@@ -15,7 +15,6 @@
 #include "NAPlayerState.h"
 #include "ARPG/ARPG.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
-#include "Components/SplineComponent.h"
 #include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "HP/GameplayAbility/NAGA_Revive.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
@@ -24,6 +23,7 @@
 
 #include "Interaction/NAInteractionComponent.h"
 #include "Inventory/NAInventoryComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
@@ -118,7 +118,12 @@ ANACharacter::ANACharacter()
 	InventoryWidgetBoom->bDoCollisionTest = false;
 	InventoryComponent = CreateDefaultSubobject<UNAInventoryComponent>(TEXT("InventoryComponent"));
 	InventoryComponent->SetupAttachment(InventoryWidgetBoom, USpringArmComponent::SocketName);
-	InventoryCamOrbitSpline = CreateDefaultSubobject<USplineComponent>(TEXT("InventoryCamOrbitSpline"));
+	InventoryAngleBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("InventoryAngleBoom"));
+	InventoryAngleBoom->SetupAttachment(RootComponent);
+	InventoryAngleBoom-> bUsePawnControlRotation = true;
+	InventoryAngleBoom-> bInheritPitch = true;
+	InventoryAngleBoom-> bInheritYaw = true;
+	InventoryAngleBoom-> bInheritRoll = false;
 	
 	LeftHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("LeftHandChildActor"));
 	RightHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("RightHandChildActor"));
@@ -136,6 +141,17 @@ ANACharacter::ANACharacter()
 	GetMesh()->SetIsReplicated( true );
 	bReplicates = true;
 	ACharacter::SetReplicateMovement( true );
+}
+
+void ANACharacter::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+}
+
+void ANACharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
 
 	AbilitySystemComponent->SetNetAddressable();
 	DefaultCombatComponent->SetNetAddressable();
@@ -412,13 +428,42 @@ void ANACharacter::ToggleInventoryWidget()
 {
 	if (ensure(InventoryComponent != nullptr))
 	{
-		if (InventoryComponent->IsWidgetVisible())
+		if (InventoryComponent->IsInventoryWidgetVisible())
 		{
-			InventoryComponent->CollapseInventoryWidget();
+			if (APlayerController* PC = Cast<APlayerController>(Controller))
+			{
+				PC->SetIgnoreLookInput(false);
+				ChangeCameraAngle(CameraBoom, 2.f);
+				InventoryComponent->CollapseInventoryWidget();
+			}
 		}
 		else
 		{
-			InventoryComponent->ReleaseInventoryWidget();
+			if (APlayerController* PC = Cast<APlayerController>(Controller))
+			{
+				PC->SetIgnoreLookInput(true);
+				ChangeCameraAngle(InventoryAngleBoom, 2.f);
+				InventoryComponent->ReleaseInventoryWidget();
+			}
+		}
+	}
+}
+
+void ANACharacter::ChangeCameraAngle(USpringArmComponent* NewBoom, float OverTime)
+{
+	if (NewBoom)
+	{
+		if (APlayerController* PC = Cast<APlayerController>(Controller))
+		{
+			FollowCamera->AttachToComponent(NewBoom, FAttachmentTransformRules::KeepRelativeTransform, USpringArmComponent::SocketName);
+			FVector SpringArmSocketLocation = FVector::ZeroVector;
+												//NewBoom->GetSocketLocation(USpringArmComponent::SocketName);
+			FRotator SpringArmSocketRotation = FRotator::ZeroRotator;
+												//NewBoom->GetSocketRotation(USpringArmComponent::SocketName);
+		
+			FLatentActionInfo LatentInfo;
+			UKismetSystemLibrary::MoveComponentTo(FollowCamera, SpringArmSocketLocation, SpringArmSocketRotation, true, true, OverTime, true, EMoveComponentAction::Move, LatentInfo);
+			
 		}
 	}
 }

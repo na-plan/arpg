@@ -17,6 +17,7 @@ struct FNAInventorySlot
 	UPROPERTY()
 	TSubclassOf<class ANAItemActor> ItemMetaDataKey = nullptr;
 
+	// 호스트 클라인지 게스트 클라인지 구분하는 프로퍼티가 필요함
 	UPROPERTY()
 	FName							SlotID			= NAME_None;
 

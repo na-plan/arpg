@@ -9,22 +9,6 @@
 
 class UNAMontageCombatComponent;
 
-#if WITH_EDITOR
-struct FCombatUpdatePredication : FItemPatchHelper::FDefaultUpdatePredication<UNAMontageCombatComponent>
-{
-	virtual void operator()( AActor* InOuter, UNAMontageCombatComponent* InComponent,
-		UNAMontageCombatComponent* InOldComponent, const FNAItemBaseTableRow* InRow,
-		const EItemMetaDirtyFlags DirtyFlags ) const override;
-};
-
-struct FCombatInstanceUpdatePredication : FCombatUpdatePredication
-{
-	virtual void operator()( AActor* InOuter, UNAMontageCombatComponent* InComponent,
-		UNAMontageCombatComponent* InOldComponent, const FNAItemBaseTableRow* InRow,
-		const EItemMetaDirtyFlags DirtyFlags ) const override;
-};
-#endif
-
 UCLASS()
 class ARPG_API ANAWeapon : public ANAPickableItemActor
 {
@@ -43,10 +27,6 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-#if WITH_EDITOR
-    virtual void ExecuteItemPatch(UClass* ClassToPatch, const FNAItemBaseTableRow* PatchData, EItemMetaDirtyFlags PatchFlags) override;
-#endif
 
 public:
 	// Called every frame
