@@ -14,12 +14,9 @@ ANAWeapon::ANAWeapon() : ANAPickableItemActor(FObjectInitializer::Get())
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	if ( IsValid( UNAItemEngineSubsystem::Get() ) && UNAItemEngineSubsystem::Get()->IsItemMetaDataInitialized() )
-	{
-		CombatComponent = CreateDefaultSubobject<UNAMontageCombatComponent>( TEXT("CombatComponent") );
-		// 무기가 캐릭터의 Child Actor로 부착될 것이기에 CombatComponent의 설정이 Parent Actor로 가도록
-		CombatComponent->SetConsiderChildActor( true );
-	}
+	CombatComponent = CreateDefaultSubobject<UNAMontageCombatComponent>( TEXT("CombatComponent") );
+	// 무기가 캐릭터의 Child Actor로 부착될 것이기에 CombatComponent의 설정이 Parent Actor로 가도록
+	CombatComponent->SetConsiderChildActor( true );
 
 	PickupMode = EPickupMode::PM_Holdable | EPickupMode::PM_Inventory;
 }
