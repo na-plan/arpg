@@ -55,24 +55,88 @@ void UNAItemData::SetQuantity(const int32 NewQuantity)
 	if (NewQuantity != Quantity)
 	{
 		if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct<FNAItemBaseTableRow>()) {
-			Quantity = FMath::Clamp(NewQuantity, 0, ItemMetaData->NumericData.bIsStackable ? ItemMetaData->NumericData.MaxSlotStackSize : 1);
-			if (OwningInventory.Get())
-			{
-				if (Quantity <= 0)
-				{
-					OwningInventory->RemoveSingleInstanceOfItem(this);
-				}
-			}
+			Quantity = FMath::Clamp(NewQuantity, 0,
+				ItemMetaData->NumericData.bIsStackable ? ItemMetaData->NumericData.MaxSlotStackSize : 1);
 		}
 	}
 }
 
+void UNAItemData::SetItemState(EItemState NewItemState)
+{
+	if (ItemState != NewItemState)
+	{
+		ItemState = NewItemState;
+		// 델리게이트?
+	}
+}
+
+EItemType UNAItemData::GetItemType() const
+{
+	if (const FNAItemBaseTableRow* ItemDataStruct = GetItemMetaDataStruct())
+	{
+		return ItemDataStruct->ItemType;
+	}
+	return EItemType::IT_None;
+}
+
 UClass* UNAItemData::GetItemActorClass() const
 {
-	UClass* ItemActorClass = nullptr;
 	if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct())
 	{
-		ItemActorClass = ItemMetaData->ItemClass.Get();
+		return ItemMetaData->ItemClass.Get();
 	}
-	return ItemActorClass;
+	return nullptr;
+}
+
+FString UNAItemData::GetItemName() const
+{
+	if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct())
+	{
+		return ItemMetaData->TextData.Name.ToString();
+	}
+	return {};
+}
+
+bool UNAItemData::IsPickableItem() const
+{
+	if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct())
+	{
+		return ItemMetaData->ItemType != EItemType::IT_None && ItemMetaData->ItemType != EItemType::IT_Misc;
+	}
+	return false;
+}
+
+bool UNAItemData::IsStackableItem() const
+{
+	if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct())
+	{
+		return ItemMetaData->NumericData.bIsStackable;
+	}
+	return false;
+}
+
+int32 UNAItemData::GetItemMaxSlotStackSize() const
+{
+	if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct())
+	{
+		return ItemMetaData->NumericData.MaxSlotStackSize;
+	}
+	return -1;
+}
+
+int32 UNAItemData::GetMaxInventoryHoldCount() const
+{
+	if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct())
+	{
+		return ItemMetaData->NumericData.MaxInventoryHoldCount;
+	}
+	return -1;
+}
+
+void UNAItemData::SetOwningInventory(UNAInventoryComponent* NewInventory)
+{
+	if (NewInventory != nullptr)
+	{
+		OwningInventory = NewInventory;
+	}
 }

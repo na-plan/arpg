@@ -30,14 +30,8 @@ public:
 		InteractionName(FText::GetEmpty()),
 		//InteractionScript(FText::GetEmpty()),
 		InteractionDuration(0.f),
-		Quantity(0),
 		InteractingCharacter(nullptr)
 	{
-	}
-	
-	bool IsModifiedFromBaseline() const
-	{
-		return bModifiedFromBaseline ;
 	}
 
 	UPROPERTY(EditInstanceOnly, Category = "Item Interactable Data")
@@ -51,17 +45,7 @@ public:
 	
 	UPROPERTY(EditInstanceOnly, Category = "Item Interactable Data")
 	float InteractionDuration;
-	
-	// ANAPickableItemActor 전용
-	UPROPERTY(EditInstanceOnly, Category = "Item Interactable Data")
-	int32 Quantity;
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Item Interactable Data")
 	TWeakObjectPtr<class ANACharacter> InteractingCharacter;
-
-private:
-	friend class INAInteractableInterface;
-	
-	mutable uint8 bModifiedFromBaseline : 1 = false;
-	bool IsDifferentFromDefault() const;
 };

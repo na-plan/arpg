@@ -15,16 +15,6 @@ UNAInteractionComponent* INAInteractableInterface::TryGetInteractionComponent(AA
 	return InteractionComp;
 }
 
-bool INAInteractableInterface::CheckInteractableEdit(const FNAInteractableData& InteractableData) const
-{
-	if (!InteractableData.bModifiedFromBaseline)
-	{
-		const bool bIsModified = InteractableData.IsDifferentFromDefault();
-		InteractableData.bModifiedFromBaseline = bIsModified;
-	}
-	return InteractableData.bModifiedFromBaseline;
-}
-
 const FNAInteractableData* INAInteractableInterface::TryGetInteractableData(const FNAItemBaseTableRow* InItemMetaData) const
 {
 	if (InItemMetaData)
@@ -33,17 +23,4 @@ const FNAInteractableData* INAInteractableInterface::TryGetInteractableData(cons
 	}
 	
 	return nullptr;
-}
-
-void INAInteractableInterface::TrySetInteractableData(FNAItemBaseTableRow* InItemMetaData, const FNAInteractableData& NewInteractableData)
-{
-	if (InItemMetaData)
-	{
-		InItemMetaData->InteractableData = NewInteractableData;
-	}
-}
-
-void INAInteractableInterface::MarkBaselineModified(const FNAInteractableData& OutInteractableData)
-{
-	OutInteractableData.bModifiedFromBaseline = true;
 }

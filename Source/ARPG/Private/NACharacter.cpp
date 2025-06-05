@@ -13,9 +13,11 @@
 #include "InputActionValue.h"
 #include "InputMappingContext.h"
 #include "NAPlayerState.h"
+#include "Algo/RemoveIf.h"
 #include "ARPG/ARPG.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "Components/SplineComponent.h"
+#include "EntitySystem/MovieSceneEntityManager.h"
 #include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "HP/GameplayAbility/NAGA_Revive.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
@@ -26,7 +28,7 @@
 #include "Inventory/NAInventoryComponent.h"
 
 
-DEFINE_LOG_CATEGORY(LogTemplateCharacter);
+DEFINE_LOG_CATEGORY( LogTemplateCharacter );
 
 //////////////////////////////////////////////////////////////////////////
 // AARPGCharacter
@@ -126,19 +128,43 @@ ANACharacter::ANACharacter()
 	VitalCheckComponent = CreateDefaultSubobject<UNAVitalCheckComponent>(TEXT("VitalCheckComponent"));
 	ReviveWidget = CreateDefaultSubobject<UNAReviveWidgetComponent>( TEXT("ReviveWidgetComponent") );
 
-	if ( GetMesh()->GetSkeletalMeshAsset() )
-	{
-		LeftHandChildActor->SetupAttachment(GetMesh(), LeftHandSocketName);
-		RightHandChildActor->SetupAttachment(GetMesh(), RightHandSocketName);
-		ReviveWidget->SetupAttachment( GetMesh(), TEXT("ReviveWidgetSocket") );
-	}
-
+	ApplyAttachments();
+	
 	GetMesh()->SetIsReplicated( true );
 	bReplicates = true;
 	ACharacter::SetReplicateMovement( true );
 
 	AbilitySystemComponent->SetNetAddressable();
 	DefaultCombatComponent->SetNetAddressable();
+	LeftHandChildActor->SetNetAddressable();
+	RightHandChildActor->SetNetAddressable();
+}
+
+void ANACharacter::ApplyAttachments() const
+{
+	TFunction<bool(USkeletalMeshComponent*, USceneComponent*, const FName&)> Attacher;
+	if ( FUObjectThreadContext::Get().IsInConstructor )
+	{
+		Attacher = [](USkeletalMeshComponent* Parent, USceneComponent* Component, const FName& SocketName)
+		{
+			Component->SetupAttachment( Parent, SocketName );
+			return true;
+		};
+	}
+	else
+	{
+		Attacher = [](USkeletalMeshComponent* Parent, USceneComponent* Component, const FName& SocketName)
+		{
+			return Component->AttachToComponent( Parent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketName );
+		};
+	}
+	
+	if ( GetMesh()->GetSkeletalMeshAsset() )
+	{
+		Attacher(GetMesh(), LeftHandChildActor, LeftHandSocketName);
+		Attacher(GetMesh(), RightHandChildActor, RightHandSocketName);
+		Attacher(GetMesh(), ReviveWidget, TEXT("ReviveWidgetSocket"));
+	}
 }
 
 void ANACharacter::BeginPlay()
@@ -265,6 +291,17 @@ void ANACharacter::RetrieveAsset(const AActor* InCDO)
 {
 	if (const ANACharacter* DefaultAsset = Cast<ANACharacter>(InCDO))
 	{
+		struct LazyUpdatePair
+		{
+			USceneComponent* OldParent;
+			USceneComponent* OldChild;
+			USceneComponent* NewParent;
+			USceneComponent* NewChild;
+		};
+
+		TSet<USceneComponent*> Initialized;
+		TArray<LazyUpdatePair> LazyUpdates;
+		
 		// 블루프린트의 컴포넌트 속성 복사
 		for ( TFieldIterator<FObjectProperty> It(GetClass()); It; ++It  )
 		{
@@ -281,48 +318,84 @@ void ANACharacter::RetrieveAsset(const AActor* InCDO)
 				
 				// 프로퍼티 복사 후 컴포넌트 재등록하면서 갱신
 				ThisComponent->UnregisterComponent();
+				
 				if ( IsValid( GEngine ) )
 				{
-					GEngine->CopyPropertiesForUnrelatedObjects( OriginComponent, ThisComponent );	
-				}
+					UEngine::FCopyPropertiesForUnrelatedObjectsParams Params{};
+					Params.bDoDelta = true;
+					Params.bSkipCompilerGeneratedDefaults = true;
+					Params.bReplaceInternalReferenceUponRead = true;
+					std::remove_pointer_t<decltype(Params.OptionalReplacementMappings)> TempReplacementMappings;
+					Params.OptionalReplacementMappings = &TempReplacementMappings;
 
-				// Scene Component이면...
-				if ( USceneComponent* OriginSceneComponent = Cast<USceneComponent>( OriginComponent ) )
-				{
-					// 부모로 부착된 컴포넌트가 있는지 확인하고...
-					if ( USceneComponent* OriginParentComponent = OriginSceneComponent->GetAttachParent() )
+					// Scene Component이면...
+					if ( USceneComponent* OriginSceneComponent = Cast<USceneComponent>( OriginComponent ) )
 					{
-						bool bAttached = false;
-						// 똑같은 컴포넌트를 프로퍼티로 찾아서...
-						for ( TFieldIterator<FObjectProperty> ParentIt( GetClass() ); ParentIt; ++ParentIt )
+						// 부모로 부착된 컴포넌트가 있는지 확인하고...
+						if ( USceneComponent* OriginParentComponent = OriginSceneComponent->GetAttachParent() )
 						{
-							if ( ParentIt->PropertyClass->IsChildOf( USceneComponent::StaticClass() ) )
+							// 똑같은 컴포넌트를 프로퍼티로 찾아서...
+							for ( TFieldIterator<FObjectProperty> ParentIt( GetClass() ); ParentIt; ++ParentIt )
 							{
-								USceneComponent* ComponentPtrFromOrigin = Cast<USceneComponent>( ParentIt->GetObjectPropertyValue_InContainer( DefaultAsset ) );
-
-								// 이 객체의 프로퍼티에 있는 컴포넌트에 똑같이 적용
-								if ( ComponentPtrFromOrigin == OriginParentComponent )
+								if ( ParentIt->PropertyClass->IsChildOf( USceneComponent::StaticClass() ) )
 								{
-									USceneComponent* ThisParentComponent = Cast<USceneComponent>( ParentIt->GetObjectPropertyValue_InContainer( this ) );
-									USceneComponent* ThisSceneComponent = Cast<USceneComponent>( ThisComponent );
-									ThisSceneComponent->AttachToComponent( ThisParentComponent, FAttachmentTransformRules::KeepRelativeTransform, OriginSceneComponent->GetAttachSocketName() );
-									bAttached = true;
-									break;
+									USceneComponent* ComponentPtrFromOrigin = Cast<USceneComponent>( ParentIt->GetObjectPropertyValue_InContainer( DefaultAsset ) );
+
+									// 이 객체의 프로퍼티에 있는 컴포넌트에 똑같이 적용
+									if ( ComponentPtrFromOrigin == OriginParentComponent )
+									{
+										USceneComponent* ThisParentComponent = Cast<USceneComponent>( ParentIt->GetObjectPropertyValue_InContainer( this ) );
+										USceneComponent* ThisSceneComponent = Cast<USceneComponent>( ThisComponent );
+										
+										TempReplacementMappings.Emplace( OriginParentComponent, ThisParentComponent );
+									
+										if ( ThisParentComponent && Initialized.Contains( ThisParentComponent ) )
+										{
+											ThisSceneComponent->AttachToComponent( ThisParentComponent, FAttachmentTransformRules::KeepRelativeTransform, OriginSceneComponent->GetAttachSocketName() );
+											Initialized.Emplace( Cast<USceneComponent>( ThisComponent ) );
+										}
+										else
+										{
+											// 일시적으로 부착을 풀고
+											ThisSceneComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
+											LazyUpdates.Emplace( OriginParentComponent, OriginSceneComponent, ThisParentComponent, ThisSceneComponent );
+										}
+										break;
+									}
 								}
 							}
 						}
-
-						// 모종의 이유로 부착에 실패
-						check( bAttached );
+						else
+						{
+							// 부모가 없다면 그대로 초기화 판정
+							Initialized.Emplace( Cast<USceneComponent>( ThisComponent ) );
+						}
 					}
+					
+					GEngine->CopyPropertiesForUnrelatedObjects( OriginComponent, ThisComponent, Params );
 				}
 				
 				ThisComponent->RegisterComponent();
 			}
 		}
 
+		// 부모가 초기화가 안된 상태에서 자식을 붙이려 한 경우에 대해 게으른 초기화
+		for ( auto SetIt = LazyUpdates.CreateIterator(); SetIt; ++SetIt )
+		{
+			const auto& [Old, OldChild, This, ThisChild] = *SetIt;
+			if ( Initialized.Contains( This ) )
+			{
+				ThisChild->AttachToComponent( This, FAttachmentTransformRules::KeepRelativeTransform, OldChild->GetAttachSocketName() );
+				Initialized.Emplace( ThisChild );
+				SetIt.RemoveCurrentSwap();
+			}
+		}
+
+		check( LazyUpdates.IsEmpty() );
+
 		FObjectPropertyUtility::CopyClassPropertyIfTypeEquals<ANACharacter, UInputMappingContext, UInputAction>( this, DefaultAsset );
 
+		ApplyAttachments();
 		const FTransform Transform = DefaultAsset->GetMesh()->GetRelativeTransform();
 		
 		GetMesh()->SetRelativeTransform(Transform);
@@ -340,6 +413,18 @@ void ANACharacter::OnRep_PlayerState()
 		GetPlayerState<ANAPlayerState>(),
 		this
 	);
+}
+
+void ANACharacter::OnConstruction( const FTransform& Transform )
+{
+	Super::OnConstruction( Transform );
+
+#if WITH_EDITOR
+	if ( GetWorld()->IsEditorWorld() )
+	{
+		ApplyAttachments();	
+	}
+#endif
 }
 
 void ANACharacter::Move(const FInputActionValue& Value)
@@ -446,4 +531,6 @@ void ANACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME( ANACharacter, AbilitySystemComponent );
 	DOREPLIFETIME( ANACharacter, DefaultCombatComponent );
+	DOREPLIFETIME( ANACharacter, LeftHandChildActor );
+	DOREPLIFETIME( ANACharacter, RightHandChildActor );
 }
