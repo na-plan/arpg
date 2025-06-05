@@ -327,6 +327,8 @@ void ANACharacter::RetrieveAsset(const AActor* InCDO)
 									}
 									else
 									{
+										// 일시적으로 부착을 풀고
+										ThisSceneComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
 										LazyUpdates.Emplace( OriginParentComponent, OriginSceneComponent, ThisParentComponent, ThisSceneComponent );
 									}
 									break;
@@ -350,7 +352,7 @@ void ANACharacter::RetrieveAsset(const AActor* InCDO)
 			const auto& [Old, OldChild, This, ThisChild] = *SetIt;
 			if ( Initialized.Contains( This ) )
 			{
-				ThisChild->AttachToComponent( This, FAttachmentTransformRules::SnapToTargetIncludingScale, OldChild->GetAttachSocketName() );
+				ThisChild->AttachToComponent( This, FAttachmentTransformRules::KeepRelativeTransform, OldChild->GetAttachSocketName() );
 				Initialized.Emplace( ThisChild );
 				SetIt.RemoveCurrentSwap();
 			}

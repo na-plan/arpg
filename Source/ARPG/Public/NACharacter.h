@@ -128,8 +128,6 @@ protected:
 
 	virtual void OnRep_PlayerState() override;
 
-	virtual void OnConstruction(const FTransform& Transform) override;
-
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
 
