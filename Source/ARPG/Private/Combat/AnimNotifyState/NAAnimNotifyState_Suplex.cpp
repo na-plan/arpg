@@ -79,6 +79,7 @@ void UNAAnimNotifyState_Suplex::NotifyTick(USkeletalMeshComponent* MeshComp, UAn
 	{
 		if (FrameDeltaTime)
 		{
+			OverlapElapsed += FrameDeltaTime;
 			const FVector SocketLocation = MeshComp->GetSocketLocation(SocketName);
 			TArray<FOverlapResult> OverlapResults;
 			FCollisionQueryParams QueryParams;
@@ -157,7 +158,15 @@ void UNAAnimNotifyState_Suplex::NotifyTick(USkeletalMeshComponent* MeshComp, UAn
 				
 				
 			}
+
+			// 일정 시간마다 닿았던 대상이 지금도 닿는지 확인하기 위해 empty 처리
+			if (OverlapElapsed > ClearInterval)
+			{
+				AppliedActors.Empty();
+				OverlapElapsed = 0;
+			}
 		}
+
 	}
 
 	//Replicate 해야됌 /  player 는 재생 안됨
@@ -182,7 +191,9 @@ void UNAAnimNotifyState_Suplex::NotifyTick(USkeletalMeshComponent* MeshComp, UAn
 								UNAMontageCombatComponent* PlayerCombatComponent = Player->FindComponentByClass<UNAMontageCombatComponent>();
 
 								FGameplayAbilitySpec* AbilitySpec = PlayerASC->FindAbilitySpecFromClass(UNAGA_Melee::StaticClass());
-								UNAGA_Melee* NAGA_Melee = Cast<UNAGA_Melee>(AbilitySpec->Ability);								
+								UNAGA_Melee* NAGA_Melee = Cast<UNAGA_Melee>(AbilitySpec->Ability);							
+								NAGA_Melee->ChangeMontageGrab(true);
+
 								//PlayerAnimInstance->Montage_Stop(0.2f);
 								PlayerASC->PlayMontage(NAGA_Melee, AbilitySpec->ActivationInfo, SuplexMontage, 1);								
 							}
