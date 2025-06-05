@@ -117,6 +117,7 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 
 public:
 	ANACharacter();
+	
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 protected:
@@ -128,6 +129,10 @@ protected:
 
 	virtual void OnRep_PlayerState() override;
 
+	// 블루프린트 타입 CDO로부터 컴포넌트 부착 정보를 알아올 수 없음
+	// 모든 네이티브 및 블루프린트 정보가 적용된 후 호출하여 구조를 유지
+	void ApplyAttachments() const;
+	
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
 

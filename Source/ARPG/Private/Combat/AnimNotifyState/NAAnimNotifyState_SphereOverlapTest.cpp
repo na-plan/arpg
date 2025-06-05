@@ -85,7 +85,7 @@ void UNAAnimNotifyState_SphereOverlapTest::NotifyTick( USkeletalMeshComponent* M
 	Super::NotifyTick( MeshComp, Animation, FrameDeltaTime, EventReference );
 
 	// 충돌 처리는 서버의 책임
-	if ( MeshComp->GetOwner()->HasAuthority() )
+	if ( MeshComp->GetOwner()->HasAuthority() && MeshComp->GetWorld()->IsGameWorld() )
 	{
 		// 충돌 확인 지연
 		OverlapElapsed += FrameDeltaTime;
