@@ -725,7 +725,7 @@ bool ANAItemActor::CanUseRootAsTriggerShape_Implementation() const
 
 bool ANAItemActor::CanInteract_Implementation() const
 {
-	return bIsFocused && Execute_CanUseRootAsTriggerShape(this) && Execute_GetInteractableData(this).InteractingCharacter.IsValid();
+	return bIsFocused && Execute_CanUseRootAsTriggerShape(this); // && Execute_GetInteractableData(this).InteractingCharacter.IsValid(); // sehee: 임시로 interactiondata 없어도 동작하게 함
 }
 
 void ANAItemActor::NotifyInteractableFocusBegin_Implementation(AActor* InteractableActor, AActor* InteractorActor)
