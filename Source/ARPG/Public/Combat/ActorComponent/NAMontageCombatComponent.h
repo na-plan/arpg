@@ -20,6 +20,9 @@ class ARPG_API UNAMontageCombatComponent : public UNACombatComponent
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
 	UAnimMontage* AttackMontage = nullptr;
+	//GrabMontage		BP에서 세팅하면 Set이 필요할까? 싶음
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
+	UAnimMontage* GrabMontage = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
 	float MontagePlayRate = 1.f;
@@ -35,6 +38,7 @@ public:
 	virtual bool IsAbleToAttack() override;
 	
 	UAnimMontage* GetMontage() const { return AttackMontage; }
+	UAnimMontage* GetGrabMontage() const { return GrabMontage; }
 
 protected:
 	// Called when the game starts

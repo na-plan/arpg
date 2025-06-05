@@ -80,8 +80,12 @@ DerivedDataCache/*
 ARPG.sln.DotSettings.user
 Content/01_ExternalAssets/*
 Content/StarterContent/*
-Content/ParagonRiktor/
-
+Content/ParagonRiktor/FX/
+Content/ParagonRiktor/Characters/Global/
+Content/ParagonRiktor/Maps/
+Content/ParagonRiktor/Characters/Heroes/Riktor/Skins/
+Content/ParagonRiktor/Characters/Heroes/Riktor/Sounds/
+Content/ParagonRiktor/Characters/Maps/
 
 Plugins/Developer/RiderLink/*
 ARPG.uproject.DotSettings.user

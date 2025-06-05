@@ -91,6 +91,10 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UNAInventoryComponent> InventoryComponent;
+
+	/* Grab */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* GrabAction;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USpringArmComponent> InventoryWidgetBoom;

@@ -31,6 +31,9 @@ class ARPG_API UNACombatComponent : public UActorComponent
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_CanAttack, meta=(AllowPrivateAccess="true"))
 	bool bCanAttack = false;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_CanAttack, meta=(AllowPrivateAccess="true"))
+	bool bCanGrab = false;
+
 	// 공격을 시전하는 객체가 부모 객체인가?
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
 	bool bConsiderChildActor = false;
@@ -44,6 +47,9 @@ class ARPG_API UNACombatComponent : public UActorComponent
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
 	TSubclassOf<UGameplayAbility> AttackAbility;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
+	TSubclassOf<UGameplayAbility> GrabAbility;
 
 	FGameplayAbilitySpecHandle AbilitySpecHandle;
 
@@ -62,6 +68,9 @@ public:
 	FDoStopAttack DoStopAttack;
 
 	void SetAttackAbility(const TSubclassOf<UGameplayAbility>& InAbility);
+
+	void SetGrabAbility(const TSubclassOf<UGameplayAbility>& InAbility);
+	
 
 	UFUNCTION()
 	void ReplayAttack();
