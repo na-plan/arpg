@@ -82,36 +82,50 @@ class ARPG_API UNAInventoryComponent : public UWidgetComponent
 {
 	GENERATED_BODY()
 
-private:
-	template <typename T>
-		requires TIsDerivedFrom<T, UObject>::IsDerived
-	void InitSlotIDs(TMap<FName, TWeakObjectPtr<T>>& SlotMap)
+public:
+	// Sets default values for this component's properties
+	UNAInventoryComponent();
+
+	// 슬롯 개수
+	static constexpr int32 MaxInventorySlots = 25;
+	static constexpr int32 MaxWeaponSlots = 4;
+	static constexpr int32 MaxTotalSlots = MaxInventorySlots + MaxWeaponSlots;
+
+	// 슬롯 ID 문자열 포맷
+	static constexpr TCHAR InventorySlotFormat[] = TEXT("Inven_%02d");
+	static constexpr TCHAR WeaponSlotFormat[]    = TEXT("Weapon_%02d");
+
+	static FName MakeInventorySlotID(int32 Index)
 	{
-		SlotMap.Reserve(MaxTotalSlots);
+		return FName(*FString::Printf(InventorySlotFormat, Index));
+	}
+	static FName MakeWeaponSlotID(int32 Index)
+	{
+		return FName(*FString::Printf(WeaponSlotFormat, Index));
+	}
+	
+private:
+	// InventoryContents만 초기화
+	static void InitInventorySlotIDs(UNAInventoryComponent* InventoryComponent)
+	{
+		InventoryComponent->InventoryContents.Reserve(MaxTotalSlots);
 
 		// 인벤토리 슬롯 25개: 0~24까지 Inven_nn 슬롯 키를 채우고, 값은 nullptr (TWeakObjectPtr이므로 nullptr 가능)
 		for (int32 i = 0; i <= MaxInventorySlots; ++i)
 		{
-			FString SlotNameStr = FString::Printf(TEXT("Inven_%02d"), i);
-			InventoryContents.Add(FName(*SlotNameStr), nullptr);
+			//String SlotNameStr = FString::Printf(TEXT("Inven_%02d"), i);
+			//InventoryComponent->InventoryContents.Add(FName(*SlotNameStr), nullptr);
+			InventoryComponent->InventoryContents.Add(MakeInventorySlotID(i), nullptr);
 		}
 
 		// 무기 슬롯 4개: 0~3까지 Weapon_nn 슬롯 키를 채우고, 값은 nullptr
 		for (int32 i = 0; i <= MaxWeaponSlots; ++i)
 		{
-			FString SlotNameStr = FString::Printf(TEXT("Weapon_%02d"), i);
-			InventoryContents.Add(FName(*SlotNameStr), nullptr);
+			//FString SlotNameStr = FString::Printf(TEXT("Weapon_%02d"), i);
+			//InventoryComponent->InventoryContents.Add(FName(*SlotNameStr), nullptr);
+			InventoryComponent->InventoryContents.Add(MakeWeaponSlotID(i), nullptr);
 		}
 	}
-
-public:
-	// Sets default values for this component's properties
-	UNAInventoryComponent();
-
-	// 이 인벤토리 위젯이 보유한 슬롯의 총 개수
-	static constexpr int32 MaxInventorySlots = 25;
-	static constexpr int32 MaxWeaponSlots = 4;
-	static constexpr int32 MaxTotalSlots = MaxInventorySlots + MaxWeaponSlots;
 	
 protected:
 	// Called when the game starts
@@ -275,6 +289,6 @@ public:
 	void CollapseInventoryWidget();
 
 protected:
-	UPROPERTY()
-	TMap<FName, TWeakObjectPtr<UButton>> SlotButtons;
+	//UPROPERTY()
+	//TMap<FName, TWeakObjectPtr<UButton>> SlotButtons;
 };

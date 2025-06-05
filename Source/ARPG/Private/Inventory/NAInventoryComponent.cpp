@@ -10,19 +10,6 @@
 #include "Item/ItemActor/NAWeapon.h"
 #include "Components/Button.h"
 
-// 슬롯 ID에서 문자열 추출 헬퍼 함수
-static int32 ExtractSlotNumber(const FName& SlotID)
-{
-	const FString SlotStr = SlotID.ToString();
-	int32 UnderscoreIndex = INDEX_NONE;
-	if (SlotStr.FindLastChar(TEXT('_'), UnderscoreIndex))
-	{
-		const FString NumberStr = SlotStr.Mid(UnderscoreIndex + 1);
-		return FCString::Atoi(*NumberStr);
-	}
-	return INT_MAX;
-}
-
 // Sets default values for this component's properties
 UNAInventoryComponent::UNAInventoryComponent()
 {
@@ -45,14 +32,17 @@ UNAInventoryComponent::UNAInventoryComponent()
 	bIsTwoSided = true;
 	SetBlendMode(EWidgetBlendMode::Masked);
 	OpacityFromTexture = 0.8f;
-	SetVisibility(false);
+	//SetVisibility(false);
 
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
 		// 슬롯 데이터 매핑 키 값만(ID) 초기화
-		InitSlotIDs(InventoryContents);
+		//InitSlotIDs(InventoryContents);
 		// 슬롯 UI 매핑 키 값만(ID) 초기화
-		InitSlotIDs(SlotButtons);
+		//InitSlotIDs(SlotButtons);
+		// -> InitWidget 단계에서 위젯 버튼과 매핑할 때 초기화
+
+		InitInventorySlotIDs(this);
 	}
 }
 
@@ -61,7 +51,8 @@ UNAInventoryComponent::UNAInventoryComponent()
 void UNAInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	SetVisibility(false);
 	SetWindowVisibility(EWindowVisibility::SelfHitTestInvisible);
 	
 }
@@ -167,7 +158,7 @@ void UNAInventoryComponent::SortInventoryItems()
 	
 	if (IsValid(GetInventoryWidget()))
 	{
-		GetInventoryWidget()->RefreshInvenSlotButtons(InventoryContents, SlotButtons);
+		GetInventoryWidget()->RefreshInvenSlotButtons(InventoryContents/*, SlotButtons*/);
 		UpdateWidget();
 	}
 }
@@ -823,8 +814,11 @@ void UNAInventoryComponent::InitWidget()
 	{
 		if (UNAInventoryWidget* InventoryWidget = Cast<UNAInventoryWidget>(GetWidget()))
 		{
-			const bool bSucceed = InventoryWidget->MapSlotIDAndUIButton(SlotButtons);
-			ensureAlwaysMsgf(bSucceed, TEXT("[UNAInventoryComponent::InitWidget]  인벤토리 슬롯 & UI 매핑 실패"));
+			//const bool bSucceed = InventoryWidget->MapSlotIDAndUIButton(SlotButtons);
+			//ensureAlwaysMsgf(bSucceed, TEXT("[UNAInventoryComponent::InitWidget]  인벤토리 슬롯 & UI 매핑 실패"));
+
+			//SlotButtons.Empty();
+			//InventoryWidget->FillSlotButtonMapFromArrays(SlotButtons);
 		}
 	}
 }
@@ -838,13 +832,13 @@ UButton* UNAInventoryComponent::GetSlotButton(const FName& SlotID) const
 {
 	if (SlotID.IsNone()
 		|| !InventoryContents.Contains(SlotID)
-		|| !SlotButtons.Contains(SlotID))
+		/*|| !SlotButtons.Contains(SlotID)*/)
 	{
 		ensureAlwaysMsgf(false, TEXT("[UNAInventoryComponent::GetSlotButton]  유효하지 않은 슬롯ID: %s"), *SlotID.ToString());
 		return nullptr;
 	}
 
-	return SlotButtons[SlotID].Get();
+	return /*SlotButtons[SlotID].Get();*/ nullptr;
 }
 
 UButton* UNAInventoryComponent::GetSlotButton(const UNAItemData* ItemData) const
@@ -853,14 +847,14 @@ UButton* UNAInventoryComponent::GetSlotButton(const UNAItemData* ItemData) const
 	const bool bFoundResult = FindSlotIDForItem(ItemData, SlotID);
 	if (!ItemData
 		|| !bFoundResult
-		|| !SlotButtons.Contains(SlotID))
+		/*|| !SlotButtons.Contains(SlotID)*/)
 	{
 		ensureAlwaysMsgf(false, TEXT("[UNAInventoryComponent::GetSlotButton]  유효하지 않은 아이템 데이터: %s"),
 			*ItemData->GetItemID().ToString());
 		return nullptr;
 	}
 
-	return SlotButtons[SlotID].Get();
+	return/* SlotButtons[SlotID].Get();*/ nullptr;
 }
 
 bool UNAInventoryComponent::IsInventoryWidgetVisible() const

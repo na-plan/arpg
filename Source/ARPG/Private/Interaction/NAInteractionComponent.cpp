@@ -288,7 +288,7 @@ void UNAInteractionComponent::BeginInteraction(/*INAInteractableInterface* Inter
 	}
 
 	ActiveInteractable = NearestInteractable;
-	ActiveInteractable.ToWeakInterface()->BeginInteract(GetOwner());
+	ActiveInteractable.ToWeakInterface()->Execute_BeginInteract(ActiveInteractable.GetRawObject(), GetOwner());
 }
 
 void UNAInteractionComponent::EndInteraction(/*INAInteractableInterface* InteractableActor*/)
@@ -299,7 +299,7 @@ void UNAInteractionComponent::EndInteraction(/*INAInteractableInterface* Interac
 		return;
 	}
 
-	ActiveInteractable.ToWeakInterface()->EndInteract(GetOwner());
+	ActiveInteractable.ToWeakInterface()->Execute_EndInteract(ActiveInteractable.GetRawObject(), GetOwner());
 	ActiveInteractable = nullptr;
 }
 
@@ -311,6 +311,6 @@ void UNAInteractionComponent::ExecuteInteraction(/*INAInteractableInterface* Int
 		return;
 	}
 
-	ActiveInteractable.ToWeakInterface()->ExecuteInteract(GetOwner());
+	ActiveInteractable.ToWeakInterface()->Execute_ExecuteInteract(ActiveInteractable.GetRawObject(), GetOwner());
 }
 
