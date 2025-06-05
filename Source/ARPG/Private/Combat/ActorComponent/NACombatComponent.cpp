@@ -78,9 +78,12 @@ void UNACombatComponent::BeginPlay()
 	bCanAttack = IsAbleToAttack();
 
 	// 클라이언트의 BeginPlay에 맞춰서 초기화
-	if ( GetAttacker()->GetController() == GetWorld()->GetFirstPlayerController() )
+	if ( const APawn* Attacker = GetAttacker() )
 	{
-		Server_RequestAttackAbility();
+		if ( Attacker->GetController() == GetWorld()->GetFirstPlayerController() )
+		{
+			Server_RequestAttackAbility();
+		}
 	}
 }
 

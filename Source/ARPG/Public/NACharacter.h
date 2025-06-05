@@ -6,6 +6,7 @@
 #include "AbilitySystemInterface.h"
 #include "Assets/Interface/NAManagedAsset.h"
 #include "Combat/Interface/NAHandActor.h"
+#include "Components/SplineComponent.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
 #include "NACharacter.generated.h"
@@ -41,10 +42,10 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = Gameplay, meta=(AllowPrivateAccess = "true"))
 	UAbilitySystemComponent* AbilitySystemComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, meta=(AllowPrivateAccess="true"))
 	UChildActorComponent* LeftHandChildActor;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, meta=(AllowPrivateAccess="true"))
 	UChildActorComponent* RightHandChildActor;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
@@ -103,6 +104,9 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USpringArmComponent> InventoryAngleBoom;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory", meta=(AllowPrivateAccess="true"))
+	USplineComponent* InventoryCamOrbitSpline;
+
 	/* Inventory IMC */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputMappingContext* InventoryMappingContext;
@@ -114,7 +118,6 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 public:
 	ANACharacter();
 	virtual void OnConstruction(const FTransform& Transform) override;
-	virtual void Tick(float DeltaTime) override;
 
 protected:
 	virtual void SetAssetNameDerivedImplementation(const FName& InAssetName) override { AssetName = InAssetName; }
