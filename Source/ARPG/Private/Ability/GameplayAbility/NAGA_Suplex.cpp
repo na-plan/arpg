@@ -1,18 +1,18 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Ability/GameplayAbility/NAGA_Grab.h"
+#include "Ability/GameplayAbility/NAGA_Suplex.h"
 #include "NACharacter.h"
 #include "AbilitySystemComponent.h"
 
-UNAGA_Grab::UNAGA_Grab()
+UNAGA_Suplex::UNAGA_Suplex()
 {
 	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateYes;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
 
 }
 
-void UNAGA_Grab::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
+void UNAGA_Suplex::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 
 	if (HasAuthority(&ActivationInfo))
@@ -30,7 +30,7 @@ void UNAGA_Grab::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const 
 		{
 			if (UAnimMontage* SkillMontage = SuplexingMontage)
 			{
-				ASC->PlayMontage(this, CurrentActivationInfo, SkillMontage, 1.0f);				
+				ASC->PlayMontage(this, CurrentActivationInfo, SkillMontage, 1.0f);
 			}
 		}
 
