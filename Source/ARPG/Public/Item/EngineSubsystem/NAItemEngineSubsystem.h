@@ -21,8 +21,6 @@ public:
 class ANAItemActor;
 struct FNAInventorySlot;
 
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnItemActorCDOPatched, UClass*, const FNAItemBaseTableRow*, EItemMetaDirtyFlags);
-
 UCLASS()
 class ARPG_API UNAItemEngineSubsystem : public UEngineSubsystem
 {
@@ -35,35 +33,13 @@ protected:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 	
-#if WITH_EDITOR
-public:
-	void CheckAndMappingItemClass(UClass* InItemActorClass);
-	EItemMetaDirtyFlags FindChangedItemMetaFlags(bool bCheckMetaMap, const FDataTableRowHandle& RowHandle, const UObject* InCDO) const;
-	EItemMetaDirtyFlags FindChangedItemMetaFlags(bool bCheckMetaMap, const FNAItemBaseTableRow* RowData, const UObject* InCDO) const;
-	
-protected:
-	bool ContainsItemMetaDataHandle(const FDataTableRowHandle& RowHandle) const;
-	bool ContainsItemMetaDataEntry(const FNAItemBaseTableRow* RowData) const;
-	bool ContainsItemMetaClass(UClass* InItemActorClass) const;
-
-	UClass* ResolveToSkeletalItemClass(UClass* InItemActorClass) const;
-	UClass* ResolveToGeneratedItemClass(UClass* InItemActorClass) const;
-	
-	void HandlePostEngineInit() const;
-	void HandlePostCDOCompiled(UObject* InCDO, const FObjectPostCDOCompiledContext& CompiledContext);
-	void SynchronizeItemCDOWithMeta(UClass* InItemActorClass, const FNAItemBaseTableRow* RowData, bool bShouldRecompile) const;
-#endif
-protected:
-	void ValidateItemRow(const FNAItemBaseTableRow* RowData, const FName RowName) const;
-		
-
 public:
 #if WITH_EDITOR
-	FOnItemActorCDOPatched OnItemActorCDOPatched;
+	bool IsRegisteredItemMetaClass(UClass* ItemClass) const;
+	void RegisterNewItemMetaData(UClass* NewItemClass, const UDataTable* InDataTable, const FName InRowName);
+	void VerifyItemMetaDataRowHandle(UClass* ItemClass, const UDataTable* InDataTable, const FName InRowName);
 #endif
-	FNAItemBaseTableRow* AccessItemMetaData(UClass* InItemActorClass) const;
-	const FNAItemBaseTableRow* GetItemMetaData(UClass* InItemActorClass) const;
-public:
+	
 	static UNAItemEngineSubsystem* Get()
 	{
 		if (GEngine)
@@ -144,10 +120,10 @@ public:
 
 		NewItemData->ItemMetaDataHandle = ItemMetaDTRowHandle;
 		FString NameStr;
-		if (bIsCDOActor)
-		{
-			NameStr = TEXT("CDO_");
-		}
+		// if (bIsCDOActor)
+		// {
+		// 	NameStr = TEXT("CDO_");
+		// }
 		NameStr += ItemMetaDTRowHandle.RowName.ToString();
 		FString CountStr = FString::FromInt(NewItemData->IDCount.GetValue());
 		FString NewItemID = NameStr + TEXT("_") + CountStr;
@@ -159,8 +135,10 @@ public:
 
 		return RuntimeItemDataMap[NewItemData->ID].Get();
 	}
-	
+
 	UNAItemData* GetRuntimeItemData(const FName& InItemID) const;
+	
+	UNAItemData* CreateItemDataCopy(const UNAItemData* SourceItemData);
 
 	// Inventory 관련
 	UNAItemData* CreateItemDataBySlot( UWorld* InWorld, const FNAInventorySlot& InInventorySlot );

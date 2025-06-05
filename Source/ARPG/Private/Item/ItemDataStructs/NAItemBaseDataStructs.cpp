@@ -1,5 +1,6 @@
 #include "Item/ItemDataStructs/NAItemBaseDataStructs.h"
-#include "Item/ItemActor/NAItemActor.h"
+#include "Item/ItemActor/NAWeapon.h"
+#include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
 
 FNAItemBaseTableRow::FNAItemBaseTableRow(UClass* InItemClass)
 {
@@ -11,31 +12,77 @@ FNAItemBaseTableRow::FNAItemBaseTableRow(UClass* InItemClass)
 	}
 }
 
+#if WITH_EDITOR
+
 void FNAItemBaseTableRow::OnDataTableChanged(const UDataTable* InDataTable, const FName InRowName)
 {
 	FNAItemBaseTableRow* ItemRowStruct = InDataTable->FindRow<FNAItemBaseTableRow>(InRowName, TEXT("On Data Table Changed"));
 	
 	if (ItemRowStruct == this)
 	{
-		if (NumericData.MaxInventoryStackSize < 0)
+		if (UNAItemEngineSubsystem::Get()
+			&& UNAItemEngineSubsystem::Get()->IsItemMetaDataInitialized())
 		{
-			NumericData.MaxInventoryStackSize = FMath::Max(NumericData.MaxInventoryStackSize, -1);
-			NumericData.MaxSlotStackSize = FMath::Max(NumericData.MaxInventoryStackSize, -1);
-		}
-		else if (NumericData.MaxInventoryStackSize == 0)
-		{
-			NumericData.MaxSlotStackSize = 0;
-		}
-		else if (NumericData.MaxInventoryStackSize > 0)
-		{
-			if (NumericData.MaxSlotStackSize <= 0)
+			UClass* ItemActorClass = ItemRowStruct->ItemClass.Get();
+			if (ensure(ItemActorClass))
 			{
-				NumericData.MaxSlotStackSize = NumericData.MaxInventoryStackSize;
+				if (!UNAItemEngineSubsystem::Get()->IsRegisteredItemMetaClass(ItemActorClass))
+				{
+					UNAItemEngineSubsystem::Get()->RegisterNewItemMetaData(ItemActorClass, InDataTable, InRowName);
+				}
+				else
+				{
+					UNAItemEngineSubsystem::Get()->VerifyItemMetaDataRowHandle(ItemActorClass, InDataTable, InRowName);
+				}
 			}
-			else if (NumericData.MaxInventoryStackSize < NumericData.MaxSlotStackSize)
+		}
+
+		if (ItemType == EItemType::IT_Weapon
+			|| ItemClass.Get()->IsChildOf<ANAWeapon>())
+		{
+			if (NumericData.bIsStackable)
 			{
-				NumericData.MaxSlotStackSize = NumericData.MaxInventoryStackSize;
+				NumericData.MaxSlotStackSize = 1;
+				NumericData.MaxInventoryHoldCount = 1;
 			}
+			else
+			{
+				NumericData.MaxSlotStackSize = -1;
+				NumericData.MaxInventoryHoldCount = -1;
+			}
+		}
+			
+		if (!NumericData.bIsStackable)
+		{
+			NumericData.MaxSlotStackSize = 1;
+		}
+		
+		if (NumericData.MaxInventoryHoldCount < 0)
+		{
+			NumericData.MaxInventoryHoldCount = 0;
+			NumericData.MaxSlotStackSize = 1;
+		}
+		else if (NumericData.MaxInventoryHoldCount == 0)
+		{
+			if (!ensure(NumericData.MaxSlotStackSize >= 1))
+			{
+				NumericData.MaxSlotStackSize = 1;
+			}
+		}
+		else if (NumericData.MaxInventoryHoldCount > 0)
+		{
+			if (!ensure(NumericData.MaxSlotStackSize >= 1
+				&& NumericData.MaxSlotStackSize <= NumericData.MaxInventoryHoldCount))
+			{
+				NumericData.MaxSlotStackSize = NumericData.MaxInventoryHoldCount;
+			}
+		}
+
+		if (!InRowName.IsNone()
+			&& InRowName.ToString() != TextData.Name.ToString())
+		{
+			TextData.Name = FText::FromName(InRowName);
 		}
 	}
 }
+#endif

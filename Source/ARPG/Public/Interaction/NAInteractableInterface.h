@@ -110,13 +110,7 @@ protected:
 // c++에서만 호출 가능한 일반 메서드
 //====================================================================================================================================
 protected:
-	// InteractableData가 맥락상의 기본값으로 편집되었는지 확인함 (에디터에서 수동으로 편집되었는지 여부를 반영하여 확인 결과를 반환)
-	// baseline과 비교하는 과정에서 에디터 수동 편집 사항을 반영하기 위해 내부 캐시(bModifiedFromBaseline)를 갱신할 수 있음
-	// 하지만 함수의 본질은 상태 탐지이며, 외부 사용자는 이를 판별 함수로 간주해도 무방함
-	bool CheckInteractableEdit(const FNAInteractableData& InteractableData) const;
 	const FNAInteractableData* TryGetInteractableData(const FNAItemBaseTableRow* InItemMetaData) const;
-	void TrySetInteractableData(FNAItemBaseTableRow* InItemMetaData, const FNAInteractableData& NewInteractableData);
-	void MarkBaselineModified(const FNAInteractableData& OutInteractableData);
 	class UNAInteractionComponent* TryGetInteractionComponent(AActor* InActor);
 	
 protected:

@@ -86,17 +86,18 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	UInputAction* InteractionAction;
 
 	/* Inventory*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* InventoryAction;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UNAInventoryComponent> InventoryComponent;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USpringArmComponent> InventoryWidgetBoom;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class USplineComponent> InventoryCamOrbitSpline;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* InventoryAction ;
+	// 인벤토리 활성 시, FollowCamera를 부착할 때 사용하는 스프링 암
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USpringArmComponent> InventoryAngleBoom;
 
 	/* Inventory IMC */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -108,6 +109,8 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 
 public:
 	ANACharacter();
+	virtual void OnConstruction(const FTransform& Transform) override;
+	virtual void Tick(float DeltaTime) override;
 
 protected:
 	virtual void SetAssetNameDerivedImplementation(const FName& InAssetName) override { AssetName = InAssetName; }
@@ -139,6 +142,8 @@ protected:
 	// Inventory Input
 	UFUNCTION()
 	void ToggleInventoryWidget();
+	
+	void ChangeCameraAngle(USpringArmComponent* NewBoom, float OverTime);
 	
 protected:
 	void TryRevive();
