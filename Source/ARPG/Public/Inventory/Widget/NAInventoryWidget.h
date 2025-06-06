@@ -79,6 +79,9 @@ public:
 
 protected:
 	friend class UNAInventoryComponent;
+
+	void InitInvenButtonsNavigation() const;
+	void InitWeaponButtonsNavigation() const;
 	
 	UButton* GetInvenSlotButton(const FName& SlotID) const;
 	UButton* GetWeaponSlotButton(const FName& SlotID) const;
@@ -97,6 +100,8 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void OnInventoryWidgetCollapsed();
 	uint8 bReleaseInventoryWidget : 1 = false;
+
+	
 protected:
 	UPROPERTY()
 	TObjectPtr<UNAInventoryComponent> OwningInventoryComponent;

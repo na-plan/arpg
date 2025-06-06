@@ -9,7 +9,7 @@
 #include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
-
+//#include "Blueprint/WidgetNavigation.h"
 
 FNAInvenSlotWidgets::FNAInvenSlotWidgets(UButton* Button, UImage* Icon, UTextBlock* Text)
 	: InvenSlotButton(Button), InvenSlotIcon(Icon), InvenSlotQty(Text)
@@ -66,8 +66,10 @@ void UNAInventoryWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 	
-	//InitInvenSlotSlates();
-	//bHaveWeaponSlotsMapped = true;
+	InitInvenSlotSlates();
+	InitWeaponSlotSlates();
+
+	InitInvenButtonsNavigation();
 }
 
 void UNAInventoryWidget::NativeConstruct()
@@ -81,6 +83,8 @@ void UNAInventoryWidget::NativeConstruct()
 
 void UNAInventoryWidget::InitInvenSlotSlates()
 {
+	if (bHaveInvenSlotsMapped) return;
+	
 	bool bResult = true;
 	for (int32 i = 0; i < MaxInventorySlots; ++i)
 	{
@@ -116,10 +120,12 @@ void UNAInventoryWidget::InitInvenSlotSlates()
 
 void UNAInventoryWidget::InitWeaponSlotSlates()
 {
+	if (bHaveWeaponSlotsMapped) return;
+	
 	bool bResult = true;
 	for (int32 i = 0; i < MaxWeaponSlots; ++i)
 	{
-		FString NumStr = FString::FromInt(i);
+		FString NumStr = FString::Printf(TEXT("%02d"), i);
 		FName BtnName = FName(*FString::Printf(TEXT("Weapon_%s"), *NumStr));
 		FName IconName = FName(*FString::Printf(TEXT("Weapon_%s_Icon"), *NumStr));
 
@@ -141,6 +147,89 @@ void UNAInventoryWidget::InitWeaponSlotSlates()
 	}
 	ensureAlwaysMsgf(bResult, TEXT("[InitWeaponSlotSlates]  Failed to initialize weapon slots binding."));
 	bHaveWeaponSlotsMapped = bResult;
+}
+
+// 인벤토리 슬롯(버튼) 네비게이션 설정
+void UNAInventoryWidget::InitInvenButtonsNavigation() const
+{
+	if (!ensure(bHaveInvenSlotsMapped)) return;
+
+	for (int Row = 0; Row < InventoryRowCount; ++Row)
+	{
+		for (int Col = 0; Col < InventoryColumnCount; ++Col)
+		{
+			UButton* CurButton = InvenSlotWidgets[Row][Col].InvenSlotButton.Get();
+			if (!CurButton) continue;
+
+			// 위쪽: 같은 열의 윗 행 버튼
+			if (Row > 0)
+			{
+				UButton* NextButton = InvenSlotWidgets[Row-1][Col].InvenSlotButton.Get();
+				if (!NextButton)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("[InitInvenButtonsNavigation]  버튼 네비게이션 설정 실패: %d번, 행: %d, 열: %d")
+						,1, Row - 1, Col);
+					continue;
+				}
+				CurButton->SetNavigationRuleExplicit(EUINavigation::Up, NextButton);
+			}
+			// 아래쪽: 같은 열의 아랫 행 버튼
+			if (Row < InventoryRowCount && Row + 1 < InventoryRowCount)
+			{
+				UButton* NextButton = InvenSlotWidgets[Row + 1][Col].InvenSlotButton.Get();
+				if (!NextButton)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("[InitInvenButtonsNavigation]  버튼 네비게이션 설정 실패: %d번, 행: %d, 열: %d")
+						,2, Row + 1, Col);
+					continue;
+				}
+				CurButton->SetNavigationRuleExplicit(EUINavigation::Down, NextButton);
+			}
+			// 왼쪽
+			if (Col > 0)
+				{
+					UButton* NextButton = InvenSlotWidgets[Row][Col - 1].InvenSlotButton.Get();
+					if (!NextButton)
+					{
+						UE_LOG(LogTemp, Warning, TEXT("[InitInvenButtonsNavigation]  버튼 네비게이션 설정 실패: %d번, 행: %d, 열: %d")
+						       , 3, Row, Col - 1);
+						continue;
+					}
+					CurButton->SetNavigationRuleExplicit(EUINavigation::Left, NextButton);
+				}
+			// 오른쪽
+			if (Col < InventoryColumnCount && Col + 1 < InventoryColumnCount)
+			{
+				UButton* NextButton = InvenSlotWidgets[Row][Col + 1].InvenSlotButton.Get();
+				if (!NextButton)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("[InitInvenButtonsNavigation]  버튼 네비게이션 설정 실패: %d번, 행: %d, 열: %d")
+						   , 4, Row, Col + 1);
+					continue;
+				}
+				CurButton->SetNavigationRuleExplicit(EUINavigation::Right, NextButton);
+			}
+		}
+	}
+}
+
+void UNAInventoryWidget::InitWeaponButtonsNavigation() const
+{
+	if (!ensure(bHaveWeaponSlotsMapped)) return;
+
+	for (int Index = 0; Index < MaxWeaponSlots; ++Index)
+	{
+		UButton* CurButton = WeaponSlotWidgets[Index].WeaponSlotButton.Get();
+		if (!CurButton) continue;
+
+		if (Index == 0)
+		{
+			CurButton->SetNavigationRuleExplicit(EUINavigation::Up, WeaponSlotWidgets[1].WeaponSlotButton.Get());
+			CurButton->SetNavigationRuleExplicit(EUINavigation::Down, WeaponSlotWidgets[1].WeaponSlotButton.Get());
+			CurButton->SetNavigationRuleExplicit(EUINavigation::Left, WeaponSlotWidgets[2].WeaponSlotButton.Get());
+			CurButton->SetNavigationRuleExplicit(EUINavigation::Right, WeaponSlotWidgets[3].WeaponSlotButton.Get());
+		}
+	}
 }
 
 // void UNAInventoryWidget::FillSlotButtonMapFromArrays(TMap<FName, TWeakObjectPtr<UButton>>& OutSlotButtons) const
@@ -191,7 +280,7 @@ void UNAInventoryWidget::CollapseInventoryWidget()
 	
 	bReleaseInventoryWidget = false;
 	SetIsEnabled(false);
-	PlayAnimationReverse(WidgetExpand);
+	PlayAnimationReverse(WidgetExpand, 1.3f);
 }
 
 void UNAInventoryWidget::OnInventoryWidgetCollapsed()

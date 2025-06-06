@@ -113,7 +113,7 @@ ANACharacter::ANACharacter()
 
 	InventoryWidgetBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("InventorySpringArm"));
 	InventoryWidgetBoom->SetupAttachment(RootComponent);
-	InventoryWidgetBoom->SetRelativeLocation(FVector(0.f, 65.f, 25.f));
+	InventoryWidgetBoom->SetRelativeLocation(FVector(0.f, 65.f, -25.f));
 	InventoryWidgetBoom-> bUsePawnControlRotation = false;
 	InventoryWidgetBoom-> bInheritPitch = false;
 	InventoryWidgetBoom-> bInheritYaw = true;
@@ -545,8 +545,8 @@ void ANACharacter::RotateSpringArmForInventory(bool bExpand, float Overtime)
 	FLatentActionInfo LatentInfo;
 	LatentInfo.CallbackTarget = this;
 	LatentInfo.ExecutionFunction = NAME_None;
-	LatentInfo.Linkage = 0;
-	LatentInfo.UUID = 1212; // 임의의 고유 값
+	LatentInfo.Linkage = INDEX_NONE;
+	LatentInfo.UUID = INDEX_NONE; // 임의의 고유 값
 
 	// 4) World-space 이동 (MoveComponentTo: Attach Parent에 대한 Relative Loc & Rot을 활용하여 보간)
 	UKismetSystemLibrary::MoveComponentTo(

@@ -24,16 +24,25 @@ UNAInventoryComponent::UNAInventoryComponent()
 	SetGenerateOverlapEvents(false);
 	SetEnableGravity(false);
 	CanCharacterStepUpOn = ECB_No;
-	SetRelativeRotation(FRotator(-10.0f, 0.0f, 0.0f));
+	SetSimulatePhysics(false);
+	bApplyImpulseOnDamage = false;
+	bReplicatePhysicsToAutonomousProxy = false;
+	BodyInstance.SetInertiaConditioningEnabled(false);
+	BodyInstance.bGenerateWakeEvents = false;
+	BodyInstance.bUpdateMassWhenScaleChanges = false;
+	
+	SetRelativeLocation(FVector(0.f, -43.f, 27.f));
+	SetRelativeRotation(FRotator(9.0f, 8.0f, 0.0f));
+	SetRelativeScale3D(FVector(0.35f));
 	SetWidgetSpace(EWidgetSpace::World);
 	SetDrawSize(FVector2D(1280, 720));
 	SetGeometryMode(EWidgetGeometryMode::Cylinder);
-	SetCylinderArcAngle(180.f);
-	bIsTwoSided = true;
+	SetCylinderArcAngle(15.f);
+	OpacityFromTexture = 1.f;
 	SetBlendMode(EWidgetBlendMode::Masked);
-	OpacityFromTexture = 0.8f;
+	bIsTwoSided = true;
 	//SetVisibility(false);
-
+	SetDrawSize(FVector2D(1024, 576));
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
 		// 슬롯 데이터 매핑 키 값만(ID) 초기화
