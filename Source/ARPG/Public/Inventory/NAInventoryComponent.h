@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/WidgetComponent.h"
+#include "NAInventoryCommonTypes.h"
 #include "NAInventoryComponent.generated.h"
 
 
@@ -86,15 +87,6 @@ public:
 	// Sets default values for this component's properties
 	UNAInventoryComponent();
 
-	// 슬롯 개수
-	static constexpr int32 MaxInventorySlots = 25;
-	static constexpr int32 MaxWeaponSlots = 4;
-	static constexpr int32 MaxTotalSlots = MaxInventorySlots + MaxWeaponSlots;
-
-	// 슬롯 ID 문자열 포맷
-	static constexpr TCHAR InventorySlotFormat[] = TEXT("Inven_%02d");
-	static constexpr TCHAR WeaponSlotFormat[]    = TEXT("Weapon_%02d");
-
 	static FName MakeInventorySlotID(int32 Index)
 	{
 		return FName(*FString::Printf(InventorySlotFormat, Index));
@@ -105,25 +97,25 @@ public:
 	}
 	
 private:
-	// InventoryContents만 초기화
+	// InvenSlotContents & WeaponSlotContents만 초기화
 	static void InitInventorySlotIDs(UNAInventoryComponent* InventoryComponent)
 	{
-		InventoryComponent->InventoryContents.Reserve(MaxTotalSlots);
-
+		InventoryComponent->InvenSlotContents.Reserve(MaxInventorySlots);
 		// 인벤토리 슬롯 25개: 0~24까지 Inven_nn 슬롯 키를 채우고, 값은 nullptr (TWeakObjectPtr이므로 nullptr 가능)
 		for (int32 i = 0; i <= MaxInventorySlots; ++i)
 		{
 			//String SlotNameStr = FString::Printf(TEXT("Inven_%02d"), i);
 			//InventoryComponent->InventoryContents.Add(FName(*SlotNameStr), nullptr);
-			InventoryComponent->InventoryContents.Add(MakeInventorySlotID(i), nullptr);
+			InventoryComponent->InvenSlotContents.Add(MakeInventorySlotID(i), nullptr);
 		}
 
+		InventoryComponent->WeaponSlotContents.Reserve(MaxWeaponSlots);
 		// 무기 슬롯 4개: 0~3까지 Weapon_nn 슬롯 키를 채우고, 값은 nullptr
 		for (int32 i = 0; i <= MaxWeaponSlots; ++i)
 		{
 			//FString SlotNameStr = FString::Printf(TEXT("Weapon_%02d"), i);
 			//InventoryComponent->InventoryContents.Add(FName(*SlotNameStr), nullptr);
-			InventoryComponent->InventoryContents.Add(MakeWeaponSlotID(i), nullptr);
+			InventoryComponent->WeaponSlotContents.Add(MakeWeaponSlotID(i), nullptr);
 		}
 	}
 	
@@ -152,11 +144,15 @@ public:
 
 protected:
 	// Partial 슬롯 목록을 반환 (동일 클래스가 들어 있고, 아직 MaxSlotStackSize만큼 차지 않은 슬롯)
-	void GatherPartialSlots(UClass* ItemClass, TArray<FName>& OutPartialSlots) const;
+	void GatherPartialInvenSlots(UClass* ItemClass, TArray<FName>& OutPartialSlots) const;
+	void GatherPartialWeaponSlots(UClass* ItemClass, TArray<FName>& OutPartialSlots) const;
 
-	// Empty 슬롯 목록을 반환 (Weapon vs Inven 구분은 ItemClass 기준으로 판단)
-	void GatherEmptySlots(UClass* ItemClass, TArray<FName>& OutEmptySlots) const;
-
+	// Empty 인벤 슬롯 목록을 반환
+	void GatherEmptyInvenSlotsWithClass(UClass* ItemClass, TArray<FName>& OutEmptySlots) const;
+	
+	// Empty 무기 슬롯 목록을 반환
+	void GatherEmptyWeaponSlotsWithClass(UClass* ItemClass, TArray<FName>& OutEmptySlots) const;
+	
 	// Partial 슬롯과 Empty 슬롯을 모아, 실제로 추가할 수 있는 최대 수량을 계산
 	int32 ComputeDistributableAmount(UNAItemData* InputItem, const TArray<FName>& PartialSlots,
 	                                 const TArray<FName>& EmptySlots) const;
@@ -197,6 +193,12 @@ private:
 public:
 	// 아이템 수량 관리를 위한 유틸 함수 //////////////////////////////////////////////////////////////////////////////////////////
 
+	bool IsValidSlotID(const FName& SlotID) const
+	{
+		return InvenSlotContents.Contains(SlotID) || WeaponSlotContents.Contains(SlotID);
+	}
+	UNAItemData* GetItemDataFromSlot(const FName& SlotID) const;
+	
 	/**
 	 * 해당 슬롯이 최대 용량이 될 때까지 추가로 넣을 수 있는 아이템 개수를 반환
 	 * @param SlotID    검사할 슬롯의 ID
@@ -210,7 +212,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
 	UNAItemData* FindSameClassItem(const UClass* ItemClass) const;
 	
-	bool FindSlotIDForItem(const UNAItemData* ItemToFind, FName& OutName) const;
+	FName FindSlotIDForItem(const UNAItemData* ItemToFind) const;
 
 	/** 인벤토리에 해당 아이템 클래스가 있는지 확인 */
 	bool HasItemOfClass(const UClass* ItemClass) const;
@@ -233,7 +235,7 @@ public:
 	bool IsFullSlot(const FName& SlotID) const;
 
 	/** 빈 Inventory(Inven_) 슬롯들을 반환 */
-	void GatherEmptyInventorySlots(TArray<FName>& OutEmptySlots) const;
+	void GatherEmptyInvenSlots(TArray<FName>& OutEmptySlots) const;
 	/** 빈 Weapon(Weapon_) 슬롯들을 반환*/
 	void GatherEmptyWeaponSlots(TArray<FName>& OutEmptySlots) const;
 
@@ -254,8 +256,9 @@ public:
 
 	// 아이템 정렬 & 인벤토리 위젯 /////////////////////////////////////////////////////////////////////////////////////////////	
 
-	// 인벤토리 정렬 함수
-	void SortInventoryItems();
+	// 인벤토리 슬롯 정렬 및 위젯 redraw 요청
+	// 무기 슬롯은 정렬 대상 x, 하지만 이 함수에서 무기 슬롯 redraw 요청까지 다함
+	void SortInvenSlotItems();
 
 	//UFUNCTION(BlueprintCallable, Category = "Inventory Component")
 	//void SplitExistingStack(UNAItemData* ItemToSplit, const int32 AmountToSplit);
@@ -268,7 +271,11 @@ public:
 protected:
 	// SlotID, ItemData
 	UPROPERTY(VisibleAnywhere, Category = "Inventory Component")
-	TMap<FName, TWeakObjectPtr<UNAItemData>> InventoryContents;
+	TMap<FName, TWeakObjectPtr<UNAItemData>> InvenSlotContents;
+
+	// SlotID, ItemData
+	UPROPERTY(VisibleAnywhere, Category = "Inventory Component")
+	TMap<FName, TWeakObjectPtr<UNAItemData>> WeaponSlotContents;
 
 	// @TODO: 장착 중인 수트의 레벨에 따라 인벤토리의 총 용량이 달라지도록
 
@@ -285,8 +292,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component | Widget")
 	bool IsInventoryWidgetVisible() const;
-	void ReleaseInventoryWidget();
-	void CollapseInventoryWidget();
+	void ReleaseInventory();
+	void CollapseInventory();
 
 protected:
 	//UPROPERTY()

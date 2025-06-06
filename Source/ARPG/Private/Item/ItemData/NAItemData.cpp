@@ -97,6 +97,15 @@ FString UNAItemData::GetItemName() const
 	return {};
 }
 
+class UTexture2D* UNAItemData::GetItemIcon() const
+{
+	if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct())
+	{
+		return ItemMetaData->IconAssetData.ItemIcon;
+	}
+	return nullptr;
+}
+
 bool UNAItemData::IsPickableItem() const
 {
 	if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct())

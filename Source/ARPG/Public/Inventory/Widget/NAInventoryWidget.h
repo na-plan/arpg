@@ -4,12 +4,53 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Inventory/NAInventoryCommonTypes.h"
 #include "NAInventoryWidget.generated.h"
 
 class UButton;
 class UImage;
 class UTextBlock;
 class UNAItemData;
+
+USTRUCT()
+struct FNAInvenSlotWidgets
+{
+	GENERATED_BODY()
+	
+	FNAInvenSlotWidgets() = default;
+	FNAInvenSlotWidgets(UButton* Button, UImage* Icon,  UTextBlock* Text);
+	
+	UPROPERTY()
+	TWeakObjectPtr<UButton> InvenSlotButton = nullptr;
+	UPROPERTY()
+	TWeakObjectPtr<UImage> InvenSlotIcon = nullptr;
+	UPROPERTY()
+	TWeakObjectPtr<UTextBlock> InvenSlotQty = nullptr;
+
+	bool IsValid() const
+	{
+		return InvenSlotButton.IsValid() && InvenSlotIcon.IsValid() && InvenSlotQty.IsValid();
+	}
+};
+
+USTRUCT()
+struct FNAWeaponSlotWidgets
+{
+	GENERATED_BODY()
+
+	FNAWeaponSlotWidgets() = default;
+	FNAWeaponSlotWidgets(UButton* Button, UImage* Icon);
+	
+	UPROPERTY()
+	TWeakObjectPtr<UButton> WeaponSlotButton = nullptr;
+	UPROPERTY()
+	TWeakObjectPtr<UImage> WeaponSlotIcon = nullptr;
+
+	bool IsValid() const
+	{
+		return WeaponSlotButton.IsValid() && WeaponSlotIcon.IsValid();
+	}
+};
 
 UCLASS()
 class ARPG_API UNAInventoryWidget : public UUserWidget
@@ -19,34 +60,57 @@ class ARPG_API UNAInventoryWidget : public UUserWidget
 public:
 	// CreateWidget으로 위젯 인스턴스가 생성되고 나서 호출됨
 	virtual void NativeOnInitialized() override;
-
-	//bool MapSlotIDAndUIButton(TMap<FName, TWeakObjectPtr<UButton>>& SlotButtons) const;
+	virtual void NativeConstruct() override;
 	
-	void FillSlotButtonMapFromArrays(TMap<FName, TWeakObjectPtr<UButton>>& OutSlotButtons) const;
-
-	bool HaveInvenSlotButtonsMapped() const { return bHaveInvenSlotsMapped; }
-	bool HaveWeaponSlotButtonsMapped() const { return bHaveWeaponSlotsMapped; }
-
-	UButton* GetInvenSlotButton(FName SlotName) const;
-	UButton* GetWeaponSlotButton(FName SlotName) const;
-
-	void RefreshInvenSlotButtons(const TMap<FName, TWeakObjectPtr<UNAItemData>>& InventoryItems
-		/*, const TMap<FName, TWeakObjectPtr<UButton>>& SlotButtons*/);
-	void RefreshWeaponSlotButtons(const TMap<FName, TWeakObjectPtr<UNAItemData>>& InventoryItems
-		/*, const TMap<FName, TWeakObjectPtr<UButton>>& SlotButtons*/);
+	//void FillSlotButtonMapFromArrays(TMap<FName, TWeakObjectPtr<UButton>>& OutSlotButtons) const;
 	
-	void UpdateSlotDrawData(const UNAItemData* ItemData, UButton* SlotButton);
-	
+	bool HaveInvenSlotWidgetsBound() const { return bHaveInvenSlotsMapped; }
+	bool HaveWeaponSlotWidgetsBound() const { return bHaveWeaponSlotsMapped; }
+
+	void SetOwningInventoryComponent(class UNAInventoryComponent* InInventoryComponent)
+	{
+		if (InInventoryComponent != nullptr)
+		{
+			OwningInventoryComponent = InInventoryComponent;
+		}
+	}
+	void ReleaseInventoryWidget();
+	void CollapseInventoryWidget();
+
 protected:
+	friend class UNAInventoryComponent;
+	
+	UButton* GetInvenSlotButton(const FName& SlotID) const;
+	UButton* GetWeaponSlotButton(const FName& SlotID) const;
+
+	void RefreshSlotWidgets(const TMap<FName, TWeakObjectPtr<UNAItemData>>& InventoryItems,
+	const TMap<FName, TWeakObjectPtr<UNAItemData>>& WeaponItems);
+		/*, const TMap<FName, TWeakObjectPtr<UButton>>& SlotButtons);*/
+	// void RefreshWeaponSlotWidgets(const TMap<FName, TWeakObjectPtr<UNAItemData>>& InventoryItems
+	// 	/*, const TMap<FName, TWeakObjectPtr<UButton>>& SlotButtons*/);
+	
+	void UpdateInvenSlotDrawData(const UNAItemData* ItemData, const FNAInvenSlotWidgets& Inven_SlotWidgets);
+	void UpdateWeaponSlotDrawData(const UNAItemData* ItemData, const FNAWeaponSlotWidgets& Weapon_SlotWidgets);
+
+	UFUNCTION(BlueprintCallable)
+	void OnInventoryWidgetReleased();
+	UFUNCTION(BlueprintCallable)
+	void OnInventoryWidgetCollapsed();
+	uint8 bReleaseInventoryWidget : 1 = false;
+protected:
+	UPROPERTY()
+	TObjectPtr<UNAInventoryComponent> OwningInventoryComponent;
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (BindWidgetAnim), Category = "Widget Animation")
+	TObjectPtr<UWidgetAnimation> WidgetExpand;
+	
 	// Slot Buttons //////////////////////////////////////////////////////////////////////////////////////
 	// 변수명: 슬롯 ID와 일치시켜야 함
 	
 	// Inven Slots //////////////////////////////////////////////////////////
 
-	TWeakObjectPtr<UButton> InvenSlotButtons[5][5];
-	TWeakObjectPtr<UImage> InvenSlotImages[5][5];
-	TWeakObjectPtr<UTextBlock> InvenSlotNumbers[5][5];
+	FNAInvenSlotWidgets InvenSlotWidgets[InventoryRowCount][InventoryColumnCount];
 	uint8 bHaveInvenSlotsMapped : 1;
+	void InitInvenSlotSlates();
 	
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Inven Slots")
 	TObjectPtr<UButton> Inven_00;
@@ -226,8 +290,9 @@ protected:
 	
 	// Weapon Slots //////////////////////////////////////////////////
 
-	TWeakObjectPtr<UButton> WeaponSlotButtons[4];
+	FNAWeaponSlotWidgets WeaponSlotWidgets[MaxWeaponSlots];
 	uint8 bHaveWeaponSlotsMapped : 1;
+	void InitWeaponSlotSlates();
 	
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Weapon Slots")
 	TObjectPtr<UButton> Weapon_00;
