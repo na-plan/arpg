@@ -51,9 +51,17 @@ public:
 	// Sets default values for this component's properties
 	UNAInteractionComponent();
 
+	void SetUpdate(const bool bFlag);
+
 protected:
 	virtual void OnRegister() override;
 
+	UFUNCTION()
+	void OnActorBeginOverlap( AActor* OverlappedActor, AActor* OtherActor );
+
+	UFUNCTION()
+	void OnActorEndOverlap( AActor* OverlappedActor, AActor* OtherActor );
+	
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
@@ -82,7 +90,9 @@ protected:
 	//TMap<TWeakInterfacePtr<class INAInteractableInterface>, FNAInteractionData> FocusedInteractableMap;
 
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Interaction Component")
-	float InteractionCheckFrequency;
+	float InteractionCheckFrequency = 0.1f;
+
+	float CurrentInteractionCheckTime;
 
 	//UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Interaction Component")
 	//float InteractionCheckDistance;

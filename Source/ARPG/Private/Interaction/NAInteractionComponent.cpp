@@ -19,6 +19,11 @@ UNAInteractionComponent::UNAInteractionComponent()
 	// ...
 }
 
+void UNAInteractionComponent::SetUpdate( const bool bFlag )
+{
+	bUpdateInteractionData = bFlag;
+}
+
 void UNAInteractionComponent::OnRegister()
 {
 	Super::OnRegister();
@@ -54,6 +59,21 @@ void UNAInteractionComponent::OnRegister()
 	
 }
 
+void UNAInteractionComponent::OnActorBeginOverlap( AActor* /*OverlappedActor*/, AActor* OtherActor )
+{
+	if ( const TScriptInterface<INAInteractableInterface>& Interface = OtherActor )
+	{
+		OnInteractableFound( Interface.GetInterface() );	
+	}
+}
+
+void UNAInteractionComponent::OnActorEndOverlap( AActor* OverlappedActor, AActor* OtherActor )
+{
+	if ( const TScriptInterface<INAInteractableInterface>& Interface = OtherActor )
+	{
+		OnInteractableLost( Interface.GetInterface() );	
+	}
+}
 
 // Called when the game starts
 void UNAInteractionComponent::BeginPlay()
@@ -61,17 +81,24 @@ void UNAInteractionComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-
+	if ( AActor* InteractionActor = GetOwner();
+		 InteractionActor && GetNetMode() != NM_Client )
+	{
+		InteractionActor->OnActorBeginOverlap.AddUniqueDynamic( this, &UNAInteractionComponent::OnActorBeginOverlap );
+		InteractionActor->OnActorEndOverlap.AddUniqueDynamic( this, &UNAInteractionComponent::OnActorEndOverlap );
+	}
 }
 
 // Called every frame
 void UNAInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	if (bUpdateInteractionData)
+	
+	CurrentInteractionCheckTime += DeltaTime;
+	if (bUpdateInteractionData && CurrentInteractionCheckTime >= InteractionCheckFrequency)
 	{
 		UpdateInteractionData();
+		CurrentInteractionCheckTime = 0.f;
 	}
 }
 
@@ -96,13 +123,12 @@ AActor* UNAInteractionComponent::TryAttachItemMeshToOwner(INAInteractableInterfa
 
 		if ( const TScriptInterface<INAHandActor> HandActor = GetOwner() )
 		{
-			if ( HandActor->GetRightHandChildActorComponent() )
+			if ( !HandActor->GetRightHandChildActorComponent()->GetChildActor() )
 			{
 				HandActor->GetRightHandChildActorComponent()->SetChildActorClass( ActiveInteractableInstance->GetClass() );
 				return HandActor->GetRightHandChildActorComponent()->GetChildActor();
 			}
-			
-			if ( HandActor->GetLeftHandChildActorComponent() )
+			else if ( !HandActor->GetLeftHandChildActorComponent()->GetChildActor() )
 			{
 				HandActor->GetLeftHandChildActorComponent()->SetChildActorClass( ActiveInteractableInstance->GetClass() );
 				return HandActor->GetLeftHandChildActorComponent()->GetChildActor();
@@ -288,7 +314,7 @@ void UNAInteractionComponent::BeginInteraction(/*INAInteractableInterface* Inter
 	}
 
 	ActiveInteractable = NearestInteractable;
-	ActiveInteractable.ToWeakInterface()->BeginInteract(GetOwner());
+	ActiveInteractable.ToWeakInterface()->Execute_BeginInteract(ActiveInteractable.GetRawObject(), GetOwner());
 }
 
 void UNAInteractionComponent::EndInteraction(/*INAInteractableInterface* InteractableActor*/)
