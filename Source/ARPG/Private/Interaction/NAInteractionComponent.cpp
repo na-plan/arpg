@@ -325,7 +325,7 @@ void UNAInteractionComponent::EndInteraction(/*INAInteractableInterface* Interac
 		return;
 	}
 
-	ActiveInteractable.ToWeakInterface()->EndInteract(GetOwner());
+	ActiveInteractable.ToWeakInterface()->Execute_EndInteract(ActiveInteractable.GetRawObject(), GetOwner());
 	ActiveInteractable = nullptr;
 }
 
@@ -337,6 +337,6 @@ void UNAInteractionComponent::ExecuteInteraction(/*INAInteractableInterface* Int
 		return;
 	}
 
-	ActiveInteractable.ToWeakInterface()->ExecuteInteract(GetOwner());
+	ActiveInteractable.ToWeakInterface()->Execute_ExecuteInteract(ActiveInteractable.GetRawObject(), GetOwner());
 }
 

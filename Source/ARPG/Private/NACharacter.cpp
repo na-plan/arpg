@@ -16,7 +16,6 @@
 #include "Algo/RemoveIf.h"
 #include "ARPG/ARPG.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
-#include "Components/SplineComponent.h"
 #include "EntitySystem/MovieSceneEntityManager.h"
 #include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "HP/GameplayAbility/NAGA_Revive.h"
@@ -26,6 +25,7 @@
 
 #include "Interaction/NAInteractionComponent.h"
 #include "Inventory/NAInventoryComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 
 DEFINE_LOG_CATEGORY( LogTemplateCharacter );
@@ -108,19 +108,34 @@ ANACharacter::ANACharacter()
 
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	DefaultCombatComponent = CreateDefaultSubobject<UNAMontageCombatComponent>( TEXT( "DefaultCombatComponent" ) );
+
 	InteractionComponent = CreateDefaultSubobject<UNAInteractionComponent>(TEXT("InteractionComponent"));
+
 	InventoryWidgetBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("InventorySpringArm"));
 	InventoryWidgetBoom->SetupAttachment(RootComponent);
+	InventoryWidgetBoom->SetRelativeLocation(FVector(0.f, 65.f, -25.f));
 	InventoryWidgetBoom-> bUsePawnControlRotation = false;
 	InventoryWidgetBoom-> bInheritPitch = false;
-	InventoryWidgetBoom-> bInheritYaw = false;
+	InventoryWidgetBoom-> bInheritYaw = true;
 	InventoryWidgetBoom-> bInheritRoll = false;
-	InventoryWidgetBoom->SetRelativeRotation(FRotator(0.0f, 190.0f, 0.0f));
-	InventoryWidgetBoom->TargetArmLength = 10.f;
+	InventoryWidgetBoom->TargetArmLength = 80.f;
 	InventoryWidgetBoom->bDoCollisionTest = false;
+	InventoryWidgetBoom->bEnableCameraRotationLag = true;
+	InventoryWidgetBoom->CameraRotationLagSpeed = 28.f;
+	
 	InventoryComponent = CreateDefaultSubobject<UNAInventoryComponent>(TEXT("InventoryComponent"));
 	InventoryComponent->SetupAttachment(InventoryWidgetBoom, USpringArmComponent::SocketName);
-	InventoryCamOrbitSpline = CreateDefaultSubobject<USplineComponent>(TEXT("InventoryCamOrbitSpline"));
+
+	InventoryAngleBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("InventoryAngleBoom"));
+	InventoryAngleBoom->SetupAttachment(RootComponent);
+	InventoryAngleBoom->SetRelativeLocation(FVector(0.f, 58.f, 7.f));
+	InventoryAngleBoom->SetRelativeRotation(FRotator(-8.f, 6.f, 0.f));
+	InventoryAngleBoom-> bUsePawnControlRotation = false;
+	InventoryAngleBoom-> bInheritPitch = false;
+	InventoryAngleBoom-> bInheritYaw = true;
+	InventoryAngleBoom-> bInheritRoll = false;
+	InventoryAngleBoom->TargetArmLength = 80.f;
+	InventoryAngleBoom->bDoCollisionTest = false;
 	
 	LeftHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("LeftHandChildActor"));
 	RightHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("RightHandChildActor"));
@@ -533,15 +548,121 @@ void ANACharacter::ToggleInventoryWidget()
 {
 	if (ensure(InventoryComponent != nullptr))
 	{
-		if (InventoryComponent->IsWidgetVisible())
+		if (!InventoryComponent->IsInventoryWidgetVisible())
 		{
-			InventoryComponent->CollapseInventoryWidget();
+			RotateSpringArmForInventory(true, 0.6f);
+			ToggleInventoryCameraView(true, InventoryAngleBoom, 0.6f);
+			InventoryComponent->ReleaseInventory();
 		}
 		else
 		{
-			InventoryComponent->ReleaseInventoryWidget();
+			RotateSpringArmForInventory(false, 0.4f);
+			ToggleInventoryCameraView(false, CameraBoom, 0.4f);
+			InventoryComponent->CollapseInventory();
 		}
 	}
+}
+
+void ANACharacter::RotateSpringArmForInventory(bool bExpand, float Overtime)
+{
+	if (!ensure(InventoryComponent != nullptr && InventoryWidgetBoom != nullptr)) return;
+
+	FVector TargetLocation = InventoryWidgetBoom->GetRelativeLocation();
+	FRotator TargetRotation;
+	if (bExpand)
+	{
+		TargetRotation = FRotator(0.0f, -180.0f, 0.0f);
+	}
+	else
+	{
+		TargetRotation = FRotator::ZeroRotator;
+	}
+
+	FLatentActionInfo LatentInfo;
+	LatentInfo.CallbackTarget = this;
+	LatentInfo.ExecutionFunction = NAME_None;
+	LatentInfo.Linkage = INDEX_NONE;
+	LatentInfo.UUID = INDEX_NONE; // 임의의 고유 값
+
+	// 4) World-space 이동 (MoveComponentTo: Attach Parent에 대한 Relative Loc & Rot을 활용하여 보간)
+	UKismetSystemLibrary::MoveComponentTo(
+		InventoryWidgetBoom,
+		TargetLocation,
+		TargetRotation,
+		true, true,
+		Overtime,
+		true,
+		EMoveComponentAction::Move,
+		LatentInfo
+	);
+}
+
+void ANACharacter::ToggleInventoryCameraView(const bool bEnable, USpringArmComponent* InNewBoom, float Overtime)
+{
+	if (!ensure(InNewBoom != nullptr && FollowCamera != nullptr)) return;
+	
+	FollowCamera->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+	FName CallbackFunc;
+	if (bEnable) // Release (Move To Inventory Camera View)
+	{
+		CallbackFunc = TEXT("OnInventoryCameraEnterFinished");
+	}
+	else // Collapse (Move From Inventory Camera View)
+	{
+		CallbackFunc = TEXT("OnInventoryCameraExitFinished");
+	}
+	// 인벤토리 연출 순서: 인벤 위젯 회전 -> 카메라 앵글 변경(한 프레임 뒤에서)
+	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda(
+		[this, InNewBoom, Overtime, CallbackFunc]()
+		{
+			// 1) 목표 위치/회전 계산 (NewBoom의 월드 위치/회전 등)
+			FollowCamera->AttachToComponent(InNewBoom, FAttachmentTransformRules::KeepWorldTransform,
+											USpringArmComponent::SocketName);
+			FVector TargetLocation = FVector::ZeroVector;
+			FRotator TargetRotation = FRotator::ZeroRotator;
+
+			// 2) 월드 공간에서 MoveComponentTo로 보간
+			FLatentActionInfo LatentInfo;
+			LatentInfo.CallbackTarget = this;
+			LatentInfo.ExecutionFunction = CallbackFunc;
+			LatentInfo.Linkage = 0;
+			LatentInfo.UUID = 1213; // 임의의 고유 값
+
+			// 3) World-space 이동 (MoveComponentTo: Attach Parent에 대한 Relative Loc & Rot을 활용하여 보간)
+			UKismetSystemLibrary::MoveComponentTo(
+				FollowCamera,
+				TargetLocation,
+				TargetRotation,
+				true, true,
+				Overtime,
+				true,
+				EMoveComponentAction::Move,
+				LatentInfo
+			);
+		}));
+}
+
+void ANACharacter::OnInventoryCameraEnterFinished()
+{
+	if (APlayerController* PC = Cast<APlayerController>(Controller))
+	{
+		CameraBoom->bUsePawnControlRotation = false;
+		GetCharacterMovement()->bUseControllerDesiredRotation = true;
+	}
+}
+void ANACharacter::OnInventoryCameraExitFinished()
+{
+	// 회전 컨트롤 세팅 바뀔때 약간 끊겨서 한 프레임 뒤에서 세팅 변경
+	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([this]()
+	{
+		if (APlayerController* PC = Cast<APlayerController>(Controller))
+		{
+			PC->SetMouseLocation(0,0);
+			PC->SetControlRotation(CameraBoom->GetComponentRotation());
+			CameraBoom->bUsePawnControlRotation = true;
+			GetCharacterMovement()->bUseControllerDesiredRotation = false;
+		}
+	}));
 }
 
 void ANACharacter::TryRevive()

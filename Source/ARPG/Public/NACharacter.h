@@ -6,7 +6,6 @@
 #include "AbilitySystemInterface.h"
 #include "Assets/Interface/NAManagedAsset.h"
 #include "Combat/Interface/NAHandActor.h"
-#include "Components/SplineComponent.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
 #include "NACharacter.generated.h"
@@ -104,9 +103,6 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USpringArmComponent> InventoryAngleBoom;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory", meta=(AllowPrivateAccess="true"))
-	USplineComponent* InventoryCamOrbitSpline;
-
 	/* Inventory IMC */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputMappingContext* InventoryMappingContext;
@@ -153,12 +149,24 @@ protected:
 	UFUNCTION()
 	void TryInteract();
 
-	// Inventory Input
+	// Inventory Widget Release/Collapse
 	UFUNCTION()
 	void ToggleInventoryWidget();
-	
-	void ChangeCameraAngle(USpringArmComponent* NewBoom, float OverTime);
-	
+
+	// Rotate Inventory Widget
+	UFUNCTION()
+	void RotateSpringArmForInventory(bool bExpand, float Overtime);
+
+	// Toggle the transition between camera view and inventory view 
+	UFUNCTION()
+	void ToggleInventoryCameraView(const bool bEnable, USpringArmComponent* NewBoom, float Overtime);
+
+	UFUNCTION()
+	void OnInventoryCameraEnterFinished();
+	UFUNCTION()
+	void OnInventoryCameraExitFinished();
+
+
 protected:
 	void TryRevive();
 
