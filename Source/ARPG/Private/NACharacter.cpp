@@ -141,12 +141,6 @@ ANACharacter::ANACharacter()
 
 	LeftHandChildActor->SetIsReplicated( true );
 	RightHandChildActor->SetIsReplicated( true );
-
-	if ( HasAuthority() )
-	{
-		LeftHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
-		RightHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
-	}
 }
 
 void ANACharacter::ApplyAttachments() const
@@ -181,6 +175,12 @@ void ANACharacter::BeginPlay()
 	// Call the base class  
 	Super::BeginPlay();
 
+	if ( HasAuthority() )
+	{
+		LeftHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
+		RightHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
+	}
+
 	// 클라이언트의 BeginPlay에 맞춰 직접 RPC로 요청
 	// 서버에서 직접 수행할 경우 클라이언트에서의 순서:
 	// - Character -> BeginPlay -> GiveAbility -> PlayerState -> AbilityComponent 초기화
@@ -189,6 +189,8 @@ void ANACharacter::BeginPlay()
 	{
 		Server_RequestReviveAbility();
 	}
+
+	InteractionComponent->SetActive( true );
 	
 	// == 테스트 코드 ==
 	{
@@ -242,6 +244,14 @@ void ANACharacter::PossessedBy(AController* NewController)
 				InventoryComponent->SetOwnerPlayer(LocalPlayer);
 			}
 		}
+	}
+}
+
+void ANACharacter::Server_BeginInteraction_Implementation()
+{
+	if (InteractionComponent)
+	{
+		InteractionComponent->BeginInteraction();
 	}
 }
 
@@ -508,7 +518,14 @@ void ANACharacter::TryInteract()
 {
 	if (ensure(InteractionComponent != nullptr))
 	{
-		InteractionComponent->BeginInteraction();
+		if ( !HasAuthority() )
+		{
+			Server_BeginInteraction();
+		}
+		else
+		{
+			InteractionComponent->BeginInteraction();	
+		}
 	}
 }
 
