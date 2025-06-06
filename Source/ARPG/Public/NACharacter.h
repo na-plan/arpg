@@ -112,7 +112,7 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	UInputMappingContext* InventoryMappingContext;
 
 	// 양손에 무기가 없을때 사용되는 전투 컴포넌트
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Combat", meta=(AllowPrivateAccess="true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Replicated, Category = "Combat", meta=(AllowPrivateAccess="true"))
 	UNAMontageCombatComponent* DefaultCombatComponent;
 
 public:
@@ -121,6 +121,8 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 protected:
+	void SetChildActorOwnership( AActor* Actor );
+	
 	virtual void SetAssetNameDerivedImplementation(const FName& InAssetName) override { AssetName = InAssetName; }
 
 	virtual FName GetAssetName() const override { return AssetName; }
@@ -175,6 +177,9 @@ protected:
 
 	UFUNCTION( Server, Reliable )
 	void Server_RequestReviveAbility();
+
+	UFUNCTION( Server, Unreliable )
+	void Server_BeginInteraction();
 
 protected:
 	virtual UChildActorComponent* GetLeftHandChildActorComponent() const override { return LeftHandChildActor; }

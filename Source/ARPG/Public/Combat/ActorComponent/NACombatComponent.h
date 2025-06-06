@@ -95,10 +95,10 @@ public:
 
 	TSubclassOf<UGameplayAbility> GetAttackAbility() const;
 	
-protected:
-
 	UFUNCTION( Server, Reliable )
 	void Server_RequestAttackAbility();
+	
+protected:
 	
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -109,6 +109,8 @@ protected:
 
 	// 공격 상태로 변환하는 함수
 	void SetAttack(bool NewAttack);
+
+	void UpdateAttackAbilityToASC( bool bOnlyRemove );
 
 	// 공격 값이 바뀌고 난 후 수행할 작업
 	virtual void PostSetAttack();

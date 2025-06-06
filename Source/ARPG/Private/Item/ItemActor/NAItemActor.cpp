@@ -24,6 +24,10 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	ItemInteractionButtonText->SetupAttachment(ItemInteractionButton);
 	
 	ItemDataID = NAME_None;
+
+	bReplicates = true;
+	AActor::SetReplicateMovement( true );
+	bAlwaysRelevant = true;
 }
 
 #if WITH_EDITOR
