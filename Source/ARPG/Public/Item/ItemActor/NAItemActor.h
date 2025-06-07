@@ -17,8 +17,7 @@ enum class EItemSubobjDirtyFlags : uint8
 	MF_RootShape		= (1<<0),
 	MF_Mesh				= (1<<1),
 	MF_IxButtonSprite	= (1<<4),
-	MF_IxButtonText		= (1<<5),
-	MF_Combat           = (1<<6),
+	MF_IxButtonText		= (1<<5)
 };
 ENUM_CLASS_FLAGS(EItemSubobjDirtyFlags)
 
