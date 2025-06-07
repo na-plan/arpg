@@ -63,7 +63,7 @@ void UNAInventoryComponent::BeginPlay()
 
 	SetVisibility(false);
 	SetWindowVisibility(EWindowVisibility::SelfHitTestInvisible);
-	
+	SetWindowFocusable(false);
 }
 
 bool UNAInventoryComponent::HandleRemoveItem(const FName& SlotID)
@@ -1071,8 +1071,6 @@ void UNAInventoryComponent::ReleaseInventory()
 {
 	if (UNAInventoryWidget* InventoryWidget = Cast<UNAInventoryWidget>(GetWidget()))
 	{
-		//SetVisibility(true);
-		//InventoryWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 		InventoryWidget->ReleaseInventoryWidget();
 	}
 }
@@ -1081,8 +1079,6 @@ void UNAInventoryComponent::CollapseInventory()
 {
 	if (UNAInventoryWidget* InventoryWidget = Cast<UNAInventoryWidget>(GetWidget()))
 	{
-		//SetVisibility(false);
-		//InventoryWidget->SetVisibility(ESlateVisibility::Collapsed);
 		InventoryWidget->CollapseInventoryWidget();
 	}
 }

@@ -12,7 +12,7 @@ class UImage;
 class UTextBlock;
 class UNAItemData;
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FNAInvenSlotWidgets
 {
 	GENERATED_BODY()
@@ -20,11 +20,11 @@ struct FNAInvenSlotWidgets
 	FNAInvenSlotWidgets() = default;
 	FNAInvenSlotWidgets(UButton* Button, UImage* Icon,  UTextBlock* Text);
 	
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TWeakObjectPtr<UButton> InvenSlotButton = nullptr;
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TWeakObjectPtr<UImage> InvenSlotIcon = nullptr;
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TWeakObjectPtr<UTextBlock> InvenSlotQty = nullptr;
 
 	bool IsValid() const
@@ -33,7 +33,7 @@ struct FNAInvenSlotWidgets
 	}
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FNAWeaponSlotWidgets
 {
 	GENERATED_BODY()
@@ -41,9 +41,9 @@ struct FNAWeaponSlotWidgets
 	FNAWeaponSlotWidgets() = default;
 	FNAWeaponSlotWidgets(UButton* Button, UImage* Icon);
 	
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TWeakObjectPtr<UButton> WeaponSlotButton = nullptr;
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TWeakObjectPtr<UImage> WeaponSlotIcon = nullptr;
 
 	bool IsValid() const
@@ -61,6 +61,7 @@ public:
 	// CreateWidget으로 위젯 인스턴스가 생성되고 나서 호출됨
 	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	
 	//void FillSlotButtonMapFromArrays(TMap<FName, TWeakObjectPtr<UButton>>& OutSlotButtons) const;
 	
@@ -99,22 +100,50 @@ protected:
 	void OnInventoryWidgetReleased();
 	UFUNCTION(BlueprintCallable)
 	void OnInventoryWidgetCollapsed();
+	UPROPERTY(Transient, BlueprintReadOnly)
 	uint8 bReleaseInventoryWidget : 1 = false;
+	
+	virtual FReply NativeOnFocusReceived( const FGeometry& InGeometry, const FFocusEvent& InFocusEvent ) override;
+	virtual void NativeOnFocusLost( const FFocusEvent& InFocusEvent ) override;
+	virtual void NativeOnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath, const FFocusEvent& InFocusEvent) override;
 
+	virtual FReply NativeOnPreviewKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override;
+	virtual FReply NativeOnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override;
+	virtual FReply NativeOnKeyUp( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override;
+
+	// 인벤토리 위젯 활성되는 동안 마우스 입력 막음 (임시)
+	virtual FReply NativeOnMouseMove( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent ) override;
+	virtual FReply NativeOnMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent ) override;
+	virtual FReply NativeOnPreviewMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent ) override;
+	virtual FReply NativeOnMouseButtonUp( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent ) override;
 	
 protected:
-	UPROPERTY()
+	UPROPERTY(Transient)
 	TObjectPtr<UNAInventoryComponent> OwningInventoryComponent;
 	UPROPERTY(Transient, BlueprintReadOnly, meta = (BindWidgetAnim), Category = "Widget Animation")
 	TObjectPtr<UWidgetAnimation> WidgetExpand;
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<UButton> LastFocusedSlotButton = nullptr;;
 	
 	// Slot Buttons //////////////////////////////////////////////////////////////////////////////////////
 	// 변수명: 슬롯 ID와 일치시켜야 함
 	
 	// Inven Slots //////////////////////////////////////////////////////////
 
+	UFUNCTION(BlueprintCallable)
+	TArray<FNAInvenSlotWidgets> GetInvenSlotWidgets() const;
+	
 	FNAInvenSlotWidgets InvenSlotWidgets[InventoryRowCount][InventoryColumnCount];
+	
+	TMap<TWeakPtr<SButton>, TWeakObjectPtr<UButton>> InvenSButtonMap;
+
+	FLinearColor DefaultInvenSlotColor = FLinearColor(0.647059f, 0.647059f, 0.647059f, 0.89f);
+	FLinearColor FocusedInvenSlotBackgroundColor = FLinearColor(0.654990f, 0.833897f, 1.0f, 0.95f);
+	
+	UPROPERTY(Transient, BlueprintReadOnly)
 	uint8 bHaveInvenSlotsMapped : 1;
+	
 	void InitInvenSlotSlates();
 	
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Inven Slots")
@@ -295,8 +324,19 @@ protected:
 	
 	// Weapon Slots //////////////////////////////////////////////////
 
+	UFUNCTION(BlueprintCallable)
+	TArray<FNAWeaponSlotWidgets> GetWeaponSlotWidgets() const;
+	
 	FNAWeaponSlotWidgets WeaponSlotWidgets[MaxWeaponSlots];
+	
+	TMap<TWeakPtr<SButton>, TWeakObjectPtr<UButton>> WeaponSButtonMap;
+
+	FLinearColor DefaultWeaponSlotColor = FLinearColor(0.647059f, 0.647059f, 0.647059f, 0.89f);
+	FLinearColor FocusedWeaponSlotBackgroundColor = FLinearColor(0.654990f, 0.833897f, 1.0f, 0.95f);
+	
+	UPROPERTY(Transient, BlueprintReadOnly)
 	uint8 bHaveWeaponSlotsMapped : 1;
+	
 	void InitWeaponSlotSlates();
 	
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Weapon Slots")

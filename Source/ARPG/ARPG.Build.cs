@@ -22,6 +22,8 @@ public class ARPG : ModuleRules
 			"AIModule",
 			"GeometryCollectionEngine"
 		});
+		
+		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 
 		if (Target.bBuildEditor)
 		{

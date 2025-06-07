@@ -571,7 +571,7 @@ void ANACharacter::RotateSpringArmForInventory(bool bExpand, float Overtime)
 	FRotator TargetRotation;
 	if (bExpand)
 	{
-		TargetRotation = FRotator(0.0f, -180.0f, 0.0f);
+		TargetRotation = FRotator(0.0f, -179.999f, 0.0f);
 	}
 	else
 	{
@@ -582,7 +582,7 @@ void ANACharacter::RotateSpringArmForInventory(bool bExpand, float Overtime)
 	LatentInfo.CallbackTarget = this;
 	LatentInfo.ExecutionFunction = NAME_None;
 	LatentInfo.Linkage = INDEX_NONE;
-	LatentInfo.UUID = INDEX_NONE; // 임의의 고유 값
+	LatentInfo.UUID = INDEX_NONE;
 
 	// 4) World-space 이동 (MoveComponentTo: Attach Parent에 대한 Relative Loc & Rot을 활용하여 보간)
 	UKismetSystemLibrary::MoveComponentTo(
@@ -625,8 +625,8 @@ void ANACharacter::ToggleInventoryCameraView(const bool bEnable, USpringArmCompo
 			FLatentActionInfo LatentInfo;
 			LatentInfo.CallbackTarget = this;
 			LatentInfo.ExecutionFunction = CallbackFunc;
-			LatentInfo.Linkage = 0;
-			LatentInfo.UUID = 1213; // 임의의 고유 값
+			LatentInfo.Linkage = 1;
+			LatentInfo.UUID = 1211; // 임의의 고유 값
 
 			// 3) World-space 이동 (MoveComponentTo: Attach Parent에 대한 Relative Loc & Rot을 활용하여 보간)
 			UKismetSystemLibrary::MoveComponentTo(
