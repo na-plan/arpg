@@ -4,6 +4,7 @@
 #include "Item/ItemActor/NAWeapon.h"
 
 #include "AbilitySystemComponent.h"
+#include "NiagaraComponent.h"
 #include "Abilities/GameplayAbility.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "Net/UnrealNetwork.h"
@@ -19,6 +20,8 @@ ANAWeapon::ANAWeapon() : ANAPickableItemActor(FObjectInitializer::Get())
 	CombatComponent->SetConsiderChildActor( true );
 
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>( TEXT("AbilitySystemComponent") );
+	MuzzleFlashComponent = CreateDefaultSubobject<UNiagaraComponent>( TEXT( "MuzzleFlashComponent") );
+	MuzzleFlashComponent->SetAutoActivate( false );
 
 	PickupMode = EPickupMode::PM_Holdable | EPickupMode::PM_Inventory;
 }
@@ -31,6 +34,9 @@ void ANAWeapon::BeginPlay()
 	// 몽타주랑 공격이 설정되어 있는지 확인
 	check( CombatComponent->GetMontage() && CombatComponent->GetAttackAbility() );
 	CombatComponent->SetActive( true );
+
+	MuzzleFlashComponent->AttachToComponent( ItemMesh, FAttachmentTransformRules::KeepRelativeTransform, TEXT( "Muzzle" ) );
+	MuzzleFlashComponent->SetActive( false );
 
 	if ( !HasAuthority() )
 	{
@@ -45,7 +51,7 @@ void ANAWeapon::BeginPlay()
 			{
 				CombatComponent->Server_RequestAttackAbility();
 			}
-		}	
+		}
 	}
 }
 
