@@ -24,7 +24,10 @@ public class ARPG : ModuleRules
 			"Niagara"
 		});
 		
-		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"Slate", "SlateCore"
+		});
 
 		if (Target.bBuildEditor)
 		{

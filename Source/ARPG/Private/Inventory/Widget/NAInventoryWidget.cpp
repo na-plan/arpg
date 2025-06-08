@@ -11,7 +11,8 @@
 #include "Components/TextBlock.h"
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
-#include "Blueprint/WidgetLayoutLibrary.h"
+//#include "Blueprint/WidgetLayoutLibrary.h"
+#include "Widgets/SViewport.h"
 
 FNAInvenSlotWidgets::FNAInvenSlotWidgets(UButton* Button, UImage* Icon, UTextBlock* Text)
 	: InvenSlotButton(Button), InvenSlotIcon(Icon), InvenSlotQty(Text)
@@ -416,7 +417,19 @@ void UNAInventoryWidget::OnInventoryWidgetReleased()
 	if (bReleaseInventoryWidget)
 	{
 		// 움직이면서 인벤토리 위젯 조작 가능은 한데, 진입할때 게임쪽 입력이 끊김 whyyyyyyyyy
-		UWidgetBlueprintLibrary::SetInputMode_GameAndUIEx(GetOwningPlayer(), nullptr, EMouseLockMode::LockOnCapture, true, false);
+		UWidgetBlueprintLibrary::SetInputMode_GameAndUIEx(GetOwningPlayer(), nullptr, EMouseLockMode::LockAlways, true, false);
+
+		// 일단 땜빵: [인벤 위젯 활성화 시 마우스 커서 노출되는 문제 + 마우스 버튼 다운/업 시 인벤 위젯에서 키보드 포커스 빠지는 문제] 틀어막음 
+		UGameViewportClient* GameViewportClient = GetWorld()->GetGameViewport();
+		TSharedPtr<SViewport> ViewportWidget = GameViewportClient->GetGameViewportWidget();
+		if (ViewportWidget.IsValid())
+		{
+			FReply& SlateOperations = GetOwningLocalPlayer()->GetSlateOperations();
+			TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.ToSharedRef();
+			SlateOperations.UseHighPrecisionMouseMovement(ViewportWidgetRef);
+			SlateOperations.LockMouseToWidget(ViewportWidgetRef);
+			GameViewportClient->SetMouseCaptureMode(EMouseCaptureMode::NoCapture);
+		}
 		
 		OwningInventoryComponent->SetWindowFocusable(true);
 		SetIsEnabled(true);
