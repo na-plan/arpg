@@ -8,6 +8,7 @@
 #include "GameFramework/Actor.h"
 #include "NAWeapon.generated.h"
 
+class UGameplayEffect;
 class UNiagaraComponent;
 class UNAMontageCombatComponent;
 
@@ -24,6 +25,9 @@ class ARPG_API ANAWeapon : public ANAPickableItemActor, public IAbilitySystemInt
 
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Replicated, Category="Combat", meta=(AllowPrivateAccess="true"))
 	UAbilitySystemComponent* AbilitySystemComponent;
+	
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category="Combat", meta=(AllowPrivateAccess="true"))
+	TSubclassOf<UGameplayEffect> AmmoEffectType;
 
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category="FX", meta=(AllowPrivateAccess="true"))
 	UNiagaraComponent* MuzzleFlashComponent;
