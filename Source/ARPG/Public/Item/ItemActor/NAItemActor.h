@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Components/SphereComponent.h"
 #include "GameFramework/Actor.h"
 #include "Interaction/NAInteractableInterface.h"
+#include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
 #include "NAItemActor.generated.h"
 
 class UTextRenderComponent;
@@ -40,10 +40,39 @@ protected:
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Item Actor")
-	const UNAItemData* GetItemData() const;
+	UNAItemData* GetItemData() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Item Actor")
 	bool HasValidItemID() const;
+
+	static void TransferItemDataToDuplicatedActor(ANAItemActor* OldItemActor, ANAItemActor* NewDuplicated, bool bDeferredDestroy = false)
+	{
+		if ( UNAItemEngineSubsystem::Get() && OldItemActor && NewDuplicated)
+		{
+			if (UNAItemEngineSubsystem::Get()->DestroyRuntimeItemData(NewDuplicated->ItemDataID))
+			{
+				NewDuplicated->ItemDataID = OldItemActor->ItemDataID;
+				if (OldItemActor->InteractableInterfaceRef && NewDuplicated->InteractableInterfaceRef)
+				{
+					INAInteractableInterface::TransferInteractableStateToDuplicatedActor(
+						OldItemActor->InteractableInterfaceRef
+						, NewDuplicated->InteractableInterfaceRef); // 어우 길어
+				}
+				if (bDeferredDestroy)
+				{
+					OldItemActor->GetWorld()->GetTimerManager().SetTimerForNextTick([OldItemActor]()
+					{
+						OldItemActor->ItemDataID = NAME_None;
+						OldItemActor->Destroy();
+					});
+				}
+				else
+				{
+					OldItemActor->Destroy();
+				}
+			}
+		}
+	}
 	
 protected:
 	// OnItemDataInitialized: BP 확장 가능
@@ -93,7 +122,7 @@ public:
 
 	virtual void BeginInteract_Implementation(AActor* Interactor) override;
 	virtual void EndInteract_Implementation(AActor* Interactor) override;
-	virtual void ExecuteInteract_Implementation(AActor* Interactor) override;
+	virtual bool ExecuteInteract_Implementation(AActor* Interactor) override;
 
 	virtual bool IsOnInteract_Implementation() const override;
 

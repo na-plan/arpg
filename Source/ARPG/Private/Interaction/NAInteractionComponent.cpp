@@ -5,6 +5,7 @@
 
 #include "NACharacter.h"
 #include "Item/ItemActor/NAItemActor.h"
+#include "Inventory/NAInventoryComponent.h"
 
 
 // Sets default values for this component's properties
@@ -63,7 +64,7 @@ void UNAInteractionComponent::OnActorBeginOverlap( AActor* /*OverlappedActor*/, 
 {
 	if ( const TScriptInterface<INAInteractableInterface>& Interface = OtherActor )
 	{
-		OnInteractableFound( Interface.GetInterface() );	
+		OnInteractableFound( Interface );	
 	}
 }
 
@@ -71,7 +72,7 @@ void UNAInteractionComponent::OnActorEndOverlap( AActor* OverlappedActor, AActor
 {
 	if ( const TScriptInterface<INAInteractableInterface>& Interface = OtherActor )
 	{
-		OnInteractableLost( Interface.GetInterface() );	
+		OnInteractableLost( Interface);	
 	}
 }
 
@@ -102,7 +103,11 @@ void UNAInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	}
 }
 
-AActor* UNAInteractionComponent::TryAttachItemMeshToOwner(INAInteractableInterface* InteractableActor)
+// 어우 길어
+// 어태치되면서 기존 액터를 ChlidActorComponent가 생성한 객체로 대체
+// ItemData & InteractionData & Interactable State 전부 인수인계함
+/*AActor**/TScriptInterface<INAInteractableInterface> UNAInteractionComponent::TryAttachItemMeshToOwner(
+	TScriptInterface<INAInteractableInterface> InteractableActor)
 {
 	if (ActiveInteractable != InteractableActor)
 	{
@@ -125,18 +130,55 @@ AActor* UNAInteractionComponent::TryAttachItemMeshToOwner(INAInteractableInterfa
 		{
 			if ( !HandActor->GetRightHandChildActorComponent()->GetChildActor() )
 			{
-				HandActor->GetRightHandChildActorComponent()->SetChildActorClass( ActiveInteractableInstance->GetClass() );
-				return HandActor->GetRightHandChildActorComponent()->GetChildActor();
+				HandActor->GetRightHandChildActorComponent()->SetChildActorClass( ActiveInteractableInstance->GetClass());
+				if (AActor* NewRightHandChlidActor = HandActor->GetRightHandChildActorComponent()->GetChildActor())
+				{
+					FWeakInteractableHandle NewRightHandle(NewRightHandChlidActor); // 여기서 인터페이스 구현 여부, 유효성 검사 다 함
+					if (ensureAlways(NewRightHandle.IsValid())) // 혹시 모르니깐 한 번 더...
+					{
+						ANAItemActor* NewlyAttachedItemActor = CastChecked<ANAItemActor>(NewRightHandle.GetRawObject());
+						ANAItemActor::TransferItemDataToDuplicatedActor(ActiveInteractableInstance, NewlyAttachedItemActor, true);
+						TransferInteractableMidInteraction(NewRightHandle);
+						return NewRightHandle.ToScriptInterface();
+					}
+				}
+				
+				return nullptr;
 			}
-			else if ( !HandActor->GetLeftHandChildActorComponent()->GetChildActor() )
+			
+			if ( !HandActor->GetLeftHandChildActorComponent()->GetChildActor())
 			{
 				HandActor->GetLeftHandChildActorComponent()->SetChildActorClass( ActiveInteractableInstance->GetClass() );
-				return HandActor->GetLeftHandChildActorComponent()->GetChildActor();
+				if (AActor* NewLeftHandChlidActor = HandActor->GetLeftHandChildActorComponent()->GetChildActor())
+				{
+					FWeakInteractableHandle NewLeftHandle(NewLeftHandChlidActor); // 여기서 인터페이스 구현 여부, 유효성 검사 다 함
+					if (ensureAlways(NewLeftHandle.IsValid())) // 혹시 모르니깐 한 번 더...
+					{
+						ANAItemActor* NewlyAttachedItemActor = CastChecked<ANAItemActor>(NewLeftHandle.GetRawObject());
+						ANAItemActor::TransferItemDataToDuplicatedActor(ActiveInteractableInstance, NewlyAttachedItemActor, true);
+						TransferInteractableMidInteraction(NewLeftHandle);
+						return NewLeftHandle.ToScriptInterface();
+					}
+				}
+				return nullptr;
 			}
 		}
 	}
 
 	return nullptr;
+}
+
+void UNAInteractionComponent::TransferInteractableMidInteraction(FWeakInteractableHandle NewActiveInteractable)
+{
+	if (!ensure(NewActiveInteractable.IsValid())) return;
+
+	FNAInteractionData CachedInteractableData;
+	FocusedInteractableMap.RemoveAndCopyValue(ActiveInteractable, CachedInteractableData);
+	if (CachedInteractableData.IsValid())
+	{
+		FocusedInteractableMap.Emplace(NewActiveInteractable, CachedInteractableData);
+		ActiveInteractable = NewActiveInteractable;
+	}
 }
 
 void UNAInteractionComponent::UpdateInteractionData()
@@ -210,7 +252,7 @@ void UNAInteractionComponent::SetNearestInteractable(INAInteractableInterface* I
 	}
 }
 
-bool UNAInteractionComponent::OnInteractableFound(INAInteractableInterface* InteractableActor)
+bool UNAInteractionComponent::OnInteractableFound(TScriptInterface<INAInteractableInterface> InteractableActor)
 {
 	if (!InteractableActor)
 	{
@@ -234,8 +276,7 @@ bool UNAInteractionComponent::OnInteractableFound(INAInteractableInterface* Inte
 	// }
 	if (FocusedInteractableMap.IsEmpty() || !FocusedInteractableMap.Contains(InteractableActor))
 	{
-		TWeakInterfacePtr<INAInteractableInterface> WeakInteractable(InteractableActor);
-		UObject* InteractableObj = WeakInteractable.GetObject();
+		UObject* InteractableObj = InteractableActor.GetObject();
 		if (!InteractableObj)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("[UNAInteractionComponent::OnInteractableFound]  이 로그가 뜬거면 진짜 뭔가 이상한거임.. 어째서 InteractableObj가 유효하지 않는게야"));
@@ -266,7 +307,7 @@ bool UNAInteractionComponent::OnInteractableFound(INAInteractableInterface* Inte
 	return true;
 }
 
-bool UNAInteractionComponent::OnInteractableLost(INAInteractableInterface* InteractableActor)
+bool UNAInteractionComponent::OnInteractableLost(TScriptInterface<INAInteractableInterface> InteractableActor)
 {
 	if (!InteractableActor)
 	{
@@ -293,6 +334,13 @@ bool UNAInteractionComponent::OnInteractableLost(INAInteractableInterface* Inter
 		return false;
 	}
 
+	if (ActiveInteractable == InteractableActor
+		&& InteractableActor->Execute_IsOnInteract(InteractableActor.GetObject()))
+	{
+		// 인터렉션 중인 액터인데 오버랩이 끊겼다고????
+		return false;
+	}
+
 	if (ActiveInteractable == InteractableActor)
 	{
 		ActiveInteractable = nullptr;
@@ -305,38 +353,92 @@ bool UNAInteractionComponent::OnInteractableLost(INAInteractableInterface* Inter
 	return true;
 }
 
-void UNAInteractionComponent::BeginInteraction(/*INAInteractableInterface* InteractableActor*/)
+void UNAInteractionComponent::StartInteraction(/*INAInteractableInterface* InteractableActor*/)
 {
 	if (!NearestInteractable.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[UNAInteractionComponent::BeginInteraction]  NearestInteractable이 유효하지 않음"));
+		UE_LOG(LogTemp, Warning, TEXT("[UNAInteractionComponent::StartInteraction]  NearestInteractable이 유효하지 않음"));
 		return;
 	}
 
 	ActiveInteractable = NearestInteractable;
 	ActiveInteractable.ToWeakInterface()->Execute_BeginInteract(ActiveInteractable.GetRawObject(), GetOwner());
+	if (ActiveInteractable.IsValid()
+		&& ActiveInteractable.ToWeakInterface()->Execute_IsOnInteract(ActiveInteractable.GetRawObject()))
+	{
+		bHasPendingUseItem = true;
+	}
 }
 
-void UNAInteractionComponent::EndInteraction(/*INAInteractableInterface* InteractableActor*/)
+void UNAInteractionComponent::StopInteraction(/*TScriptInterface<INAInteractableInterface> InteractableActor*/)
 {
-	if (!NearestInteractable.IsValid())
+	if (!ensure(bHasPendingUseItem && ActiveInteractable.IsValid())) return;
+
+	ActiveInteractable.ToScriptInterface()->Execute_EndInteract(ActiveInteractable.GetRawObject(), GetOwner());
+	
+	// 어태치된 액터가 있었다면..??? -> 이건 Interactable에서 처리하기
+}
+
+void UNAInteractionComponent::OnInteractionEnded(TScriptInterface<INAInteractableInterface> InteractableActor)
+{
+	if (!InteractableActor
+		   || ActiveInteractable.ToScriptInterface() != InteractableActor)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[UNAInteractionComponent::EndInteraction]  NearestInteractable이 유효하지 않음"));
+		UE_LOG(LogTemp, Warning,
+			TEXT("[UNAInteractionComponent::OnInteractionEnded]  상호작용 중인 Interactable(%s)과 상호작용을 멈추려던 Interactable(%s)이 서로 다른 객체였음")
+			, *ActiveInteractable.GetRawObject()->GetName(), *InteractableActor.GetObject()->GetName());
 		return;
 	}
 
-	ActiveInteractable.ToWeakInterface()->Execute_EndInteract(ActiveInteractable.GetRawObject(), GetOwner());
 	ActiveInteractable = nullptr;
+	bHasPendingUseItem = false;
 }
 
-void UNAInteractionComponent::ExecuteInteraction(/*INAInteractableInterface* InteractableActor*/)
+// void UNAInteractionComponent::EndInteraction(/*INAInteractableInterface* InteractableActor*/)
+// {
+// 	if (!NearestInteractable.IsValid())
+// 	{
+// 		UE_LOG(LogTemp, Warning, TEXT("[UNAInteractionComponent::EndInteraction]  NearestInteractable이 유효하지 않음"));
+// 		return;
+// 	}
+//
+// 	ActiveInteractable.ToWeakInterface()->Execute_EndInteract(ActiveInteractable.GetRawObject(), GetOwner());
+// 	ActiveInteractable = nullptr;
+// }
+
+// void UNAInteractionComponent::ExecuteInteraction(/*INAInteractableInterface* InteractableActor*/)
+// {
+// 	if (!ActiveInteractable.IsValid())
+// 	{
+// 		UE_LOG(LogTemp, Warning, TEXT("[UNAInteractionComponent::ExecuteInteraction]  ActiveInteractable 유효하지 않음"));
+// 		return;
+// 	}
+//
+// 	ActiveInteractable.ToWeakInterface()->Execute_ExecuteInteract(ActiveInteractable.GetRawObject(), GetOwner());
+// }
+
+bool UNAInteractionComponent::TryAddItemToInventory(ANAItemActor* ItemActor)
 {
-	if (!ActiveInteractable.IsValid())
+	UNAInventoryComponent* InventoryComp = GetOwner()->GetComponentByClass<UNAInventoryComponent>();
+	if (!ensureAlways(InventoryComp)) return false;
+	
+	if (!ItemActor) return false;
+	UNAItemData* Item = const_cast<UNAItemData*>(ItemActor->GetItemData());
+	if (!Item) return false;
+	
+	int32 RemainQuantity =  InventoryComp->TryAddItem(Item);
+	if (RemainQuantity == 0) // 전부 추가 성공
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[UNAInteractionComponent::ExecuteInteraction]  ActiveInteractable 유효하지 않음"));
-		return;
+		return true;
 	}
-
-	ActiveInteractable.ToWeakInterface()->Execute_ExecuteInteract(ActiveInteractable.GetRawObject(), GetOwner());
+	if (RemainQuantity > 0) // 부분 추가
+	{
+		// 아이템 액터 자체는 잔존하나, 아이템 데이터가 복제됨
+		// 해당 아이템 액터에 남아있는 아이템 데이터 / 인벤토리에 적재된 아이템 데이터
+	}
+	else if (RemainQuantity == -1) // 전부 실패
+	{
+		// 아이템 액터 잔존 및 아이템 데이터 변경 없음
+	}
+	return false;
 }
-

@@ -21,7 +21,7 @@ public:
 public:
 	virtual void BeginInteract_Implementation(AActor* Interactor) override;
 	virtual void EndInteract_Implementation(AActor* Interactor) override;
-	virtual void ExecuteInteract_Implementation(AActor* Interactor) override;
+	virtual bool ExecuteInteract_Implementation(AActor* Interactor) override;
 
 protected:
 	virtual void BeginPlay() override;

@@ -23,6 +23,11 @@ public class ARPG : ModuleRules
 			"GeometryCollectionEngine",
 			"Niagara"
 		});
+		
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"Slate", "SlateCore"
+		});
 
 		if (Target.bBuildEditor)
 		{

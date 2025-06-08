@@ -63,7 +63,7 @@ void UNAInventoryComponent::BeginPlay()
 
 	SetVisibility(false);
 	SetWindowVisibility(EWindowVisibility::SelfHitTestInvisible);
-	
+	SetWindowFocusable(false);
 }
 
 bool UNAInventoryComponent::HandleRemoveItem(const FName& SlotID)
@@ -834,7 +834,6 @@ int32 UNAInventoryComponent::DistributeToSlots(UNAItemData* InputItem, int32 Amo
         	// ───── *중요* ─────  
         	// 이제 InputItem 객체는 “인벤토리 슬롯에 들어간 데이터”가 되므로, 
         	// InputItem->Quantity(==RemainQty) 값을 바꿀 필요가 없습니다.
-        	// (절대로 InputItem->SetQuantity(0) 하지 마세요.)
         	
             Distributed       += ToAdd;
             AmountToDistribute -= ToAdd;
@@ -1014,11 +1013,6 @@ void UNAInventoryComponent::InitWidget()
 		if (UNAInventoryWidget* InventoryWidget = Cast<UNAInventoryWidget>(GetWidget()))
 		{
 			InventoryWidget->SetOwningInventoryComponent(this);
-			//const bool bSucceed = InventoryWidget->MapSlotIDAndUIButton(SlotButtons);
-			//ensureAlwaysMsgf(bSucceed, TEXT("[UNAInventoryComponent::InitWidget]  인벤토리 슬롯 & UI 매핑 실패"));
-
-			//SlotButtons.Empty();
-			//InventoryWidget->FillSlotButtonMapFromArrays(SlotButtons);
 		}
 	}
 }
@@ -1071,8 +1065,6 @@ void UNAInventoryComponent::ReleaseInventory()
 {
 	if (UNAInventoryWidget* InventoryWidget = Cast<UNAInventoryWidget>(GetWidget()))
 	{
-		//SetVisibility(true);
-		//InventoryWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 		InventoryWidget->ReleaseInventoryWidget();
 	}
 }
@@ -1081,8 +1073,6 @@ void UNAInventoryComponent::CollapseInventory()
 {
 	if (UNAInventoryWidget* InventoryWidget = Cast<UNAInventoryWidget>(GetWidget()))
 	{
-		//SetVisibility(false);
-		//InventoryWidget->SetVisibility(ESlateVisibility::Collapsed);
 		InventoryWidget->CollapseInventoryWidget();
 	}
 }
