@@ -102,7 +102,7 @@ private:
 	{
 		InventoryComponent->InvenSlotContents.Reserve(MaxInventorySlots);
 		// 인벤토리 슬롯 25개: 0~24까지 Inven_nn 슬롯 키를 채우고, 값은 nullptr (TWeakObjectPtr이므로 nullptr 가능)
-		for (int32 i = 0; i <= MaxInventorySlots; ++i)
+		for (int32 i = 0; i < MaxInventorySlots; ++i)
 		{
 			//String SlotNameStr = FString::Printf(TEXT("Inven_%02d"), i);
 			//InventoryComponent->InventoryContents.Add(FName(*SlotNameStr), nullptr);
@@ -111,7 +111,7 @@ private:
 
 		InventoryComponent->WeaponSlotContents.Reserve(MaxWeaponSlots);
 		// 무기 슬롯 4개: 0~3까지 Weapon_nn 슬롯 키를 채우고, 값은 nullptr
-		for (int32 i = 0; i <= MaxWeaponSlots; ++i)
+		for (int32 i = 0; i < MaxWeaponSlots; ++i)
 		{
 			//FString SlotNameStr = FString::Printf(TEXT("Weapon_%02d"), i);
 			//InventoryComponent->InventoryContents.Add(FName(*SlotNameStr), nullptr);

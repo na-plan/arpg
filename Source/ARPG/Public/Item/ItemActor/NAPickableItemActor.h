@@ -77,6 +77,8 @@ public:
 	virtual void BeginInteract_Implementation(AActor* Interactor) override;
 	virtual void EndInteract_Implementation(AActor* Interactor) override;
 	virtual bool ExecuteInteract_Implementation(AActor* Interactor) override;
+
+	virtual void DisableOverlapDuringInteraction() override;
 	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Pickable Item"

@@ -1,6 +1,8 @@
 #include "Item/ItemActor/NAPickableItemActor.h"
 
+#include "Components/ShapeComponent.h"
 #include "Interaction/NAInteractionComponent.h"
+#include "UObject/FastReferenceCollector.h"
 
 ANAPickableItemActor::ANAPickableItemActor(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
@@ -142,6 +144,8 @@ bool ANAPickableItemActor::ExecuteInteract_Implementation(AActor* Interactor)
 				if (NewInteractableActor != nullptr)
 				{
 					// @TODO: 사용 대기 상태(bIsOnInteract이 true)일 때 ... 여기서 수행해야할 뭔가가 있을지 고민해보기
+
+					NewInteractableActor->DisableOverlapDuringInteraction();
 					return true;
 				}
 			}
@@ -155,12 +159,24 @@ bool ANAPickableItemActor::ExecuteInteract_Implementation(AActor* Interactor)
 		if (NewInteractableActor != nullptr)
 		{
 			// @TODO: 사용 대기 상태(bIsOnInteract이 true)일 때 ... 여기서 수행해야할 뭔가가 있을지 고민해보기
+
+			NewInteractableActor->DisableOverlapDuringInteraction();
 			return true;
 		}
 	}
 
 	// 상호작용 종료
 	return false;
+}
+
+void ANAPickableItemActor::DisableOverlapDuringInteraction()
+{
+	Super::DisableOverlapDuringInteraction();
+
+	if (Execute_IsOnInteract(this))
+	{
+		ItemRootShape->SetGenerateOverlapEvents(false);
+	}
 }
 
 void ANAPickableItemActor::EndInteract_Implementation(AActor* Interactor)
@@ -197,5 +213,10 @@ void ANAPickableItemActor::EndInteract_Implementation(AActor* Interactor)
 			// 아니면 새로 스폰된 아이템에게 유산을 넘겨줌
 			Destroy();
 		}
+	}
+
+	if (!IsPendingKillPending())
+	{
+		ItemRootShape->SetGenerateOverlapEvents(true);
 	}
 }

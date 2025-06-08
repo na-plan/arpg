@@ -398,6 +398,8 @@ void UNAInventoryWidget::OnInventoryWidgetReleased()
 			TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.ToSharedRef();
 			SlateOperations.UseHighPrecisionMouseMovement(ViewportWidgetRef);
 			SlateOperations.LockMouseToWidget(ViewportWidgetRef);
+			GameViewportClient->SetIgnoreInput(false);
+			GameViewportClient->SetHideCursorDuringCapture(true);
 			GameViewportClient->SetMouseCaptureMode(EMouseCaptureMode::NoCapture);
 		}
 		
@@ -605,8 +607,8 @@ UButton* UNAInventoryWidget::GetWeaponSlotButton(const FName& SlotID) const
 void UNAInventoryWidget::RefreshSlotWidgets(const TMap<FName, TWeakObjectPtr<UNAItemData>>& InventoryItems
 	, const TMap<FName, TWeakObjectPtr<UNAItemData>>& WeaponItems)
 {
-	if (!ensure(InventoryItems.GetMaxIndex() == MaxInventorySlots
-		&& WeaponItems.GetMaxIndex() == MaxWeaponSlots))
+	if (!ensure(InventoryItems.Num() == MaxInventorySlots
+		&& WeaponItems.Num() == MaxWeaponSlots))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[RefreshSlotWidgets]  유효하지 않은 InventoryItems, WeaponItems"));
 		return;
@@ -618,7 +620,7 @@ void UNAInventoryWidget::RefreshSlotWidgets(const TMap<FName, TWeakObjectPtr<UNA
 		const FName& SlotID = Pair.Key;
 		// 해당 슬롯에 할당된 아이템 데이터 가져오기
 		const TWeakObjectPtr<UNAItemData>* FoundItemPtr = InventoryItems.Find(SlotID);
-		check(FoundItemPtr->IsValid());
+		if (!FoundItemPtr->IsValid()) continue;
 		const UNAItemData* FoundItem = FoundItemPtr->Get();
 		
 		int32 Index = ExtractSlotNumber(SlotID);
@@ -642,8 +644,8 @@ void UNAInventoryWidget::RefreshSlotWidgets(const TMap<FName, TWeakObjectPtr<UNA
 	{
 		const FName& SlotID = Pair.Key;
 		// 해당 슬롯에 할당된 아이템 데이터 가져오기
-		const TWeakObjectPtr<UNAItemData>* FoundItemPtr = InventoryItems.Find(SlotID);
-		check(FoundItemPtr->IsValid());
+		const TWeakObjectPtr<UNAItemData>* FoundItemPtr = WeaponItems.Find(SlotID);
+		if (!FoundItemPtr->IsValid()) continue;
 		const UNAItemData* FoundItem = FoundItemPtr->Get();
 		
 		int32 Index = ExtractSlotNumber(SlotID);
@@ -665,9 +667,6 @@ void UNAInventoryWidget::RefreshSlotWidgets(const TMap<FName, TWeakObjectPtr<UNA
 
 void UNAInventoryWidget::UpdateInvenSlotDrawData(const UNAItemData* ItemData, const FNAInvenSlotWidgets& Inven_SlotWidgets)
 {
-	// SlotButton의 이름에서 SlotID 추출
-	//FName SlotID = Inven_SlotWidgets.InvenSlotButton->GetFName();
-
 	// 1) 버튼, 아이콘, 수량 텍스트 찾기
 	UButton* SlotButton = Inven_SlotWidgets.InvenSlotButton.Get();
 	UImage* IconImage = Inven_SlotWidgets.InvenSlotIcon.Get();
@@ -682,32 +681,28 @@ void UNAInventoryWidget::UpdateInvenSlotDrawData(const UNAItemData* ItemData, co
 	
 		if (IconImage && Icon)
 		{
-			IconImage->SetBrushFromTexture(Icon);
+			IconImage->SetBrushResourceObject(Icon);
 			IconImage->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 		}
 		if (NumText)
 		{
 			NumText->SetText(FText::AsNumber(Quantity));
-			NumText->SetVisibility(Quantity > 1 ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+			NumText->SetVisibility(Quantity > 0 ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Hidden);
 		}
-	
-		// 슬롯 활성화 등 UI Feedback도 가능
-		SlotButton->SetIsEnabled(true);
 	}
 	// 2-B) 아이템이 없는 빈 슬롯이면 아이콘, 텍스트 감추기
 	else
 	{
 		if (IconImage)
 		{
-			IconImage->SetBrushFromTexture(nullptr);
-			IconImage->SetVisibility(ESlateVisibility::Collapsed);
+			IconImage->SetBrushResourceObject(nullptr);
+			IconImage->SetVisibility(ESlateVisibility::Hidden);
 		}
 		if (NumText)
 		{
 			NumText->SetText(FText::GetEmpty());
-			NumText->SetVisibility(ESlateVisibility::Collapsed);
+			NumText->SetVisibility(ESlateVisibility::Hidden);
 		}
-		SlotButton->SetIsEnabled(false);
 	}
 }
 
@@ -726,22 +721,17 @@ void UNAInventoryWidget::UpdateWeaponSlotDrawData(const UNAItemData* ItemData, c
 	
 		if (IconImage && Icon)
 		{
-			IconImage->SetBrushFromTexture(Icon);
+			IconImage->SetBrushResourceObject(Icon);
 			IconImage->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 		}
-	
-		// 슬롯 활성화 등 UI Feedback도 가능
-		SlotButton->SetIsEnabled(true);
 	}
 	// 2-B) 아이템이 없는 빈 슬롯이면 아이콘, 텍스트 감추기
 	else
 	{
 		if (IconImage)
 		{
-			IconImage->SetBrushFromTexture(nullptr);
-			IconImage->SetVisibility(ESlateVisibility::Collapsed);
+			IconImage->SetBrushResourceObject(nullptr);
+			IconImage->SetVisibility(ESlateVisibility::Hidden);
 		}
-	
-		SlotButton->SetIsEnabled(false);
 	}
 }

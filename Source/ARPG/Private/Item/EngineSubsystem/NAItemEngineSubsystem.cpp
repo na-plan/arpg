@@ -235,7 +235,7 @@ bool UNAItemEngineSubsystem::DestroyRuntimeItemData(const FName& InItemID)
 
 			RuntimeItemDataMap[InItemID] =  nullptr;
 			int32 bSucceed = RuntimeItemDataMap.Remove(InItemID);
-			bResult = bSucceed == 0;
+			bResult = bSucceed == 1;
 		}
 	}
 	return bResult;

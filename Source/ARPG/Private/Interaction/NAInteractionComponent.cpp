@@ -60,21 +60,21 @@ void UNAInteractionComponent::OnRegister()
 	
 }
 
-void UNAInteractionComponent::OnActorBeginOverlap( AActor* /*OverlappedActor*/, AActor* OtherActor )
-{
-	if ( const TScriptInterface<INAInteractableInterface>& Interface = OtherActor )
-	{
-		OnInteractableFound( Interface );	
-	}
-}
+// void UNAInteractionComponent::OnActorBeginOverlap( AActor* /*OverlappedActor*/, AActor* OtherActor )
+// {
+// 	if ( const TScriptInterface<INAInteractableInterface>& Interface = OtherActor )
+// 	{
+// 		OnInteractableFound( Interface );	
+// 	}
+// }
 
-void UNAInteractionComponent::OnActorEndOverlap( AActor* OverlappedActor, AActor* OtherActor )
-{
-	if ( const TScriptInterface<INAInteractableInterface>& Interface = OtherActor )
-	{
-		OnInteractableLost( Interface);	
-	}
-}
+// void UNAInteractionComponent::OnActorEndOverlap( AActor* OverlappedActor, AActor* OtherActor )
+// {
+// 	if ( const TScriptInterface<INAInteractableInterface>& Interface = OtherActor )
+// 	{
+// 		OnInteractableLost( Interface);	
+// 	}
+// }
 
 // Called when the game starts
 void UNAInteractionComponent::BeginPlay()
@@ -85,8 +85,8 @@ void UNAInteractionComponent::BeginPlay()
 	if ( AActor* InteractionActor = GetOwner();
 		 InteractionActor && GetNetMode() != NM_Client )
 	{
-		InteractionActor->OnActorBeginOverlap.AddUniqueDynamic( this, &UNAInteractionComponent::OnActorBeginOverlap );
-		InteractionActor->OnActorEndOverlap.AddUniqueDynamic( this, &UNAInteractionComponent::OnActorEndOverlap );
+		//InteractionActor->OnActorBeginOverlap.AddUniqueDynamic( this, &UNAInteractionComponent::OnActorBeginOverlap );
+		//InteractionActor->OnActorEndOverlap.AddUniqueDynamic( this, &UNAInteractionComponent::OnActorEndOverlap );
 	}
 }
 
@@ -137,7 +137,7 @@ void UNAInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType
 					if (ensureAlways(NewRightHandle.IsValid())) // 혹시 모르니깐 한 번 더...
 					{
 						ANAItemActor* NewlyAttachedItemActor = CastChecked<ANAItemActor>(NewRightHandle.GetRawObject());
-						ANAItemActor::TransferItemDataToDuplicatedActor(ActiveInteractableInstance, NewlyAttachedItemActor, true);
+						ANAItemActor::TransferItemDataToDuplicatedActor(ActiveInteractableInstance, NewlyAttachedItemActor);
 						TransferInteractableMidInteraction(NewRightHandle);
 						return NewRightHandle.ToScriptInterface();
 					}
@@ -155,7 +155,7 @@ void UNAInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType
 					if (ensureAlways(NewLeftHandle.IsValid())) // 혹시 모르니깐 한 번 더...
 					{
 						ANAItemActor* NewlyAttachedItemActor = CastChecked<ANAItemActor>(NewLeftHandle.GetRawObject());
-						ANAItemActor::TransferItemDataToDuplicatedActor(ActiveInteractableInstance, NewlyAttachedItemActor, true);
+						ANAItemActor::TransferItemDataToDuplicatedActor(ActiveInteractableInstance, NewlyAttachedItemActor);
 						TransferInteractableMidInteraction(NewLeftHandle);
 						return NewLeftHandle.ToScriptInterface();
 					}
@@ -423,7 +423,7 @@ bool UNAInteractionComponent::TryAddItemToInventory(ANAItemActor* ItemActor)
 	if (!ensureAlways(InventoryComp)) return false;
 	
 	if (!ItemActor) return false;
-	UNAItemData* Item = const_cast<UNAItemData*>(ItemActor->GetItemData());
+	UNAItemData* Item = ItemActor->GetItemData();
 	if (!Item) return false;
 	
 	int32 RemainQuantity =  InventoryComp->TryAddItem(Item);

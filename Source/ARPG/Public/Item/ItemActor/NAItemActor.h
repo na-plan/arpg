@@ -30,6 +30,8 @@ class ARPG_API ANAItemActor : public AActor, public INAInteractableInterface
 public:
 	ANAItemActor(const FObjectInitializer& ObjectInitializer);
 	virtual void OnConstruction(const FTransform& Transform) override;
+
+	virtual void PostLoad() override;
 	
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -45,7 +47,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item Actor")
 	bool HasValidItemID() const;
 
-	static void TransferItemDataToDuplicatedActor(ANAItemActor* OldItemActor, ANAItemActor* NewDuplicated, bool bDeferredDestroy = false)
+	static void TransferItemDataToDuplicatedActor(ANAItemActor* OldItemActor, ANAItemActor* NewDuplicated)
 	{
 		if ( UNAItemEngineSubsystem::Get() && OldItemActor && NewDuplicated)
 		{
@@ -58,18 +60,9 @@ public:
 						OldItemActor->InteractableInterfaceRef
 						, NewDuplicated->InteractableInterfaceRef); // 어우 길어
 				}
-				if (bDeferredDestroy)
-				{
-					OldItemActor->GetWorld()->GetTimerManager().SetTimerForNextTick([OldItemActor]()
-					{
-						OldItemActor->ItemDataID = NAME_None;
-						OldItemActor->Destroy();
-					});
-				}
-				else
-				{
-					OldItemActor->Destroy();
-				}
+
+				OldItemActor->ItemDataID = NAME_None;
+				OldItemActor->Destroy();
 			}
 		}
 	}
@@ -82,6 +75,11 @@ protected:
 	
 	virtual EItemSubobjDirtyFlags CheckDirtySubobjectFlags(const FNAItemBaseTableRow* MetaData) const;
 
+	UFUNCTION()
+	void OnActorBeginOverlap_Impl( AActor* OverlappedActor, AActor* OtherActor );
+	UFUNCTION()
+	void OnActorEndOverlap_Impl( AActor* OverlappedActor, AActor* OtherActor );
+	
 private:
 	void InitItemData();
 	void VerifyInteractableData();
@@ -115,8 +113,8 @@ private:
 public:
 	virtual FNAInteractableData GetInteractableData_Implementation() const override;
 	virtual bool GetInteractableData_Internal(FNAInteractableData& OutIxData) const override;
-	virtual bool CanUseRootAsTriggerShape_Implementation() const override;
 	virtual bool CanInteract_Implementation() const override;
+	//virtual bool CanInteract_Implementation() const override;
 	virtual void NotifyInteractableFocusBegin_Implementation(AActor* InteractableActor, AActor* InteractorActor) override;
 	virtual void NotifyInteractableFocusEnd_Implementation(AActor* InteractableActor, AActor* InteractorActor) override;
 

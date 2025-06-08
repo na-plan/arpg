@@ -61,11 +61,11 @@ public:
 protected:
 	virtual void OnRegister() override;
 
-	UFUNCTION()
-	void OnActorBeginOverlap( AActor* OverlappedActor, AActor* OtherActor );
-
-	UFUNCTION()
-	void OnActorEndOverlap( AActor* OverlappedActor, AActor* OtherActor );
+	// UFUNCTION()
+	// void OnActorBeginOverlap( AActor* OverlappedActor, AActor* OtherActor );
+	
+	// UFUNCTION()
+	// void OnActorEndOverlap( AActor* OverlappedActor, AActor* OtherActor );
 	
 	// Called when the game starts
 	virtual void BeginPlay() override;
