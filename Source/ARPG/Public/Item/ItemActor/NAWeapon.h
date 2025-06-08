@@ -8,6 +8,7 @@
 #include "GameFramework/Actor.h"
 #include "NAWeapon.generated.h"
 
+class UNiagaraComponent;
 class UNAMontageCombatComponent;
 
 UCLASS()
@@ -23,6 +24,9 @@ class ARPG_API ANAWeapon : public ANAPickableItemActor, public IAbilitySystemInt
 
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Replicated, Category="Combat", meta=(AllowPrivateAccess="true"))
 	UAbilitySystemComponent* AbilitySystemComponent;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category="FX", meta=(AllowPrivateAccess="true"))
+	UNiagaraComponent* MuzzleFlashComponent;
 	
 public:
 	// Sets default values for this actor's properties

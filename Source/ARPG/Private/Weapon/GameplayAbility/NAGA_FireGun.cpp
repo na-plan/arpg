@@ -111,6 +111,20 @@ void UNAGA_FireGun::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 				AnimInstance->OnMontageEnded.AddUniqueDynamic( this, &UNAGA_FireGun::OnMontageEnded );
 			}
 		}
+
+		FGameplayCueParameters Parameters;
+		Parameters.Instigator = GetAvatarActorFromActorInfo();
+		if ( FinalPrediction )
+		{
+			Parameters.Normal = Result.Normal;
+			Parameters.Location = Result.Location;	
+		}
+		else
+		{
+			Parameters.Normal = ForwardVector;
+			Parameters.Location = EndLocation;
+		}
+		ActorInfo->AbilitySystemComponent->ExecuteGameplayCue( FGameplayTag::RequestGameplayTag( TEXT( "GameplayCue.Gun.Fire" ) ), Parameters );
 	}
 
 	if ( UNAMontageCombatComponent* CombatComponent = ActorInfo->AvatarActor->GetComponentByClass<UNAMontageCombatComponent>() )

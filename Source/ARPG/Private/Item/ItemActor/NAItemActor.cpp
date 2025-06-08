@@ -9,6 +9,7 @@
 #include "Components/BillboardComponent.h"
 #include "Components/TextRenderComponent.h"
 #include "GeometryCollection/GeometryCollectionObject.h"
+#include "UObject/PropertyIterator.h"
 
 
 ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
@@ -155,15 +156,25 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	ItemMesh->AttachToComponent(ItemRootShape, FAttachmentTransformRules::KeepRelativeTransform);
 	ItemInteractionButton->AttachToComponent(ItemMesh, FAttachmentTransformRules::KeepRelativeTransform);
 	ItemInteractionButtonText->AttachToComponent(ItemInteractionButton, FAttachmentTransformRules::KeepRelativeTransform);
+
+	// 부모, 자식에서 Property로 설정된 컴포넌트들을 조회
+	TSet<UActorComponent*> SubObjsActorComponents;
+	for ( TFieldIterator<FObjectProperty> It ( GetClass() ); It; ++It )
+	{
+		if ( It->PropertyClass->IsChildOf( UActorComponent::StaticClass() ) )
+		{
+			if ( UActorComponent* Component = Cast<UActorComponent>( It->GetObjectPropertyValue_InContainer( this ) ) )
+			{
+				SubObjsActorComponents.Add( Component );
+			}
+		}
+	}
 	
 	for (UActorComponent* OwnedComponent : GetComponents().Array())
 	{
 		if (USceneComponent* OwnedSceneComp = Cast<USceneComponent>(OwnedComponent))
 		{
-			if (OwnedSceneComp == ItemRootShape
-				|| OwnedSceneComp == ItemMesh
-				|| OwnedSceneComp == ItemInteractionButton
-				|| OwnedSceneComp == ItemInteractionButtonText)
+			if ( SubObjsActorComponents.Contains( OwnedComponent ) )
 			{
 				OwnedSceneComp->RegisterComponent();
 				AddInstanceComponent(OwnedSceneComp);

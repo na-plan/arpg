@@ -18,7 +18,7 @@ UNAReviveWidgetComponent::UNAReviveWidgetComponent()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.SetTickFunctionEnable( false );
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 
 	// ...
 	static ConstructorHelpers::FObjectFinder<UMaterial> M_CircularProgress( TEXT("/Script/Engine.Material'/Game/00_ProjectNA/05_Resource/01_Material/Widgets/M_CircularProgress.M_CircularProgress'") );
