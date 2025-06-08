@@ -125,9 +125,9 @@ public:
 
 	// Interactable 아이템 인스턴스 쪽에서 상호작용 범위를 체크(트리거 콜리전 활용)
 	// 아이템 인스턴스에서 유저가 상호작용 범위 내에 들어왔는지 체크 후 캐릭터에게 상호작용이 가능함을 알림
-	bool OnInteractableFound(TScriptInterface<INAInteractableInterface> InteractableActor);
+	bool OnInteractableFound( const TScriptInterface<INAInteractableInterface>& InteractableActor );
 	// @TODO: FocusedInteractableMap 요소 지연 삭제 고민해보기 -> 상호작용 아이템 포커스 갱신 때문에 병목 생기는지 확인하기
-	bool OnInteractableLost(TScriptInterface<INAInteractableInterface> InteractableActor);
+	bool OnInteractableLost( const TScriptInterface<INAInteractableInterface>& InteractableActor );
 
 	// 캐릭터에서 상호작용 시작 이니시
 	void StartInteraction(/*INAInteractableInterface* InteractableActor*/);

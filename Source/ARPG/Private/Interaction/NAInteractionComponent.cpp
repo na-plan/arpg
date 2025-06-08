@@ -258,7 +258,7 @@ void UNAInteractionComponent::SetNearestInteractable(INAInteractableInterface* I
 	}
 }
 
-bool UNAInteractionComponent::OnInteractableFound(TScriptInterface<INAInteractableInterface> InteractableActor)
+bool UNAInteractionComponent::OnInteractableFound( const TScriptInterface<INAInteractableInterface>& InteractableActor )
 {
 	if (!InteractableActor)
 	{
@@ -319,7 +319,7 @@ bool UNAInteractionComponent::OnInteractableFound(TScriptInterface<INAInteractab
 	return true;
 }
 
-bool UNAInteractionComponent::OnInteractableLost(TScriptInterface<INAInteractableInterface> InteractableActor)
+bool UNAInteractionComponent::OnInteractableLost( const TScriptInterface<INAInteractableInterface>& InteractableActor )
 {
 	if (!InteractableActor)
 	{
