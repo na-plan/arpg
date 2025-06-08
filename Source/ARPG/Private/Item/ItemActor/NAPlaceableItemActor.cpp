@@ -32,7 +32,7 @@ void ANAPlaceableItemActor::EndInteract_Implementation(AActor* Interactor)
 	// 상호작용이 끝난 후 처리
 }
 
-void ANAPlaceableItemActor::ExecuteInteract_Implementation(AActor* Interactor)
+bool ANAPlaceableItemActor::ExecuteInteract_Implementation(AActor* Interactor)
 {
 	Super::ExecuteInteract_Implementation(Interactor);
 
@@ -42,6 +42,7 @@ void ANAPlaceableItemActor::ExecuteInteract_Implementation(AActor* Interactor)
 		FString Log = TEXT("Placeable Item Instance executes interaction.");
 		GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Emerald, *Log);
 	}
+	return true;
 }
 
 void ANAPlaceableItemActor::BeginPlay()

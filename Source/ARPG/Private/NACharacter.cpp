@@ -266,7 +266,7 @@ void ANACharacter::Server_BeginInteraction_Implementation()
 {
 	if (InteractionComponent)
 	{
-		InteractionComponent->BeginInteraction();
+		InteractionComponent->StartInteraction();
 	}
 }
 
@@ -539,7 +539,7 @@ void ANACharacter::TryInteract()
 		}
 		else
 		{
-			InteractionComponent->BeginInteraction();	
+			InteractionComponent->StartInteraction();	
 		}
 	}
 }

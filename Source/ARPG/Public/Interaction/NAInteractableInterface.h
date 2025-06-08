@@ -85,18 +85,18 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
 	void EndInteract(AActor* InteractorActor);
+	
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
+	bool IsOnInteract() const;
 
+protected:
 	/** If overriding this function in a base class, **you must manually call INAInteractableInterface::ExecuteInteract_Implementation()**
 	* @param	InteractorActor:	상호작용 대상자(캐릭터)
 	* @note	호출 순서) UNAInteractionComponent에서 ExecuteInteraction 호출 -> INAInteractableInterface::ExecuteInteract
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
-	void ExecuteInteract(AActor* InteractorActor);
+	bool ExecuteInteract(AActor* InteractorActor);
 
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
-	bool IsOnInteract() const;
-
-protected:
 	// If overriding this function in a base class, **you must manually call INAInteractableInterface::InitInteractableData_Implementation()**
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
 	void SetInteractableDataToBaseline(
@@ -112,6 +112,16 @@ protected:
 protected:
 	const FNAInteractableData* TryGetInteractableData(const FNAItemBaseTableRow* InItemMetaData) const;
 	class UNAInteractionComponent* TryGetInteractionComponent(AActor* InActor);
+
+	static void TransferInteractableStateToDuplicatedActor(TScriptInterface<INAInteractableInterface> OldInteractable,
+		TScriptInterface<INAInteractableInterface> NewInteractable)
+	{
+		if (OldInteractable && NewInteractable)
+		{
+			NewInteractable->bIsFocused = OldInteractable->bIsFocused;
+			NewInteractable->bIsOnInteract = OldInteractable->bIsOnInteract;
+		}
+	}
 	
 protected:
 	uint8 bIsFocused : 1 = false;

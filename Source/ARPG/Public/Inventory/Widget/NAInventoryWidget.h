@@ -80,7 +80,10 @@ public:
 
 protected:
 	friend class UNAInventoryComponent;
-
+	
+	void InitInvenSlotSlates();
+	void InitWeaponSlotSlates();
+	
 	void InitInvenButtonsNavigation() const;
 	void InitWeaponButtonsNavigation() const;
 	
@@ -88,10 +91,7 @@ protected:
 	UButton* GetWeaponSlotButton(const FName& SlotID) const;
 
 	void RefreshSlotWidgets(const TMap<FName, TWeakObjectPtr<UNAItemData>>& InventoryItems,
-	const TMap<FName, TWeakObjectPtr<UNAItemData>>& WeaponItems);
-		/*, const TMap<FName, TWeakObjectPtr<UButton>>& SlotButtons);*/
-	// void RefreshWeaponSlotWidgets(const TMap<FName, TWeakObjectPtr<UNAItemData>>& InventoryItems
-	// 	/*, const TMap<FName, TWeakObjectPtr<UButton>>& SlotButtons*/);
+		const TMap<FName, TWeakObjectPtr<UNAItemData>>& WeaponItems);
 	
 	void UpdateInvenSlotDrawData(const UNAItemData* ItemData, const FNAInvenSlotWidgets& Inven_SlotWidgets);
 	void UpdateWeaponSlotDrawData(const UNAItemData* ItemData, const FNAWeaponSlotWidgets& Weapon_SlotWidgets);
@@ -111,7 +111,7 @@ protected:
 	virtual FReply NativeOnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override;
 	virtual FReply NativeOnKeyUp( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override;
 
-	// 인벤토리 위젯 활성되는 동안 마우스 입력 막음 (임시)
+	// 인벤토리 위젯 활성되는 동안 마우스 입력: 위젯에서 처리 안하고 흘려보냄
 	virtual FReply NativeOnMouseMove( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent ) override;
 	virtual FReply NativeOnMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent ) override;
 	virtual FReply NativeOnPreviewMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent ) override;
@@ -120,6 +120,7 @@ protected:
 protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UNAInventoryComponent> OwningInventoryComponent;
+	
 	UPROPERTY(Transient, BlueprintReadOnly, meta = (BindWidgetAnim), Category = "Widget Animation")
 	TObjectPtr<UWidgetAnimation> WidgetExpand;
 
@@ -135,7 +136,6 @@ protected:
 	TArray<FNAInvenSlotWidgets> GetInvenSlotWidgets() const;
 	
 	FNAInvenSlotWidgets InvenSlotWidgets[InventoryRowCount][InventoryColumnCount];
-	
 	TMap<TWeakPtr<SButton>, TWeakObjectPtr<UButton>> InvenSButtonMap;
 
 	FLinearColor DefaultInvenSlotColor = FLinearColor(0.647059f, 0.647059f, 0.647059f, 0.89f);
@@ -143,8 +143,6 @@ protected:
 	
 	UPROPERTY(Transient, BlueprintReadOnly)
 	uint8 bHaveInvenSlotsMapped : 1;
-	
-	void InitInvenSlotSlates();
 	
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Inven Slots")
 	TObjectPtr<UButton> Inven_00;
@@ -328,7 +326,6 @@ protected:
 	TArray<FNAWeaponSlotWidgets> GetWeaponSlotWidgets() const;
 	
 	FNAWeaponSlotWidgets WeaponSlotWidgets[MaxWeaponSlots];
-	
 	TMap<TWeakPtr<SButton>, TWeakObjectPtr<UButton>> WeaponSButtonMap;
 
 	FLinearColor DefaultWeaponSlotColor = FLinearColor(0.647059f, 0.647059f, 0.647059f, 0.89f);
@@ -336,8 +333,6 @@ protected:
 	
 	UPROPERTY(Transient, BlueprintReadOnly)
 	uint8 bHaveWeaponSlotsMapped : 1;
-	
-	void InitWeaponSlotSlates();
 	
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Weapon Slots")
 	TObjectPtr<UButton> Weapon_00;

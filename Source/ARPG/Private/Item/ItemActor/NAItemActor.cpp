@@ -1,7 +1,6 @@
 
 #include "Item/ItemActor/NAItemActor.h"
 
-#include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
 #include "Components/SphereComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -9,7 +8,6 @@
 #include "Components/BillboardComponent.h"
 #include "Components/TextRenderComponent.h"
 #include "GeometryCollection/GeometryCollectionObject.h"
-#include "UObject/PropertyIterator.h"
 
 
 ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
@@ -391,7 +389,7 @@ void ANAItemActor::BeginPlay()
 	}
 }
 
-const UNAItemData* ANAItemActor::GetItemData() const
+UNAItemData* ANAItemActor::GetItemData() const
 {
 	return UNAItemEngineSubsystem::Get()->GetRuntimeItemData(ItemDataID);
 }
@@ -482,15 +480,15 @@ void ANAItemActor::BeginInteract_Implementation(AActor* InteractorActor)
 
 void ANAItemActor::EndInteract_Implementation(AActor* InteractorActor)
 {
-	//if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(InteractorActor))
-	//{
-	bIsOnInteract = false;
-
-	// @TODO: 상호작용 종료 시 필요한 로직이 있으면 여기에 추가, 상호작용 종료를 알리는 이벤트라고 생각하면 됨
-	//}
+	if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(InteractorActor))
+	{
+		bIsOnInteract = false;
+		InteractionComp->OnInteractionEnded(InteractableInterfaceRef);
+		// @TODO: 상호작용 종료 시 필요한 로직이 있으면 여기에 추가, 상호작용 종료를 알리는 이벤트라고 생각하면 됨
+	}
 }
 
-void ANAItemActor::ExecuteInteract_Implementation(AActor* InteractorActor)
+bool ANAItemActor::ExecuteInteract_Implementation(AActor* InteractorActor)
 {
 	ensureAlwaysMsgf(bIsOnInteract, TEXT("[INAInteractableInterface::ExecuteInteract_Implementation]  bIsOnInteract이 false였음"));
 	
@@ -499,7 +497,7 @@ void ANAItemActor::ExecuteInteract_Implementation(AActor* InteractorActor)
 
 	// @TODO: 상호작용 실행에 필요한 로직이 있으면 여기에 추가
 	//}
-	
+	return false;
 }
 
 bool ANAItemActor::IsOnInteract_Implementation() const
