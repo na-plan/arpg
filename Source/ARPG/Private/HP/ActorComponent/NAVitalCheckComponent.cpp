@@ -132,10 +132,13 @@ void UNAVitalCheckComponent::HandleKnockDown( const ANACharacter* Character, con
 	{
 		CombatComponent->SetActive( false );
 
-		const FGameplayEffectContextHandle ContextHandle = Character->GetAbilitySystemComponent()->MakeEffectContext();
-		const FGameplayEffectSpecHandle SpecHandle = Character->GetAbilitySystemComponent()->MakeOutgoingSpec( UNAGE_KnockDown::StaticClass(), 1.f, ContextHandle );
-		const FActiveGameplayEffectHandle ActiveGameplayEffect = Character->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf( *SpecHandle.Data.Get() );
-		check( ActiveGameplayEffect.WasSuccessfullyApplied() );
+		if ( GetOwner()->HasAuthority() )
+		{
+			const FGameplayEffectContextHandle ContextHandle = Character->GetAbilitySystemComponent()->MakeEffectContext();
+			const FGameplayEffectSpecHandle SpecHandle = Character->GetAbilitySystemComponent()->MakeOutgoingSpec( UNAGE_KnockDown::StaticClass(), 1.f, ContextHandle );
+			const FActiveGameplayEffectHandle ActiveGameplayEffect = Character->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf( *SpecHandle.Data.Get() );
+			check( ActiveGameplayEffect.WasSuccessfullyApplied() );	
+		}
 	}
 }
 
@@ -144,10 +147,13 @@ void UNAVitalCheckComponent::HandleDead( const ANACharacter* Character, const fl
 	// 캐릭터가 녹다운 상태에서 사망 상태로 변한 경우
 	if ( CharacterState == ECharacterStatus::KnockDown && NewHealth <= -100.f )
 	{
-		const FGameplayEffectContextHandle ContextHandle = Character->GetAbilitySystemComponent()->MakeEffectContext();
-		const FGameplayEffectSpecHandle SpecHandle = Character->GetAbilitySystemComponent()->MakeOutgoingSpec( UNAGE_Dead::StaticClass(), 1.f, ContextHandle );
-		const FActiveGameplayEffectHandle ActiveGameplayEffect = Character->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf( *SpecHandle.Data.Get() );
-		check( ActiveGameplayEffect.WasSuccessfullyApplied() );
+		if ( GetOwner()->HasAuthority() )
+		{
+			const FGameplayEffectContextHandle ContextHandle = Character->GetAbilitySystemComponent()->MakeEffectContext();
+			const FGameplayEffectSpecHandle SpecHandle = Character->GetAbilitySystemComponent()->MakeOutgoingSpec( UNAGE_Dead::StaticClass(), 1.f, ContextHandle );
+			const FActiveGameplayEffectHandle ActiveGameplayEffect = Character->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf( *SpecHandle.Data.Get() );
+			check( ActiveGameplayEffect.WasSuccessfullyApplied() );
+		}
 	}
 }
 
@@ -168,9 +174,9 @@ void UNAVitalCheckComponent::OnHealthChanged( const FOnAttributeChangeData& OnAt
 	if ( const ANACharacter* Character = Cast<ANACharacter>( GetCharacter() ) )
 	{
 		// 클라이언트 + 서버 동기화 (클라이언트가 요청해도 서버쪽에서 컴포넌트가 꺼져있기 때문에 공격 불가 판정)
-		HandleAlive( Character, OnAttributeChangeData.NewValue );
-		HandleKnockDown( Character, OnAttributeChangeData.NewValue );
 		HandleDead( Character, OnAttributeChangeData.NewValue );
+		HandleKnockDown( Character, OnAttributeChangeData.NewValue );
+		HandleAlive( Character, OnAttributeChangeData.NewValue );
 		
 		if ( const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>( Character->GetAbilitySystemComponent()->GetAttributeSet( UNAAttributeSet::StaticClass() ) ) )
 		{

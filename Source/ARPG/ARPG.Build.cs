@@ -20,7 +20,8 @@ public class ARPG : ModuleRules
 			"GameplayTags", 
 			"GameplayTasks",
 			"AIModule",
-			"GeometryCollectionEngine"
+			"GeometryCollectionEngine",
+			"Niagara"
 		});
 		
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
