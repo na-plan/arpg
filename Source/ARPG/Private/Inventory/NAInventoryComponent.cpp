@@ -158,7 +158,7 @@ void UNAInventoryComponent::SortInvenSlotItems()
     });
 
     // 3) 모든 Inven_ 슬롯을 비우기
-    for (int32 i = 1; i <= MaxInventorySlots; ++i)
+    for (int32 i = 0; i < MaxInventorySlots; ++i)
     {
         FString SlotNameStr = FString::Printf(TEXT("Inven_%02d"), i);
         FName SlotID = FName(*SlotNameStr);
@@ -166,7 +166,7 @@ void UNAInventoryComponent::SortInvenSlotItems()
     }
 
     // 4) 정렬된 순서대로 순차적 재배치
-    int32 TargetIndex = 1;
+    int32 TargetIndex = 0;
     for (auto& Pair : FilledSlots)
     {
         UNAItemData* ItemData = Pair.Value;
@@ -979,7 +979,7 @@ FName UNAInventoryComponent::FindSlotIDForItem(const UNAItemData* ItemToFind) co
 
 bool UNAInventoryComponent::HandleAddNewItem(UNAItemData* NewItemToAdd, const FName& SlotID)
 {
-	if (SlotID.IsNone() || !InvenSlotContents.Contains(SlotID) || !WeaponSlotContents.Contains(SlotID))
+	if (SlotID.IsNone() || !(InvenSlotContents.Contains(SlotID) || WeaponSlotContents.Contains(SlotID)))
 	{
 		ensure(false);
 		return false;

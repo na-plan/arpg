@@ -234,6 +234,19 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	ItemInteractionButtonText->SetRelativeTransform(MetaData->IxButtonTextTransform);
 }
 
+void ANAItemActor::PostLoad()
+{
+	Super::PostLoad();
+
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		if (ItemDataID.IsNone() && !GetWorld()->IsPreviewWorld())
+		{
+			InitItemData();
+		}
+	}
+}
+
 void ANAItemActor::InitItemData()
 {
 	if (HasValidItemID())
@@ -360,6 +373,16 @@ EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTa
 	return DirtyFlags;
 }
 
+void ANAItemActor::OnActorBeginOverlap_Impl(AActor* OverlappedActor, AActor* OtherActor)
+{
+	Execute_NotifyInteractableFocusBegin(this, OverlappedActor, OtherActor);
+}
+
+void ANAItemActor::OnActorEndOverlap_Impl(AActor* OverlappedActor, AActor* OtherActor)
+{
+	Execute_NotifyInteractableFocusEnd(this, OverlappedActor, OtherActor);
+}
+
 void ANAItemActor::VerifyInteractableData()
 {
 	if (InteractableInterfaceRef != nullptr)
@@ -382,10 +405,10 @@ void ANAItemActor::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	if (Execute_CanUseRootAsTriggerShape(this))
+	if (Execute_CanInteract(this))
 	{
-		OnActorBeginOverlap.AddDynamic(this, &ThisClass::NotifyInteractableFocusBegin);
-		OnActorEndOverlap.AddDynamic(this, &ThisClass::NotifyInteractableFocusEnd);
+		OnActorBeginOverlap.AddUniqueDynamic(this, &ThisClass::OnActorBeginOverlap_Impl);
+		OnActorEndOverlap.AddUniqueDynamic(this, &ThisClass::OnActorEndOverlap_Impl);
 	}
 }
 
@@ -428,15 +451,15 @@ bool ANAItemActor::GetInteractableData_Internal(FNAInteractableData& OutIxData) 
 	return InteractableDataRef ? true : false;
 }
 
-bool ANAItemActor::CanUseRootAsTriggerShape_Implementation() const
-{
-	return ItemRootShape && (ItemRootShape->GetBodySetup() ? true : false);
-}
-
 bool ANAItemActor::CanInteract_Implementation() const
 {
-	return bIsFocused && Execute_CanUseRootAsTriggerShape(this) && Execute_GetInteractableData(this).InteractingCharacter.IsValid();
+	return IsValid(ItemRootShape) && InteractableInterfaceRef != nullptr;
 }
+
+// bool ANAItemActor::CanInteract_Implementation() const
+// {
+// 	return Execute_CanInteract(this)/* && Execute_GetInteractableData(this).InteractingCharacter.IsValid()*/;
+// }
 
 void ANAItemActor::NotifyInteractableFocusBegin_Implementation(AActor* InteractableActor, AActor* InteractorActor)
 {
@@ -446,7 +469,6 @@ void ANAItemActor::NotifyInteractableFocusBegin_Implementation(AActor* Interacta
 	{
 		if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(InteractorActor))
 		{
-			//InteractionComp->OnInteractableFound(this);
 			const bool bSucceed = InteractionComp->OnInteractableFound(this);
 			// @TODO: ANAItemActor 쪽에서 '상호작용 버튼 위젯' release?
 		}
@@ -461,7 +483,6 @@ void ANAItemActor::NotifyInteractableFocusEnd_Implementation(AActor* Interactabl
 	{
 		if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(InteractorActor))
 		{
-			//InteractionComp->OnInteractableLost(this);
 			const bool bSucceed = InteractionComp->OnInteractableLost(this);
 			// @TODO: ANAItemActor 쪽에서 '상호작용 버튼 위젯' collapse?
 		}

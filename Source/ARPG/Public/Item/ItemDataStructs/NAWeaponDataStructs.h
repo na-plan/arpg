@@ -23,7 +23,7 @@ enum class EWeaponRarity : uint8
 UENUM(BlueprintType)
 enum class  EWeaponType : uint8
 {
-	WT_None        UMETA(DisplayName = "None"),		// 초기화 필요
+	WT_None        UMETA(Hidden),		// 초기화 필요
 
 	WT_Blunt       UMETA(DisplayName = "Blunt"),      // 둔기: 몽둥이, 망치, 철퇴 등
 	WT_Blade       UMETA(DisplayName = "Blade"),      // 예기: 검, 도, 창 등 날붙이
