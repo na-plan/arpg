@@ -364,6 +364,7 @@ void ANACharacter::RetrieveAsset(const AActor* InCDO)
 				{
 					UEngine::FCopyPropertiesForUnrelatedObjectsParams Params{};
 					Params.bDoDelta = true;
+					Params.bClearReferences = false;
 					Params.bSkipCompilerGeneratedDefaults = true;
 					Params.bReplaceInternalReferenceUponRead = true;
 					std::remove_pointer_t<decltype(Params.OptionalReplacementMappings)> TempReplacementMappings;
