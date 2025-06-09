@@ -8,7 +8,6 @@
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "Combat/Interface/NAHandActor.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
-#include "Weapon/GameplayEffect/NAGE_ConsumeAmmo.h"
 
 UNAGA_FireGun::UNAGA_FireGun()
 {
@@ -68,6 +67,7 @@ void UNAGA_FireGun::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 		if ( !CommitAbility(Handle, ActorInfo, ActivationInfo) )
 		{
 			EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
+			return;
 		}
 	}
 
@@ -83,6 +83,7 @@ void UNAGA_FireGun::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 		if ( !ControlledPawn )
 		{
 			EndAbility( Handle, ActorInfo, ActivationInfo, true, false );
+			return;
 		}
 		
 		const FVector HeadLocation = ControlledPawn->GetComponentByClass<USkeletalMeshComponent>()->GetSocketLocation(INAHandActor::HeadSocketName);
