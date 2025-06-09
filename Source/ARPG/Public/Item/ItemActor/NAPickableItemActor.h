@@ -9,7 +9,6 @@
  *	캐릭터에서 아이템 사용 요청 -> 요청 받은 아이템에서 사용 처리(용법은 아이템 종류 별로 다름)
  */
 
-
 UENUM(Blueprintable, meta=(Bitflags))
 enum class EPickupMode : uint8
 {
@@ -61,24 +60,22 @@ protected:
 	// @return	자동 사용 때 소비한 수량
 	//			-> -1이면 전부 소비 후 이 액터 destroy까지 끝냄
 	//			-> 0이면 사용 실패, 0>이면 사용 성공
-	int32 TryPerformAutoUse();
+	int32 TryPerformAutoUse(AActor* User);
 
 	// 오버라이딩 시 주의사항: 자동 사용의 결과로 아이템 수량에 변화가 있다면,
 	//					   이 함수 내에서 SetQuantity를 호출하지 말고, 소비한 수량을 반환값으로 설정하기
 	//					   수량 변화에 따른 후처리는 TryPerformAutoUse에서 실행되어야 함
 	// @return	자동 사용 때 소비한 수량
 	//			-> 0이면 사용 실패, 0>이면 사용 성공
-	virtual int32 PerformAutoUse_Impl();
+	virtual int32 PerformAutoUse_Impl(AActor* User);
 
 //======================================================================================================================
 // Interactable Interface Implements
 //======================================================================================================================
 public:
 	virtual void BeginInteract_Implementation(AActor* Interactor) override;
-	virtual void EndInteract_Implementation(AActor* Interactor) override;
 	virtual bool ExecuteInteract_Implementation(AActor* Interactor) override;
-
-	virtual void DisableOverlapDuringInteraction() override;
+	virtual void EndInteract_Implementation(AActor* Interactor) override;
 	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Pickable Item"

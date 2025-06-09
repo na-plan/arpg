@@ -3,6 +3,12 @@
 
 #include "Item/ItemActor/NAMedPack.h"
 
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemInterface.h"
+#include "HP/GameplayEffect/NAGE_Damage.h"
+#include "HP/GameplayEffect/NAGE_Heal.h"
+#include "Item/ItemDataStructs/NARecoveryPackDataStructs.h"
+
 
 // Sets default values
 ANAMedPack::ANAMedPack(const FObjectInitializer& ObjectInitializer)
@@ -10,13 +16,14 @@ ANAMedPack::ANAMedPack(const FObjectInitializer& ObjectInitializer)
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+
+	PickupMode = EPickupMode::PM_Inventory;
 }
 
 // Called when the game starts or when spawned
 void ANAMedPack::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
@@ -24,4 +31,68 @@ void ANAMedPack::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
+
+bool ANAMedPack::UseItem(UNAItemData* InItemData, AActor* User) const
+{
+	Super::UseItem(InItemData, User);
+
+	if (!InItemData || !User) return false;
+	if (InItemData->GetItemActorClass() != GetClass()) return false;
+
+	if (const FNARecoveryPackDataStructs* RecoveryPackData = InItemData->GetItemMetaDataStruct<FNARecoveryPackDataStructs>())
+	{
+		// @TODO: 회복팩 사용 로직 -> User의 체력 스탯 끌고 오기
+		if ( const TScriptInterface<IAbilitySystemInterface>& Interface = User )
+		{
+			// 체력 Attribute의 값을 증가시켜서 회복시키는 방법
+			// GameplayTag를 Heal이랑 Damage에 붙여서 써야할듯
+			const FGameplayEffectContextHandle& Handle = Interface->GetAbilitySystemComponent()->MakeEffectContext();
+			const FGameplayEffectSpecHandle& SpecHandle = Interface->GetAbilitySystemComponent()->MakeOutgoingSpec
+			(
+				UNAGE_Heal::StaticClass(),
+				RecoveryPackData->RecoveryAmount,
+				Handle
+			);
+			
+			const FActiveGameplayEffectHandle& EventResult = Interface->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf( *SpecHandle.Data.Get() );
+			return EventResult.WasSuccessfullyApplied(); // 성공 했냐? 안했냐?
+			
+			// 데미지 효과를 제거해서 힐을 하는 방법이 이거고
+			// 현실적으로 데미지와 힐이 등가교환이 되는 경우는 거의 드물기에...
+			// FGameplayEffectQuery Query;
+			// Query.EffectDefinition = UNAGE_Damage::StaticClass();
+			// const int32 Removed = Interface->GetAbilitySystemComponent()->RemoveActiveEffects( Query, 1 );
+		}
+	}
+	return false;
+}
+
+EMedPackGrade ANAMedPack::GetMedPackGrade() const
+{
+	if (GetItemData())
+	{
+		if (const FNARecoveryPackDataStructs* RecoveryDataStructs = GetItemData()->GetItemMetaDataStruct<FNARecoveryPackDataStructs>())
+		{
+			return RecoveryDataStructs->MedPackGrade;
+		}
+	}
+
+	return EMedPackGrade::MPG_None;
+}
+
+// void ANAMedPack::BeginInteract_Implementation(AActor* Interactor)
+// {
+// 	Super::BeginInteract_Implementation(Interactor);
+// }
+
+// bool ANAMedPack::ExecuteInteract_Implementation(AActor* Interactor)
+// {
+// 	return Super::ExecuteInteract_Implementation(Interactor);
+// }
+
+// void ANAMedPack::EndInteract_Implementation(AActor* Interactor)
+// {
+// 	Super::EndInteract_Implementation(Interactor);
+// }
+
 

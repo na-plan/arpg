@@ -96,7 +96,8 @@ struct ARPG_API FNAWeaponTableRow : public FNAItemBaseTableRow
 {
 	GENERATED_BODY()
 
-public:
+	FNAWeaponTableRow();
+	
 	UPROPERTY(EditAnywhere, Category = "Weapon")
 	EWeaponType WeaponType = EWeaponType::WT_None;
 

@@ -81,15 +81,23 @@ public:
 protected:
 	friend class UNAInventoryComponent;
 	
+	bool ParseSlotIDToInvenGrid(const FName& SlotID, int32& OutRow, int32& OutCol) const;
+	bool ParseSlotIDToWeaponIndex(const FName& SlotID, int32& OutIndex) const;
+	
 	void InitInvenSlotSlates();
 	void InitWeaponSlotSlates();
 	
 	void InitInvenButtonsNavigation() const;
 	void InitWeaponButtonsNavigation() const;
+
+	FName GetSlotID(const UButton* Button) const;
+	FName GetCurrentFocusedSlotID() const;
 	
 	UButton* GetInvenSlotButton(const FName& SlotID) const;
 	UButton* GetWeaponSlotButton(const FName& SlotID) const;
 
+	void RefreshSingleSlotWidget(const FName& SlotID, const UNAItemData* SlotData);
+	
 	void RefreshSlotWidgets(const TMap<FName, TWeakObjectPtr<UNAItemData>>& InventoryItems,
 		const TMap<FName, TWeakObjectPtr<UNAItemData>>& WeaponItems);
 	
@@ -116,7 +124,8 @@ protected:
 	virtual FReply NativeOnMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent ) override;
 	virtual FReply NativeOnPreviewMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent ) override;
 	virtual FReply NativeOnMouseButtonUp( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent ) override;
-	
+
+	void SelectInventorySlotWidget() const;
 protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UNAInventoryComponent> OwningInventoryComponent;
@@ -125,12 +134,15 @@ protected:
 	TObjectPtr<UWidgetAnimation> WidgetExpand;
 
 	UPROPERTY(Transient)
-	TWeakObjectPtr<UButton> LastFocusedSlotButton = nullptr;;
+	TWeakObjectPtr<UButton> LastFocusedSlotButton = nullptr;
 	
-	// Slot Buttons //////////////////////////////////////////////////////////////////////////////////////
-	// 변수명: 슬롯 ID와 일치시켜야 함
+	UPROPERTY(Transient)
+	TWeakObjectPtr<UButton> CurrentFocusedSlotButton = nullptr;
 	
-	// Inven Slots //////////////////////////////////////////////////////////
+// Slot Buttons //////////////////////////////////////////////////////////////////////////////////////
+// 변수명: 슬롯 ID와 일치시켜야 함
+	
+// Inven Slots //////////////////////////////////////////////////////////
 
 	UFUNCTION(BlueprintCallable)
 	TArray<FNAInvenSlotWidgets> GetInvenSlotWidgets() const;
@@ -325,7 +337,7 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	TArray<FNAWeaponSlotWidgets> GetWeaponSlotWidgets() const;
 	
-	FNAWeaponSlotWidgets WeaponSlotWidgets[MaxWeaponSlots];
+	FNAWeaponSlotWidgets WeaponSlotWidgets[MaxWeaponSlotCount];
 	TMap<TWeakPtr<SButton>, TWeakObjectPtr<UButton>> WeaponSButtonMap;
 
 	FLinearColor DefaultWeaponSlotColor = FLinearColor(0.647059f, 0.647059f, 0.647059f, 0.89f);

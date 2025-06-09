@@ -100,18 +100,18 @@ private:
 	// InvenSlotContents & WeaponSlotContents만 초기화
 	static void InitInventorySlotIDs(UNAInventoryComponent* InventoryComponent)
 	{
-		InventoryComponent->InvenSlotContents.Reserve(MaxInventorySlots);
+		InventoryComponent->InvenSlotContents.Reserve(MaxInventorySlotCount);
 		// 인벤토리 슬롯 25개: 0~24까지 Inven_nn 슬롯 키를 채우고, 값은 nullptr (TWeakObjectPtr이므로 nullptr 가능)
-		for (int32 i = 0; i < MaxInventorySlots; ++i)
+		for (int32 i = 0; i < MaxInventorySlotCount; ++i)
 		{
 			//String SlotNameStr = FString::Printf(TEXT("Inven_%02d"), i);
 			//InventoryComponent->InventoryContents.Add(FName(*SlotNameStr), nullptr);
 			InventoryComponent->InvenSlotContents.Add(MakeInventorySlotID(i), nullptr);
 		}
 
-		InventoryComponent->WeaponSlotContents.Reserve(MaxWeaponSlots);
+		InventoryComponent->WeaponSlotContents.Reserve(MaxWeaponSlotCount);
 		// 무기 슬롯 4개: 0~3까지 Weapon_nn 슬롯 키를 채우고, 값은 nullptr
-		for (int32 i = 0; i < MaxWeaponSlots; ++i)
+		for (int32 i = 0; i < MaxWeaponSlotCount; ++i)
 		{
 			//FString SlotNameStr = FString::Printf(TEXT("Weapon_%02d"), i);
 			//InventoryComponent->InventoryContents.Add(FName(*SlotNameStr), nullptr);
@@ -128,7 +128,14 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 
-	// 아이템 수량 데이터 관리 ////////////////////////////////////////////////////////////////////////////////////////////////
+	void RemoveItemAtInventorySlot();
+	
+// 단축키 자동 사용 //////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	void UseMedPackByShortcut(AActor* User);
+
+	
+// 아이템 수량 데이터 관리 ////////////////////////////////////////////////////////////////////////////////////////////////
 	/** 
 	 * 새로운 아이템을 빈 슬롯에 등록 or 원래 있던 아이템과 동일한 종류면 기존 슬롯을 먼저 메꾸고
 	 * @return add에 성공하고 남은 아이템 수량. 0이면 전부 추가, 0보다 크면 부분 추가, -1이면 전부 추가 실패
@@ -213,7 +220,7 @@ public:
 	UNAItemData* FindSameClassItem(const UClass* ItemClass) const;
 	
 	FName FindSlotIDForItem(const UNAItemData* ItemToFind) const;
-
+	
 	/** 인벤토리에 해당 아이템 클래스가 있는지 확인 */
 	bool HasItemOfClass(const UClass* ItemClass) const;
 
@@ -295,7 +302,7 @@ public:
 	void ReleaseInventory();
 	void CollapseInventory();
 
-protected:
-	//UPROPERTY()
-	//TMap<FName, TWeakObjectPtr<UButton>> SlotButtons;
+	void SelectInventorySlotButton();
+
+	void RequestRedrawSingleSlot(UNAItemData* ItemData);
 };

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "NAPickableItemActor.h"
+#include "Item/ItemDataStructs/NARecoveryPackDataStructs.h"
 #include "NAMedPack.generated.h"
 
 UCLASS()
@@ -22,4 +23,21 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+//======================================================================================================================
+// Interactable Interface Implements
+//======================================================================================================================
+public:
+	//virtual void BeginInteract_Implementation(AActor* Interactor) override;
+	//virtual bool ExecuteInteract_Implementation(AActor* Interactor) override;
+	//virtual void EndInteract_Implementation(AActor* Interactor) override;
+
+	
+//======================================================================================================================
+// Item Use Interface Implements
+//======================================================================================================================
+public:
+	virtual bool UseItem(UNAItemData* InItemData, AActor* User) const override;
+
+	EMedPackGrade GetMedPackGrade() const;
 };

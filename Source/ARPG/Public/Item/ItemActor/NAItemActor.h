@@ -2,6 +2,7 @@
 
 #include "GameFramework/Actor.h"
 #include "Interaction/NAInteractableInterface.h"
+#include "Item/NAItemUseInterface.h"
 #include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
 #include "NAItemActor.generated.h"
 
@@ -22,7 +23,7 @@ enum class EItemSubobjDirtyFlags : uint8
 ENUM_CLASS_FLAGS(EItemSubobjDirtyFlags)
 
 UCLASS(Abstract)
-class ARPG_API ANAItemActor : public AActor, public INAInteractableInterface
+class ARPG_API ANAItemActor : public AActor, public INAInteractableInterface, public INAItemUseInterface
 {
 	GENERATED_BODY()
 
@@ -123,6 +124,8 @@ public:
 	virtual bool ExecuteInteract_Implementation(AActor* Interactor) override;
 
 	virtual bool IsOnInteract_Implementation() const override;
+	
+	virtual void DisableOverlapDuringInteraction() override;
 
 protected:
 	/** 자기 자신(this)이 구현한 인터페이스를 보관 */
