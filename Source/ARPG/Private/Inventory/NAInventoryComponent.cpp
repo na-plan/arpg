@@ -9,6 +9,7 @@
 #include "Inventory/Widget/NAInventoryWidget.h"
 #include "Item/ItemActor/NAWeapon.h"
 #include "Components/Button.h"
+#include "Item/ItemActor/NAMedPack.h"
 
 // Sets default values for this component's properties
 UNAInventoryComponent::UNAInventoryComponent()
@@ -75,11 +76,19 @@ bool UNAInventoryComponent::HandleRemoveItem(const FName& SlotID)
 	UNAItemData* ItemToRemove = nullptr;
 	if (InvenSlotContents.Contains(SlotID))
 	{
-		ItemToRemove= InvenSlotContents[SlotID].Get();
+		ItemToRemove = InvenSlotContents[SlotID].Get();
+		if (ItemToRemove)
+		{
+			InvenSlotContents[SlotID] = nullptr;
+		}
 	}
 	else if (WeaponSlotContents.Contains(SlotID))
 	{
-		ItemToRemove= WeaponSlotContents[SlotID].Get();
+		ItemToRemove = WeaponSlotContents[SlotID].Get();
+		if (ItemToRemove)
+		{
+			WeaponSlotContents[SlotID] = nullptr;
+		}
 	}
 	else { check(false); }
 	
@@ -119,7 +128,7 @@ void UNAInventoryComponent::SortInvenSlotItems()
 {
     // 1) 채워진 Inven_ 슬롯만 모으기
     TArray<TPair<FName, UNAItemData*>> FilledSlots;
-    FilledSlots.Reserve(MaxInventorySlots);
+    FilledSlots.Reserve(MaxInventorySlotCount);
 
     for (auto& Pair : InvenSlotContents)
     {
@@ -158,7 +167,7 @@ void UNAInventoryComponent::SortInvenSlotItems()
     });
 
     // 3) 모든 Inven_ 슬롯을 비우기
-    for (int32 i = 0; i < MaxInventorySlots; ++i)
+    for (int32 i = 0; i < MaxInventorySlotCount; ++i)
     {
         FString SlotNameStr = FString::Printf(TEXT("Inven_%02d"), i);
         FName SlotID = FName(*SlotNameStr);
@@ -358,6 +367,59 @@ void UNAInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 	// ...
 }
 
+// 일단 슬롯 한 칸에 들어있는 아이템 한 번에 전부 삭제
+void UNAInventoryComponent::RemoveItemAtInventorySlot()
+{
+	if (!GetInventoryWidget()) return;
+
+	FName SlotID = GetInventoryWidget()->GetCurrentFocusedSlotID();
+	if (SlotID.IsNone()) return;
+
+	UNAItemData* ItemData = nullptr;
+	if (InvenSlotContents.Contains(SlotID))
+	{
+		ItemData = InvenSlotContents[SlotID].Get();
+	}
+	else if (WeaponSlotContents.Contains(SlotID))
+	{
+		ItemData = WeaponSlotContents[SlotID].Get();
+	}
+	if (!ItemData) return;
+
+	TryRemoveItem(SlotID, ItemData->GetQuantity());
+}
+
+void UNAInventoryComponent::UseMedPackByShortcut(AActor* User)
+{
+	if (!User) return;
+
+	TArray<FName> MedPackSlots;
+	GetSlotIDsWithItemClass(ANAMedPack::StaticClass(),MedPackSlots);
+	if (MedPackSlots.Num() == 0) return;
+
+	MedPackSlots.Sort([this](const FName& A, const FName& B)
+	{
+		const UNAItemData* ItemA = InvenSlotContents[A].Get();
+		const UNAItemData* ItemB = InvenSlotContents[B].Get();
+
+		const FNARecoveryPackDataStructs* RecoveryDataA = ItemA->GetItemMetaDataStruct<FNARecoveryPackDataStructs>();
+		const FNARecoveryPackDataStructs* RecoveryDataB = ItemB->GetItemMetaDataStruct<FNARecoveryPackDataStructs>();
+
+		EMedPackGrade GradeA = RecoveryDataA->MedPackGrade;
+		EMedPackGrade GradeB = RecoveryDataB->MedPackGrade;
+		if (GradeA != GradeB)
+		{
+			return static_cast<uint8>(GradeA) > static_cast<uint8>(GradeB);
+		}
+
+		return static_cast<uint8>(GradeA) == static_cast<uint8>(GradeB);
+	});
+
+	UNAItemData* MedPack = InvenSlotContents[MedPackSlots[0]].Get();
+	if (!MedPack) return;
+	MedPack->TryUseItem(User);
+}
+
 int32 UNAInventoryComponent::TryAddItem(UNAItemData* ItemToAdd)
 {
 	if (!ItemToAdd)
@@ -499,7 +561,7 @@ void UNAInventoryComponent::GetSlotIDsWithItemClass(const UClass* ItemClass, TAr
 	{
 		for (const auto& Pair : WeaponSlotContents)
 		{
-			if (Pair.Value.IsValid() && Pair.Value->GetItemActorClass() == ItemClass)
+			if (Pair.Value.IsValid() && Pair.Value->GetItemActorClass()->IsChildOf(ItemClass))
 			{
 				OutSlotIDs.Add(Pair.Key);
 			}
@@ -509,7 +571,7 @@ void UNAInventoryComponent::GetSlotIDsWithItemClass(const UClass* ItemClass, TAr
 	{
 		for (const auto& Pair : InvenSlotContents)
 		{
-			if (Pair.Value.IsValid() && Pair.Value->GetItemActorClass() == ItemClass)
+			if (Pair.Value.IsValid() && Pair.Value->GetItemActorClass()->IsChildOf(ItemClass))
 			{
 				OutSlotIDs.Add(Pair.Key);
 			}
@@ -565,7 +627,7 @@ bool UNAInventoryComponent::IsEmptySlot(const FName& SlotID) const
 void UNAInventoryComponent::GatherEmptyInvenSlots(TArray<FName>& OutEmptySlots) const
 {
 	OutEmptySlots.Empty();
-	OutEmptySlots.Reserve(MaxInventorySlots);
+	OutEmptySlots.Reserve(MaxInventorySlotCount);
 
 	for (const auto& Pair : InvenSlotContents)
 	{
@@ -584,7 +646,7 @@ void UNAInventoryComponent::GatherEmptyInvenSlots(TArray<FName>& OutEmptySlots) 
 void UNAInventoryComponent::GatherEmptyWeaponSlots(TArray<FName>& OutEmptySlots) const
 {
 	OutEmptySlots.Empty();
-	OutEmptySlots.Reserve(MaxWeaponSlots);
+	OutEmptySlots.Reserve(MaxWeaponSlotCount);
 
 	for (const auto& Pair : WeaponSlotContents)
 	{
@@ -695,7 +757,7 @@ void UNAInventoryComponent::GatherEmptyInvenSlotsWithClass(UClass* ItemClass, TA
 	if (!ItemClass) { ensure(false); return; }
 	
 	OutEmptySlots.Empty();
-	if (ensure(ItemClass->IsChildOf<ANAWeapon>()))
+	if (ItemClass->IsChildOf<ANAWeapon>())
 	{
 		return;
 	}
@@ -714,7 +776,7 @@ void UNAInventoryComponent::GatherEmptyWeaponSlotsWithClass(UClass* ItemClass, T
 	if (!ItemClass) { ensure(false); return; }
 	
 	OutEmptySlots.Empty();
-	if (!ensure(ItemClass->IsChildOf<ANAWeapon>()))
+	if (!ItemClass->IsChildOf<ANAWeapon>())
 	{
 		return;
 	}
@@ -1075,5 +1137,28 @@ void UNAInventoryComponent::CollapseInventory()
 	{
 		InventoryWidget->CollapseInventoryWidget();
 	}
+}
+
+void UNAInventoryComponent::SelectInventorySlotButton()
+{
+	if (IsInventoryWidgetVisible())
+	{
+		if (UNAInventoryWidget* InventoryWidget = Cast<UNAInventoryWidget>(GetWidget()))
+		{
+			InventoryWidget->SelectInventorySlotWidget();
+		}
+	}
+}
+
+void UNAInventoryComponent::RequestRedrawSingleSlot(UNAItemData* ItemData)
+{
+	if (!GetInventoryWidget()) return;
+	
+	if (!ItemData || ItemData->GetOwningInventory() != this) return;
+
+	FName SlotID = FindSlotIDForItem(ItemData);
+	if (SlotID.IsNone()) return;
+
+	GetInventoryWidget()->RefreshSingleSlotWidget(SlotID, ItemData);
 }
 

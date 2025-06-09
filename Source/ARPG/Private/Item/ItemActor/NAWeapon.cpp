@@ -23,7 +23,7 @@ ANAWeapon::ANAWeapon() : ANAPickableItemActor(FObjectInitializer::Get())
 	MuzzleFlashComponent = CreateDefaultSubobject<UNiagaraComponent>( TEXT( "MuzzleFlashComponent") );
 	MuzzleFlashComponent->SetAutoActivate( false );
 
-	PickupMode = EPickupMode::PM_Holdable | EPickupMode::PM_CarryOnly;
+	PickupMode = EPickupMode::PM_Holdable | EPickupMode::PM_Inventory;
 }
 
 // Called when the game starts or when spawned

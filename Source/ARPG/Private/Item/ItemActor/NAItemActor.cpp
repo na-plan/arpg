@@ -410,6 +410,19 @@ void ANAItemActor::BeginPlay()
 		OnActorBeginOverlap.AddUniqueDynamic(this, &ThisClass::OnActorBeginOverlap_Impl);
 		OnActorEndOverlap.AddUniqueDynamic(this, &ThisClass::OnActorEndOverlap_Impl);
 	}
+
+	if (GetItemData())
+	{
+		if (GetItemData()->IsStackableItem())
+		{
+			int32 RandomNumber = FMath::RandRange(1, GetItemData()->GetItemMaxSlotStackSize());
+			GetItemData()->SetQuantity(RandomNumber);
+		}
+		else
+		{
+			GetItemData()->SetQuantity(1);
+		}
+	}
 }
 
 UNAItemData* ANAItemActor::GetItemData() const
@@ -524,4 +537,12 @@ bool ANAItemActor::ExecuteInteract_Implementation(AActor* InteractorActor)
 bool ANAItemActor::IsOnInteract_Implementation() const
 {
 	return bIsOnInteract;
+}
+
+void ANAItemActor::DisableOverlapDuringInteraction()
+{
+	if (Execute_IsOnInteract(this))
+	{
+		ItemRootShape->SetGenerateOverlapEvents(false);
+	}
 }

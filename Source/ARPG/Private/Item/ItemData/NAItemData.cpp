@@ -1,8 +1,11 @@
 #include "Item/ItemData/NAItemData.h"
+
+#include "AbilitySystemInterface.h"
 #include "Item/ItemActor/NAItemActor.h"
 #include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
 
 #include "Inventory/NAInventoryComponent.h"
+#include "Item/NAItemUseInterface.h"
 
 // 프로그램 시작 시 0 에서 시작
 FThreadSafeCounter UNAItemData::IDCount(0);
@@ -148,4 +151,33 @@ void UNAItemData::SetOwningInventory(UNAInventoryComponent* NewInventory)
 	{
 		OwningInventory = NewInventory;
 	}
+}
+
+bool UNAItemData::TryUseItem(AActor* User)
+{
+	UClass* ItemClass = GetItemActorClass();
+	if (!ItemClass) return false;
+
+	UObject* CDO = ItemClass->GetDefaultObject(false);
+	if (!CDO) return false;
+
+	bool bSucceed = false;
+	if (INAItemUseInterface* ItemUseInterface = Cast<INAItemUseInterface>(CDO))
+	{
+		bSucceed = ItemUseInterface->UseItem(this, User);
+		if (bSucceed)
+		{
+			if (Quantity <= 0)
+			{
+				// @TODO: 이 아이템 데이터 파괴 및 후속처리(RuntimeItemDataMap에서 제거 등)
+			}
+		
+			if (OwningInventory.IsValid())
+			{
+				// @TODO: 인벤토리 위젯에 리드로우 해야하는 상황(아이템 수량 및 상태 변경 등)이면 인벤토리 컴포넌트에 위젯 리드로우 요청
+				
+			}
+		}
+	}
+	return bSucceed;
 }

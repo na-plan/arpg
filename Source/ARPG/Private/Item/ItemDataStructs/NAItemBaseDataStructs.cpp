@@ -40,44 +40,40 @@ void FNAItemBaseTableRow::OnDataTableChanged(const UDataTable* InDataTable, cons
 		if (ItemType == EItemType::IT_Weapon
 			|| ItemClass.Get()->IsChildOf<ANAWeapon>())
 		{
-			if (NumericData.bIsStackable)
+			NumericData.bIsStackable = false;
+			NumericData.MaxSlotStackSize = 1;
+			NumericData.MaxInventoryHoldCount = 1;
+		}
+		else
+		{
+				
+			if (!NumericData.bIsStackable)
 			{
 				NumericData.MaxSlotStackSize = 1;
-				NumericData.MaxInventoryHoldCount = 1;
 			}
-			else
+		
+			if (NumericData.MaxInventoryHoldCount < 0)
 			{
-				NumericData.MaxSlotStackSize = -1;
-				NumericData.MaxInventoryHoldCount = -1;
+				NumericData.MaxInventoryHoldCount = 0;
+				NumericData.MaxSlotStackSize = 1;
 			}
-		}
-			
-		if (!NumericData.bIsStackable)
-		{
-			NumericData.MaxSlotStackSize = 1;
+			else if (NumericData.MaxInventoryHoldCount == 0)
+			{
+				if (!ensure(NumericData.MaxSlotStackSize >= 1))
+				{
+					NumericData.MaxSlotStackSize = 1;
+				}
+			}
+			else if (NumericData.MaxInventoryHoldCount > 0)
+			{
+				if (!ensure(NumericData.MaxSlotStackSize >= 1
+					&& NumericData.MaxSlotStackSize <= NumericData.MaxInventoryHoldCount))
+				{
+					NumericData.MaxSlotStackSize = NumericData.MaxInventoryHoldCount;
+				}
+			}
 		}
 		
-		if (NumericData.MaxInventoryHoldCount < 0)
-		{
-			NumericData.MaxInventoryHoldCount = 0;
-			NumericData.MaxSlotStackSize = 1;
-		}
-		else if (NumericData.MaxInventoryHoldCount == 0)
-		{
-			if (!ensure(NumericData.MaxSlotStackSize >= 1))
-			{
-				NumericData.MaxSlotStackSize = 1;
-			}
-		}
-		else if (NumericData.MaxInventoryHoldCount > 0)
-		{
-			if (!ensure(NumericData.MaxSlotStackSize >= 1
-				&& NumericData.MaxSlotStackSize <= NumericData.MaxInventoryHoldCount))
-			{
-				NumericData.MaxSlotStackSize = NumericData.MaxInventoryHoldCount;
-			}
-		}
-
 		if (!InRowName.IsNone()
 			&& InRowName.ToString() != TextData.Name.ToString())
 		{

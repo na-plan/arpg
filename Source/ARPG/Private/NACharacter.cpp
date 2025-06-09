@@ -288,7 +288,6 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
-			Subsystem->AddMappingContext(InventoryMappingContext, 1);
 		}
 	}
 	
@@ -311,9 +310,15 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction( ReviveAction, ETriggerEvent::Started, this, &ANACharacter::TryRevive );
 		EnhancedInputComponent->BindAction( ReviveAction, ETriggerEvent::Completed, this, &ANACharacter::StopRevive );
 		// Interact
-		EnhancedInputComponent->BindAction(InteractionAction, ETriggerEvent::Started, this, &ANACharacter::TryInteract);
-		// Inventory
-		EnhancedInputComponent->BindAction(InventoryAction, ETriggerEvent::Started, this, &ANACharacter::ToggleInventoryWidget);
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ANACharacter::TryInteract);
+		// Toggle Inventory
+		EnhancedInputComponent->BindAction(ToggleInventoryAction, ETriggerEvent::Started, this, &ANACharacter::ToggleInventoryWidget);
+
+		EnhancedInputComponent->BindAction(SelectInventoryButtonAction, ETriggerEvent::Started, this, &ANACharacter::SelectInventorySlot);
+		EnhancedInputComponent->BindAction(RemoveItemFromInventoryAction, ETriggerEvent::Started, this, &ANACharacter::RemoveItemFromInventory);
+		
+		EnhancedInputComponent->BindAction(MedPackShortcutAction, ETriggerEvent::Started, this, &ANACharacter::UseMedPackByShortcut);
+		EnhancedInputComponent->BindAction(StasisPackShortcutAction, ETriggerEvent::Started, this, &ANACharacter::UseStasisPackByShortcut);
 	}
 	else
 	{
@@ -544,21 +549,43 @@ void ANACharacter::TryInteract()
 	}
 }
 
+bool ANACharacter::CanToggleInventoryWidget() const
+{
+	return InventoryComponent && !bIsExpandingInventoryWidget;
+}
+
 void ANACharacter::ToggleInventoryWidget()
 {
 	if (ensure(InventoryComponent != nullptr))
 	{
-		if (!InventoryComponent->IsInventoryWidgetVisible())
+		if (CanToggleInventoryWidget())
 		{
-			RotateSpringArmForInventory(true, 0.6f);
-			ToggleInventoryCameraView(true, InventoryAngleBoom, 0.6f);
-			InventoryComponent->ReleaseInventory();
-		}
-		else
-		{
-			RotateSpringArmForInventory(false, 0.4f);
-			ToggleInventoryCameraView(false, CameraBoom, 0.4f);
-			InventoryComponent->CollapseInventory();
+			if (!InventoryComponent->IsInventoryWidgetVisible())
+			{
+				RotateSpringArmForInventory(true, 0.6f);
+				ToggleInventoryCameraView(true, InventoryAngleBoom, 0.6f);
+				InventoryComponent->ReleaseInventory();
+				if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+				{
+					if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+					{
+						Subsystem->AddMappingContext(InventoryMappingContext, 0);
+					}
+				}
+			}
+			else
+			{
+				RotateSpringArmForInventory(false, 0.4f);
+				ToggleInventoryCameraView(false, CameraBoom, 0.4f);
+				InventoryComponent->CollapseInventory();
+				if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+				{
+					if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+					{
+						Subsystem->RemoveMappingContext(InventoryMappingContext);
+					}
+				}
+			}
 		}
 	}
 }
@@ -600,6 +627,8 @@ void ANACharacter::RotateSpringArmForInventory(bool bExpand, float Overtime)
 void ANACharacter::ToggleInventoryCameraView(const bool bEnable, USpringArmComponent* InNewBoom, float Overtime)
 {
 	if (!ensure(InNewBoom != nullptr && FollowCamera != nullptr)) return;
+	
+	bIsExpandingInventoryWidget = true;
 	
 	FollowCamera->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 	FName CallbackFunc;
@@ -644,6 +673,7 @@ void ANACharacter::ToggleInventoryCameraView(const bool bEnable, USpringArmCompo
 
 void ANACharacter::OnInventoryCameraEnterFinished()
 {
+	bIsExpandingInventoryWidget = false;
 	if (APlayerController* PC = Cast<APlayerController>(Controller))
 	{
 		CameraBoom->bUsePawnControlRotation = false;
@@ -655,6 +685,7 @@ void ANACharacter::OnInventoryCameraExitFinished()
 	// 회전 컨트롤 세팅 바뀔때 약간 끊겨서 한 프레임 뒤에서 세팅 변경
 	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([this]()
 	{
+		bIsExpandingInventoryWidget = false;
 		if (APlayerController* PC = Cast<APlayerController>(Controller))
 		{
 			PC->SetMouseLocation(0,0);
@@ -663,6 +694,51 @@ void ANACharacter::OnInventoryCameraExitFinished()
 			GetCharacterMovement()->bUseControllerDesiredRotation = false;
 		}
 	}));
+}
+
+void ANACharacter::SelectInventorySlot(const FInputActionValue& Value)
+{
+	// if (GEngine) {
+	// 	FString Log = TEXT("SelectInventorySlot");
+	// 	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, *Log);
+	// }
+	if (InventoryComponent)
+	{
+		InventoryComponent->SelectInventorySlotButton();
+	}
+}
+
+void ANACharacter::RemoveItemFromInventory(const FInputActionValue& Value)
+{
+	if (GEngine) {
+		FString Log = TEXT("RemoveItemFromInventory");
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, *Log);
+	}
+	if (InventoryComponent)
+	{
+		InventoryComponent->RemoveItemAtInventorySlot();
+	}
+}
+
+void ANACharacter::UseMedPackByShortcut(const FInputActionValue& Value)
+{
+	if (GEngine) {
+		FString Log = TEXT("UseMedPackByShortcut");
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, *Log);
+	}
+
+	if (InventoryComponent)
+	{
+		InventoryComponent->UseMedPackByShortcut(this);
+	}
+}
+
+void ANACharacter::UseStasisPackByShortcut(const FInputActionValue& Value)
+{
+	if (GEngine) {
+		FString Log = TEXT("UseStasisPackByShortcut");
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Blue, *Log);
+	}
 }
 
 void ANACharacter::TryRevive()

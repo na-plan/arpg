@@ -52,49 +52,15 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
 	UNAReviveWidgetComponent* ReviveWidget;
-	
-	/** MappingContext */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputMappingContext* DefaultMappingContext;
 
-	/** Jump Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* JumpAction;
-
-	/** Move Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* MoveAction;
-
-	/** Look Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* LookAction;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* LeftMouseAttackAction;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* ReviveAction;
-	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Asset", meta=(AllowPrivateAccess="true"))
 	FName AssetName;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UNAInteractionComponent> InteractionComponent;
-
-	/* Interaction Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* InteractionAction;
-
-	/* Inventory*/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* InventoryAction;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UNAInventoryComponent> InventoryComponent;
-
-	/* Grab */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* GrabAction;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USpringArmComponent> InventoryWidgetBoom;
@@ -103,13 +69,66 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USpringArmComponent> InventoryAngleBoom;
 
-	/* Inventory IMC */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputMappingContext* InventoryMappingContext;
-
 	// 양손에 무기가 없을때 사용되는 전투 컴포넌트
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Replicated, Category = "Combat", meta=(AllowPrivateAccess="true"))
 	UNAMontageCombatComponent* DefaultCombatComponent;
+
+	
+// Default MappingContext & Input Actions //////////////////////////////////////////////////////////////////////////////
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
+	UInputMappingContext* DefaultMappingContext;
+
+	/** Jump Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
+	UInputAction* JumpAction;
+
+	/** Move Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
+	UInputAction* MoveAction;
+
+	/** Look Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
+	UInputAction* LookAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
+	UInputAction* LeftMouseAttackAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
+	UInputAction* ReviveAction;
+	
+	/* Grab */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
+	UInputAction* GrabAction;
+	
+	/* Interaction Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
+	UInputAction* InteractAction;
+
+	/* Inventory Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
+	UInputAction* ToggleInventoryAction;
+		
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory Input", meta = (AllowPrivateAccess = "true"))
+	UInputAction* MedPackShortcutAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory Input", meta = (AllowPrivateAccess = "true"))
+	UInputAction* StasisPackShortcutAction;
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	
+// Inventory MappingContext & Input Actions ////////////////////////////////////////////////////////////////////////////
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory Input", meta = (AllowPrivateAccess = "true"))
+	UInputMappingContext* InventoryMappingContext;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory Input", meta = (AllowPrivateAccess = "true"))
+	UInputAction* SelectInventoryButtonAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory Input", meta = (AllowPrivateAccess = "true"))
+	UInputAction* RemoveItemFromInventoryAction;
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
 
 public:
 	ANACharacter();
@@ -150,6 +169,8 @@ protected:
 	void TryInteract();
 
 	// Inventory Widget Release/Collapse
+	uint8 bIsExpandingInventoryWidget : 1 = false;
+	bool CanToggleInventoryWidget() const;
 	UFUNCTION()
 	void ToggleInventoryWidget();
 
@@ -166,7 +187,13 @@ protected:
 	UFUNCTION()
 	void OnInventoryCameraExitFinished();
 
-
+	void SelectInventorySlot(const FInputActionValue& Value);
+	void RemoveItemFromInventory(const FInputActionValue& Value);
+	
+	// 힐팩 단축키로 자동 사용: 높은 등급부터
+	void UseMedPackByShortcut(const FInputActionValue& Value);
+	void UseStasisPackByShortcut(const FInputActionValue& Value);
+	
 protected:
 	void TryRevive();
 

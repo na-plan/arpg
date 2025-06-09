@@ -12,10 +12,21 @@ enum class ERecoverableStatType : uint8
 	
 	RT_Hp			UMETA(DisplayName = "Hp"),
 	RT_Stasis		UMETA(DisplayName = "Stasis"),
-	//RT_Mana			UMETA(DisplayName = "Mana"),
+	//RT_Mana		UMETA(DisplayName = "Mana"),
 	//RT_Shield		UMETA(DisplayName = "Shield"),
-	RT_Oxygen	UMETA(DisplayName = "Oxygen"),
+	RT_Oxygen		UMETA(DisplayName = "Oxygen"),
 };
+
+UENUM(BlueprintType)
+enum class EMedPackGrade : uint8
+{
+	MPG_None			UMETA(Hidden),
+
+	MPG_Small			UMETA(DisplayName = "Small"),
+	MPG_Medium			UMETA(DisplayName = "Medium"),
+	MPG_Large			UMETA(DisplayName = "Large"),
+};
+
 
 // 회복 팩: 별도의 사용 단축키 존재(인벤 안켜고 단축키로 바로 사용 가능)
 USTRUCT()
@@ -25,6 +36,10 @@ struct ARPG_API FNARecoveryPackDataStructs : public FNAItemBaseTableRow
 	
 	UPROPERTY(EditAnywhere, Category = "Recovery")
 	ERecoverableStatType RecoveryTargetStat = ERecoverableStatType::RT_Hp;
+
+	UPROPERTY(EditAnywhere, Category = "Recovery",
+		meta=(EditCondition="RecoveryTargetStat==ERecoverableStatType::RT_Hp", EditConditionHides))
+	EMedPackGrade MedPackGrade = EMedPackGrade::MPG_Small;
 
 	// 회복 수치. 절댓값 기준
 	UPROPERTY(EditAnywhere, Category = "Recovery", meta = (ClampMin = "0"))

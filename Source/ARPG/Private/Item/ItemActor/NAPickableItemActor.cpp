@@ -29,11 +29,11 @@ void ANAPickableItemActor::BeginPlay()
 	Super::BeginPlay();
 }
 
-int32 ANAPickableItemActor::TryPerformAutoUse()
+int32 ANAPickableItemActor::TryPerformAutoUse(AActor* User)
 {
 	if (!EnumHasAnyFlags(PickupMode, EPickupMode::PM_AutoUse)) return 0;
 	
-	const int32 ConsumedQty = PerformAutoUse_Impl();
+	const int32 ConsumedQty = PerformAutoUse_Impl(User);
 	if (ConsumedQty > 0)
 	{
 		if (EnumHasAnyFlags(PickupMode, EPickupMode::PM_Inventory))
@@ -57,7 +57,7 @@ int32 ANAPickableItemActor::TryPerformAutoUse()
 	return ConsumedQty;
 }
 
-int32 ANAPickableItemActor::PerformAutoUse_Impl()
+int32 ANAPickableItemActor::PerformAutoUse_Impl(AActor* User)
 {
 	return 0;
 }
@@ -123,7 +123,7 @@ bool ANAPickableItemActor::ExecuteInteract_Implementation(AActor* Interactor)
 
 	if (EnumHasAnyFlags(PickupMode, EPickupMode::PM_AutoUse))
 	{
-		int32 bResult = TryPerformAutoUse();
+		int32 bResult = TryPerformAutoUse(Interactor);
 		if (bResult == -1) return true;
 		
 		// 자동 사용에 실패하거나, 자동 사용 후 남은 수량이 있다면 -> 인벤토리에 add 시도
@@ -134,13 +134,14 @@ bool ANAPickableItemActor::ExecuteInteract_Implementation(AActor* Interactor)
 	// @TODO : (근데 보통 Holdable 가능한 아이템이면 1 액터 1 수량이라 자주 있는 시나리오는 아님)
 	if (EnumHasAnyFlags(PickupMode, EPickupMode::PM_Inventory))
 	{
-		const bool bSucced = InteractComp->TryAddItemToInventory(this);
-
-		if (EnumHasAnyFlags(PickupMode, EPickupMode::PM_Holdable))
+		const bool bSucceed = InteractComp->TryAddItemToInventory(this);
+		
+		if (bSucceed) // 인벤토리에 전부 추가 성공
 		{
-			if (bSucced) // 인벤토리에 전부 추가 성공
+			if (EnumHasAnyFlags(PickupMode, EPickupMode::PM_Holdable))
 			{
-				TScriptInterface<INAInteractableInterface> NewInteractableActor =  InteractComp->TryAttachItemMeshToOwner(this);
+				TScriptInterface<INAInteractableInterface> NewInteractableActor = InteractComp->
+					TryAttachItemMeshToOwner(this);
 				if (NewInteractableActor != nullptr)
 				{
 					// @TODO: 사용 대기 상태(bIsOnInteract이 true)일 때 ... 여기서 수행해야할 뭔가가 있을지 고민해보기
@@ -149,8 +150,12 @@ bool ANAPickableItemActor::ExecuteInteract_Implementation(AActor* Interactor)
 					return true;
 				}
 			}
-			// 부분 추가 or 추가 실패 -> (임시) 부분 추가되면 어태치 시도 안함
+			else // holdable이 아니면서, 전부 추가 성공 -> 상호장용 종료 true
+			{
+				return true;
+			}
 		}
+		// 부분 추가 or 추가 실패 -> (임시) 부분 추가되면 어태치 시도 안함
 	}
 	// 바로 어태치 시도
 	else if (EnumHasAnyFlags(PickupMode, EPickupMode::PM_CarryOnly))
@@ -167,16 +172,6 @@ bool ANAPickableItemActor::ExecuteInteract_Implementation(AActor* Interactor)
 
 	// 상호작용 종료
 	return false;
-}
-
-void ANAPickableItemActor::DisableOverlapDuringInteraction()
-{
-	Super::DisableOverlapDuringInteraction();
-
-	if (Execute_IsOnInteract(this))
-	{
-		ItemRootShape->SetGenerateOverlapEvents(false);
-	}
 }
 
 void ANAPickableItemActor::EndInteract_Implementation(AActor* Interactor)

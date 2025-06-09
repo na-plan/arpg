@@ -88,6 +88,8 @@ public:
 	int32 GetMaxInventoryHoldCount() const;
 
 	void SetOwningInventory(UNAInventoryComponent* NewInventory);
+
+	bool TryUseItem(AActor* User);
 	
 private:
 	UPROPERTY(DuplicateTransient,
