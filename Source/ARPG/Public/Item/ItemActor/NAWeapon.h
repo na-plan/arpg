@@ -8,6 +8,7 @@
 #include "GameFramework/Actor.h"
 #include "NAWeapon.generated.h"
 
+class UGameplayEffect;
 class UNiagaraComponent;
 class UNAMontageCombatComponent;
 

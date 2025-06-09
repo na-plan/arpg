@@ -7,6 +7,7 @@
 #include "Components/ActorComponent.h"
 #include "NACombatComponent.generated.h"
 
+class UGameplayEffect;
 class UGameplayAbility;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDoStartAttack);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FShouldAttack);
@@ -51,6 +52,9 @@ class ARPG_API UNACombatComponent : public UActorComponent
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
 	TSubclassOf<UGameplayAbility> GrabAbility;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
+	TSubclassOf<UGameplayEffect> AmmoType;
+
 	FGameplayAbilitySpecHandle AbilitySpecHandle;
 
 public:
@@ -70,6 +74,8 @@ public:
 	void SetAttackAbility(const TSubclassOf<UGameplayAbility>& InAbility);
 
 	void SetGrabAbility(const TSubclassOf<UGameplayAbility>& InAbility);
+
+	TSubclassOf<UGameplayEffect> GetAmmoType() const;
 	
 
 	UFUNCTION()

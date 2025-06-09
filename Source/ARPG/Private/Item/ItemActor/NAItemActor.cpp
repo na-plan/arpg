@@ -228,7 +228,7 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 
 	// 트랜스폼 및 콜리전, 피직스 등등 설정 여기에
 	ItemRootShape->SetWorldTransform(CachedRootWorldTransform);
-	ItemRootShape->SetWorldScale3D(ItemRootShape->GetComponentScale() * MetaData->RootShapeScaleFactor);
+	ItemRootShape->SetWorldScale3D(MetaData->RootShapeScaleFactor);
 	ItemMesh->SetRelativeTransform(MetaData->MeshTransform);
 	ItemInteractionButton->SetRelativeTransform(MetaData->IxButtonTransform);
 	ItemInteractionButtonText->SetRelativeTransform(MetaData->IxButtonTextTransform);

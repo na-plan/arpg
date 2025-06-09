@@ -8,7 +8,6 @@
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "Combat/Interface/NAHandActor.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
-#include "Weapon/GameplayEffect/NAGE_ConsumeAmmo.h"
 
 UNAGA_FireGun::UNAGA_FireGun()
 {
@@ -16,12 +15,18 @@ UNAGA_FireGun::UNAGA_FireGun()
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
 }
 
-bool UNAGA_FireGun::ConsumeAmmo(UAbilitySystemComponent* InAbilitySystemComponent)
+bool UNAGA_FireGun::ConsumeAmmo( UAbilitySystemComponent* InAbilitySystemComponent,
+	const TSubclassOf<UGameplayEffect>& InAmmoType )
 {
-	const FGameplayEffectContextHandle EffectContext = InAbilitySystemComponent->MakeEffectContext();
-	const FGameplayEffectSpecHandle SpecHandle = InAbilitySystemComponent->MakeOutgoingSpec(UNAGE_ConsumeAmmo::StaticClass(), 1.f, EffectContext);
-	const FActiveGameplayEffectHandle EffectHandle = InAbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-	return EffectHandle.WasSuccessfullyApplied();
+	if ( InAbilitySystemComponent )
+	{
+		FGameplayEffectQuery Query;
+		Query.EffectDefinition = InAmmoType;
+		const int32 Consumed = InAbilitySystemComponent->RemoveActiveEffects( Query, 1 );
+		return Consumed != 0;
+	}
+
+	return false;
 }
 
 void UNAGA_FireGun::OnMontageEnded( UAnimMontage* AnimMontage, bool bInterrupted )
@@ -57,12 +62,10 @@ void UNAGA_FireGun::OnMontageEnded( UAnimMontage* AnimMontage, bool bInterrupted
 void UNAGA_FireGun::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
                                     const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
-	if ( HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo) )
+	if ( !CommitAbility(Handle, ActorInfo, ActivationInfo) )
 	{
-		if ( !CommitAbility(Handle, ActorInfo, ActivationInfo) )
-		{
-			EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
-		}
+		EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
+		return;
 	}
 
 	if ( HasAuthority( &ActivationInfo ) )
@@ -77,6 +80,7 @@ void UNAGA_FireGun::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 		if ( !ControlledPawn )
 		{
 			EndAbility( Handle, ActorInfo, ActivationInfo, true, false );
+			return;
 		}
 		
 		const FVector HeadLocation = ControlledPawn->GetComponentByClass<USkeletalMeshComponent>()->GetSocketLocation(INAHandActor::HeadSocketName);
@@ -141,22 +145,23 @@ bool UNAGA_FireGun::CommitAbility(const FGameplayAbilitySpecHandle Handle, const
 {
 	bool bResult = true;
 	
-	if (const TScriptInterface<INAHandActor> HandActor = ActorInfo->AvatarActor.Get())
+	if ( const TScriptInterface<INAHandActor> HandActor = ActorInfo->OwnerActor.Get() )
 	{
 		bool HasAmmoConsumed = false;
-		const TScriptInterface<IAbilitySystemInterface> Left = HandActor->GetLeftHandChildActorComponent()->GetChildActor();
-		const TScriptInterface<IAbilitySystemInterface> Right = HandActor->GetRightHandChildActorComponent()->GetChildActor();
+		const AActor* Left = HandActor->GetLeftHandChildActorComponent()->GetChildActor();
+		const AActor* Right = HandActor->GetRightHandChildActorComponent()->GetChildActor();
+
+		const TScriptInterface<IAbilitySystemInterface> AbilityInterface = ActorInfo->OwnerActor.Get();
 		
-		if (Left)
+		if ( Left )
 		{
-			HasAmmoConsumed = ConsumeAmmo(Left->GetAbilitySystemComponent());
+			const UNAMontageCombatComponent* LeftCombatComponent = Left->GetComponentByClass<UNAMontageCombatComponent>();
+			HasAmmoConsumed = ConsumeAmmo( AbilityInterface->GetAbilitySystemComponent(), LeftCombatComponent->GetAmmoType() );
 		}
-		if (Right)
+		if ( !HasAmmoConsumed && Right )
 		{
-			if (!HasAmmoConsumed)
-			{
-				HasAmmoConsumed = ConsumeAmmo(Right->GetAbilitySystemComponent());
-			}
+			const UNAMontageCombatComponent* RightCombatComponent = Right->GetComponentByClass<UNAMontageCombatComponent>();
+			HasAmmoConsumed = ConsumeAmmo( AbilityInterface->GetAbilitySystemComponent(), RightCombatComponent->GetAmmoType() );
 		}
 
 		bResult &= Left || Right;
