@@ -37,4 +37,6 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick( float DeltaTime ) override;
+
+	TSubclassOf<UGameplayEffect> GetAmmoEffectType() const { return AmmoEffectType; }
 };

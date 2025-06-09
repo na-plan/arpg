@@ -44,6 +44,7 @@ bool ANAWeaponAmmoBox::ExecuteInteract_Implementation( AActor* InteractorActor )
 				
 				const FGameplayEffectContextHandle& EffectContext = Interface->GetAbilitySystemComponent()->MakeEffectContext();
 				const FActiveGameplayEffectHandle& ActiveHandle = Interface->GetAbilitySystemComponent()->ApplyGameplayEffectToSelf( AmmoEffectType.GetDefaultObject(), 1.f, EffectContext );
+				bResult &= ActiveHandle.IsValid();
 				bResult &= ActiveHandle.WasSuccessfullyApplied();
 			}
 
@@ -66,15 +67,6 @@ bool ANAWeaponAmmoBox::ExecuteInteract_Implementation( AActor* InteractorActor )
 void ANAWeaponAmmoBox::EndInteract_Implementation( AActor* InteractorActor )
 {
 	Super::EndInteract_Implementation( InteractorActor );
-
-	// todo: 드랍하는 총알에 갯수 적용하기
-
-	// 적용돼있던 총알 효과 모두 제거
-	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = InteractorActor )
-	{
-		const FInheritedTagContainer& Container = Cast<UTargetTagsGameplayEffectComponent>( AmmoEffectType.GetDefaultObject()->FindComponent( UTargetTagsGameplayEffectComponent::StaticClass() ) )->GetConfiguredTargetTagChanges();
-		Interface->GetAbilitySystemComponent()->RemoveActiveEffectsWithAppliedTags( Container.Added );
-	}
 }
 
 void ANAWeaponAmmoBox::GetLifetimeReplicatedProps( TArray<FLifetimeProperty>& OutLifetimeProps ) const
