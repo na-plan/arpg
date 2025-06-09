@@ -62,13 +62,10 @@ void UNAGA_FireGun::OnMontageEnded( UAnimMontage* AnimMontage, bool bInterrupted
 void UNAGA_FireGun::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
                                     const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
-	if ( HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo) )
+	if ( !CommitAbility(Handle, ActorInfo, ActivationInfo) )
 	{
-		if ( !CommitAbility(Handle, ActorInfo, ActivationInfo) )
-		{
-			EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
-			return;
-		}
+		EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
+		return;
 	}
 
 	if ( HasAuthority( &ActivationInfo ) )
