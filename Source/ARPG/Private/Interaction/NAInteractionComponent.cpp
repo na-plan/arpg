@@ -276,6 +276,7 @@ bool UNAInteractionComponent::OnInteractableFound(TScriptInterface<INAInteractab
 	// 	}
 	// 	SetComponentTickEnabled(true);
 	// }
+	
 	if (FocusedInteractableMap.IsEmpty() || !FocusedInteractableMap.Contains(InteractableActor))
 	{
 		UObject* InteractableObj = InteractableActor.GetObject();
@@ -339,7 +340,6 @@ bool UNAInteractionComponent::OnInteractableLost(TScriptInterface<INAInteractabl
 	if (ActiveInteractable == InteractableActor
 		&& InteractableActor->Execute_IsOnInteract(InteractableActor.GetObject()))
 	{
-		// 인터렉션 중인 액터인데 오버랩이 끊겼다고????
 		return false;
 	}
 

@@ -114,6 +114,7 @@ void ANAPickableItemActor::BeginInteract_Implementation(AActor* Interactor)
 //								어태치에 성공하면 아이템 사용 대기 상태에 진입		
 // 2. 인벤토리에 적재 불가능한 아이템: 바로 어태치 시도 후 성공 여부에 따라 아이템 사용 대기 상태에 진입
 // @ return	상호작용 실행 성공 여부 -> false면 BeginInteract에서 EndInteract 호출함
+// @TODO: 상호작용 실행 결과 및 후속 처리를 체계화해야 함. 컨테이너(FNAIxResult) 만들어서 후속 처리 명시
 bool ANAPickableItemActor::ExecuteInteract_Implementation(AActor* Interactor)
 {
 	Super::ExecuteInteract_Implementation(Interactor);
@@ -124,10 +125,10 @@ bool ANAPickableItemActor::ExecuteInteract_Implementation(AActor* Interactor)
 	if (EnumHasAnyFlags(PickupMode, EPickupMode::PM_AutoUse))
 	{
 		int32 bResult = TryPerformAutoUse(Interactor);
+		// -1 : 자동 사용으로 아이템의 모든 수량을 소진함 & 이 아이템 액터 Destroy 상호작용 성공 true -> 종료
 		if (bResult == -1) return true;
-		
-		// 자동 사용에 실패하거나, 자동 사용 후 남은 수량이 있다면 -> 인벤토리에 add 시도
 	}
+	// 자동 사용에 실패하거나, 자동 사용 후 남은 수량이 있다면 -> 인벤토리에 add 시도
 
 	// 인벤토리에 적재 가능한 아이템이면 -> 인벤토리에 add부터 시도
 	// @TODO : Holdable인데 부분 추가된 경우: 부분 추가된 것들에 한정하여 어태치 시도 ?
@@ -147,16 +148,17 @@ bool ANAPickableItemActor::ExecuteInteract_Implementation(AActor* Interactor)
 				TryAttachItemMeshToOwner(this);
 			if (NewInteractableActor != nullptr)
 			{
-				// @TODO: 사용 대기 상태(bIsOnInteract이 true)일 때 ... 여기서 수행해야할 뭔가가 있을지 고민해보기
-
+				// 사용 대기 상태(bIsOnInteract == true)일 때 어태치 중인 아이템 액터 콜리전 오버랩 비활성화
 				NewInteractableActor->DisableOverlapDuringInteraction();
-				return true;
+				return true; // 상호작용 성공 true -> 사용 대기 상태
 			}
 		}
-		else // holdable이 아니면서, 전부 추가 성공 -> 상호장용 종료 true
+		else 
 		{
+			// holdable이 아니면서, 전부 추가 성공 -> 상호작용 성공 true -> 종료
 			return true;
 		}
+		
 		// 부분 추가 or 추가 실패 -> (임시) 부분 추가되면 어태치 시도 안함
 	}
 	// 바로 어태치 시도
@@ -165,14 +167,13 @@ bool ANAPickableItemActor::ExecuteInteract_Implementation(AActor* Interactor)
 		TScriptInterface<INAInteractableInterface> NewInteractableActor = InteractComp->TryAttachItemMeshToOwner(this);
 		if (NewInteractableActor != nullptr)
 		{
-			// @TODO: 사용 대기 상태(bIsOnInteract이 true)일 때 ... 여기서 수행해야할 뭔가가 있을지 고민해보기
-
+			// 사용 대기 상태(bIsOnInteract == true)일 때 어태치 중인 아이템 액터 콜리전 오버랩 비활성화
 			NewInteractableActor->DisableOverlapDuringInteraction();
-			return true;
+			return true; // 상호작용 성공 true -> 사용 대기 상태
 		}
 	}
 
-	// 상호작용 종료
+	// 상호작용 실패 -> 종료
 	return false;
 }
 
