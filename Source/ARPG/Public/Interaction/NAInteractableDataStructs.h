@@ -29,8 +29,8 @@ public:
 		: InteractableType(ENAInteractableType::None),
 		InteractionName(FText::GetEmpty()),
 		//InteractionScript(FText::GetEmpty()),
-		InteractionDuration(0.f),
-		InteractingCharacter(nullptr)
+		InteractionDuration(0.f)
+		//, InteractingCharacter(nullptr)
 	{
 	}
 
@@ -46,6 +46,6 @@ public:
 	UPROPERTY(EditInstanceOnly, Category = "Item Interactable Data")
 	float InteractionDuration;
 
-	UPROPERTY(VisibleInstanceOnly, Category = "Item Interactable Data")
-	TWeakObjectPtr<class ANACharacter> InteractingCharacter;
+	// UPROPERTY(VisibleInstanceOnly, Category = "Item Interactable Data")
+	// TWeakObjectPtr<class ANACharacter> InteractingCharacter;
 };

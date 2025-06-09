@@ -40,6 +40,14 @@ public:
 		check(ObjectPtr.IsValid() && ObjectPtr->Implements<UNAInteractableInterface>());
 	}
 
+	FWeakInteractableHandle(AActor* InActor)
+	{
+		ensureAlways(InActor && InActor->Implements<UNAInteractableInterface>())
+				? ObjectPtr = InActor
+				: ObjectPtr = nullptr;
+	}
+
+
 	// 유효성 검사
 	bool IsValid() const
 	{
@@ -85,7 +93,6 @@ public:
 	{
 		return ToRawInterface() == Other;
 	}
-	
 	
 	bool operator!=(const FWeakInteractableHandle& Other) const noexcept
 	{

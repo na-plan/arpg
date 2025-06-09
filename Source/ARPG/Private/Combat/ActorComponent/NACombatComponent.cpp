@@ -16,6 +16,7 @@ UNACombatComponent::UNACombatComponent()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
+	bAutoActivate = true;
 
 	// ...
 }
@@ -23,20 +24,8 @@ UNACombatComponent::UNACombatComponent()
 
 void UNACombatComponent::SetAttackAbility(const TSubclassOf<UGameplayAbility>& InAbility)
 {
-	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker() )
-	{
-		if ( AbilitySpecHandle.IsValid() && GetNetMode() != NM_Client )
-		{
-			Interface->GetAbilitySystemComponent()->ClearAbility( AbilitySpecHandle );
-		}
-
-		if ( InAbility && GetNetMode() != NM_Client )
-		{
-			AbilitySpecHandle = Interface->GetAbilitySystemComponent()->GiveAbility( InAbility );		
-		}
-	}
-
 	AttackAbility = InAbility;
+	UpdateAttackAbilityToASC( false );
 }
 
 void UNACombatComponent::SetGrabAbility(const TSubclassOf<UGameplayAbility>& InAbility)
@@ -90,9 +79,7 @@ void UNACombatComponent::BeginPlay()
 void UNACombatComponent::EndPlay( const EEndPlayReason::Type EndPlayReason )
 {
 	Super::EndPlay( EndPlayReason );
-
-	// 기존 소유자로부터 공격 능력을 뺏어옴
-	SetAttackAbility( nullptr );	
+	UpdateAttackAbilityToASC( true );
 }
 
 void UNACombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -106,7 +93,12 @@ void UNACombatComponent::SetActive( bool bNewActive, bool bReset )
 	Super::SetActive( bNewActive, bReset );
 	if ( !bNewActive )
 	{
-		StopAttack();	
+		StopAttack();
+		UpdateAttackAbilityToASC( true );
+	}
+	else
+	{
+		UpdateAttackAbilityToASC( false );
 	}
 }
 
@@ -152,6 +144,25 @@ void UNACombatComponent::SetAttack(const bool NewAttack)
 		// 서버에서 발생한 경우 클라이언트와 동기화
 		Client_SyncAttack(bAttacking);
 		PostSetAttack();
+	}
+}
+
+void UNACombatComponent::UpdateAttackAbilityToASC( const bool bOnlyRemove )
+{
+	UWorld* World = GetWorld();
+	
+	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner();
+		 World && Interface && World->IsGameWorld() )
+	{
+		if ( AbilitySpecHandle.IsValid() && GetNetMode() != NM_Client )
+		{
+			Interface->GetAbilitySystemComponent()->ClearAbility( AbilitySpecHandle );
+		}
+
+		if ( !bOnlyRemove && AttackAbility && GetNetMode() != NM_Client )
+		{
+			AbilitySpecHandle = Interface->GetAbilitySystemComponent()->GiveAbility( AttackAbility );		
+		}
 	}
 }
 
@@ -221,7 +232,7 @@ APawn* UNACombatComponent::GetAttacker() const
 {
 	if ( bConsiderChildActor )
 	{
-		Cast<APawn>( GetOwner()->GetParentActor() );
+		return Cast<APawn>( GetOwner()->GetAttachParentActor() );
 	}
 	
 	return Cast<APawn>( GetOwner() );
@@ -245,7 +256,7 @@ void UNACombatComponent::OnAttack()
 		if (bCanAttack && bAttacking&& !bCanGrab)
 		{
 			// 공격을 수행하고
-			if ( const TScriptInterface<IAbilitySystemInterface> Interface = GetAttacker();
+			if ( const TScriptInterface<IAbilitySystemInterface> Interface = GetOwner();
 				 Interface && Interface->GetAbilitySystemComponent()->TryActivateAbilityByClass( AttackAbility ) )
 			{
 				OnAttack_Implementation();
@@ -278,7 +289,7 @@ void UNACombatComponent::OnAttack()
 		//잡기 가능하면
 		else if (bAttacking && bCanGrab)
 		{
-			if (const TScriptInterface<IAbilitySystemInterface> Interface = GetAttacker();
+			if (const TScriptInterface<IAbilitySystemInterface> Interface = GetOwner();
 				Interface && Interface->GetAbilitySystemComponent()->TryActivateAbilityByClass(AttackAbility))
 			{
 				OnAttack_Implementation();
@@ -321,15 +332,7 @@ void UNACombatComponent::OnRep_CanAttack()
 
 void UNACombatComponent::SetConsiderChildActor(const bool InConsiderChildActor)
 {
-	// 기존에 대상으로 바라보던 액터로부터 Ability를 뺏어옴
-	if ( InConsiderChildActor != bConsiderChildActor )
-	{
-		SetAttackAbility( nullptr );
-	}
-	
 	bConsiderChildActor = InConsiderChildActor;
-	// 새로 지정된 액터에게 Ability를 부여함
-	SetAttackAbility( AttackAbility );
 }
 
 TSubclassOf<UGameplayAbility> UNACombatComponent::GetAttackAbility() const
@@ -339,7 +342,7 @@ TSubclassOf<UGameplayAbility> UNACombatComponent::GetAttackAbility() const
 
 void UNACombatComponent::Server_RequestAttackAbility_Implementation()
 {
-	SetAttackAbility( AttackAbility );
+	UpdateAttackAbilityToASC( false );
 }
 
 void UNACombatComponent::StopAttack()

@@ -10,19 +10,6 @@
 #include "Item/ItemActor/NAWeapon.h"
 #include "Components/Button.h"
 
-// 슬롯 ID에서 문자열 추출 헬퍼 함수
-static int32 ExtractSlotNumber(const FName& SlotID)
-{
-	const FString SlotStr = SlotID.ToString();
-	int32 UnderscoreIndex = INDEX_NONE;
-	if (SlotStr.FindLastChar(TEXT('_'), UnderscoreIndex))
-	{
-		const FString NumberStr = SlotStr.Mid(UnderscoreIndex + 1);
-		return FCString::Atoi(*NumberStr);
-	}
-	return INT_MAX;
-}
-
 // Sets default values for this component's properties
 UNAInventoryComponent::UNAInventoryComponent()
 {
@@ -37,22 +24,34 @@ UNAInventoryComponent::UNAInventoryComponent()
 	SetGenerateOverlapEvents(false);
 	SetEnableGravity(false);
 	CanCharacterStepUpOn = ECB_No;
-	SetRelativeRotation(FRotator(-10.0f, 0.0f, 0.0f));
+	SetSimulatePhysics(false);
+	bApplyImpulseOnDamage = false;
+	bReplicatePhysicsToAutonomousProxy = false;
+	BodyInstance.SetInertiaConditioningEnabled(false);
+	BodyInstance.bGenerateWakeEvents = false;
+	BodyInstance.bUpdateMassWhenScaleChanges = false;
+	
+	SetRelativeLocation(FVector(0.f, -43.f, 27.f));
+	SetRelativeRotation(FRotator(9.0f, 8.0f, 0.0f));
+	SetRelativeScale3D(FVector(0.35f));
 	SetWidgetSpace(EWidgetSpace::World);
 	SetDrawSize(FVector2D(1280, 720));
 	SetGeometryMode(EWidgetGeometryMode::Cylinder);
-	SetCylinderArcAngle(180.f);
-	bIsTwoSided = true;
+	SetCylinderArcAngle(15.f);
+	OpacityFromTexture = 1.f;
 	SetBlendMode(EWidgetBlendMode::Masked);
-	OpacityFromTexture = 0.8f;
-	SetVisibility(false);
-
+	bIsTwoSided = true;
+	//SetVisibility(false);
+	SetDrawSize(FVector2D(1024, 576));
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
 		// 슬롯 데이터 매핑 키 값만(ID) 초기화
-		InitSlotIDs(InventoryContents);
+		//InitSlotIDs(InventoryContents);
 		// 슬롯 UI 매핑 키 값만(ID) 초기화
-		InitSlotIDs(SlotButtons);
+		//InitSlotIDs(SlotButtons);
+		// -> InitWidget 단계에서 위젯 버튼과 매핑할 때 초기화
+
+		InitInventorySlotIDs(this);
 	}
 }
 
@@ -61,9 +60,10 @@ UNAInventoryComponent::UNAInventoryComponent()
 void UNAInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	SetVisibility(false);
 	SetWindowVisibility(EWindowVisibility::SelfHitTestInvisible);
-	
+	SetWindowFocusable(false);
 }
 
 bool UNAInventoryComponent::HandleRemoveItem(const FName& SlotID)
@@ -72,8 +72,17 @@ bool UNAInventoryComponent::HandleRemoveItem(const FName& SlotID)
 	{
 		return false;
 	}
-
-	UNAItemData* ItemToRemove = InventoryContents[SlotID].Get();
+	UNAItemData* ItemToRemove = nullptr;
+	if (InvenSlotContents.Contains(SlotID))
+	{
+		ItemToRemove= InvenSlotContents[SlotID].Get();
+	}
+	else if (WeaponSlotContents.Contains(SlotID))
+	{
+		ItemToRemove= WeaponSlotContents[SlotID].Get();
+	}
+	else { check(false); }
+	
 	if (!ItemToRemove) { return false; }
 	if (ItemToRemove->GetOwningInventory() != this) { return ensure(false); }
 	
@@ -88,19 +97,38 @@ bool UNAInventoryComponent::HandleRemoveItem(const FName& SlotID)
 	return ensure(false);
 }
 
-void UNAInventoryComponent::SortInventoryItems()
+UNAItemData* UNAInventoryComponent::GetItemDataFromSlot(const FName& SlotID) const
+{
+	const bool bIsInvenSlot = InvenSlotContents.Contains(SlotID);
+	const bool bIsWeaponSlot = WeaponSlotContents.Contains(SlotID);
+
+	if (bIsInvenSlot)
+	{
+		return  InvenSlotContents[SlotID].Get();
+	}
+	else if (bIsWeaponSlot)
+	{
+		return WeaponSlotContents[SlotID].Get();
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("[GetItemDataFromSlot]  유효하지 않은 슬롯ID."));
+	return nullptr;
+}
+
+void UNAInventoryComponent::SortInvenSlotItems()
 {
     // 1) 채워진 Inven_ 슬롯만 모으기
     TArray<TPair<FName, UNAItemData*>> FilledSlots;
     FilledSlots.Reserve(MaxInventorySlots);
 
-    for (auto& Pair : InventoryContents)
+    for (auto& Pair : InvenSlotContents)
     {
-        const FName& SlotID = Pair.Key;
-        FString SlotStr = SlotID.ToString();
-        if (SlotStr.StartsWith(TEXT("Inven_")) && Pair.Value.IsValid())
+        //const FName& SlotID = Pair.Key;
+        //FString SlotStr = SlotID.ToString();
+        //if (SlotStr.StartsWith(TEXT("Inven_")) && Pair.Value.IsValid())
+    	if (Pair.Value.IsValid())
         {
-            FilledSlots.Emplace(SlotID, Pair.Value.Get());
+            FilledSlots.Emplace(Pair.Key, Pair.Value.Get());
         }
     }
 
@@ -130,22 +158,22 @@ void UNAInventoryComponent::SortInventoryItems()
     });
 
     // 3) 모든 Inven_ 슬롯을 비우기
-    for (int32 i = 1; i <= MaxInventorySlots; ++i)
+    for (int32 i = 0; i < MaxInventorySlots; ++i)
     {
         FString SlotNameStr = FString::Printf(TEXT("Inven_%02d"), i);
         FName SlotID = FName(*SlotNameStr);
-        InventoryContents[SlotID] = nullptr;
+        InvenSlotContents[SlotID] = nullptr;
     }
 
     // 4) 정렬된 순서대로 순차적 재배치
-    int32 TargetIndex = 1;
+    int32 TargetIndex = 0;
     for (auto& Pair : FilledSlots)
     {
         UNAItemData* ItemData = Pair.Value;
         FString NewSlotName = FString::Printf(TEXT("Inven_%02d"), TargetIndex);
         FName NewSlotID = FName(*NewSlotName);
 
-        InventoryContents[NewSlotID] = ItemData;
+        InvenSlotContents[NewSlotID] = ItemData;
         
         ++TargetIndex;
     }
@@ -167,7 +195,7 @@ void UNAInventoryComponent::SortInventoryItems()
 	
 	if (IsValid(GetInventoryWidget()))
 	{
-		GetInventoryWidget()->RefreshInvenSlotButtons(InventoryContents, SlotButtons);
+		GetInventoryWidget()->RefreshSlotWidgets(InvenSlotContents, WeaponSlotContents/*, SlotButtons*/);
 		UpdateWidget();
 	}
 }
@@ -184,7 +212,7 @@ void UNAInventoryComponent::SortInventoryItems()
 TArray<UNAItemData*> UNAInventoryComponent::GetInventoryContents() const
 {
 	TArray<UNAItemData*> InventoryContentsArray;
-	for (const auto& Pair : InventoryContents)
+	for (const auto& Pair : InvenSlotContents)
 	{
 		if (Pair.Value.IsValid())
 		{
@@ -312,13 +340,13 @@ FNAItemAddResult UNAInventoryComponent::AddStackableItem(UNAItemData* InputItem,
 
 int32 UNAInventoryComponent::GetNumToFillSlot(const FName& SlotID) const
 {
-	if (!InventoryContents.Contains(SlotID) || IsEmptySlot(SlotID))
+	if (!InvenSlotContents.Contains(SlotID) || IsEmptySlot(SlotID))
 	{
 		return -1;
 	}
 
-	const int32 CurrentQuantity = InventoryContents[SlotID]->GetQuantity();
-	const int32 MaxHoldCount = InventoryContents[SlotID]->GetMaxInventoryHoldCount();
+	const int32 CurrentQuantity = InvenSlotContents[SlotID]->GetQuantity();
+	const int32 MaxHoldCount = InvenSlotContents[SlotID]->GetMaxInventoryHoldCount();
 	return FMath::Max(MaxHoldCount - CurrentQuantity, 0);
 }
 
@@ -344,7 +372,8 @@ int32 UNAInventoryComponent::TryAddItem(UNAItemData* ItemToAdd)
 	}
 
 	const bool bIsStackable = ItemToAdd->IsStackableItem();
-	const UClass* ItemClass = ItemToAdd->GetItemActorClass();
+	UClass* ItemClass = ItemToAdd->GetItemActorClass();
+	EItemType ItemType = ItemToAdd->GetItemType();
 
 	// 원본 요청 수량을 미리 저장
 	const int32 OriginalQuantity = ItemToAdd->GetQuantity();
@@ -354,22 +383,37 @@ int32 UNAInventoryComponent::TryAddItem(UNAItemData* ItemToAdd)
 	if (bIsStackable)
 	{
 		// ─────────────────────────────────────────────────
-		// 1) Stackable인 경우: Partial 슬롯 + Empty 슬롯 수집
+		// 1) Stackable인 경우: Weapon/Inven 구분 한 뒤, 각 항목의 Partial 슬롯 + Empty 슬롯 수집
 		TArray<FName> PartialSlots;
 		TArray<FName> EmptySlots;
 
-		GatherPartialSlots(const_cast<UClass*>(ItemClass), PartialSlots);
-		GatherEmptySlots(const_cast<UClass*>(ItemClass), EmptySlots);
-
+		if (ItemToAdd->GetItemType() == EItemType::IT_Weapon)
+		{
+			GatherPartialWeaponSlots(ItemClass, PartialSlots);
+			GatherEmptyWeaponSlotsWithClass(ItemClass, EmptySlots);
+		}
+		else
+		{
+			GatherPartialInvenSlots(ItemClass, PartialSlots);
+			GatherEmptyInvenSlotsWithClass(ItemClass, EmptySlots);
+		}
+		
 		// 2) Internal 함수 호출
 		Result = AddStackableItem(ItemToAdd, PartialSlots, EmptySlots);
 	}
 	else
 	{
 		// ─────────────────────────────────────────────────
-		// 2) Non-stackable인 경우: Empty 슬롯만 수집
+		// 2) Non-stackable인 경우: Weapon/Inven 구분 한 뒤, 각 항목의 Empty 슬롯만 수집
 		TArray<FName> EmptySlots;
-		GatherEmptySlots(const_cast<UClass*>(ItemClass), EmptySlots);
+		if (ItemToAdd->GetItemType() == EItemType::IT_Weapon)
+		{
+			GatherEmptyWeaponSlotsWithClass(ItemClass, EmptySlots);
+		}
+		else
+		{
+			GatherEmptyInvenSlotsWithClass(ItemClass, EmptySlots);
+		}
 
 		// 3) Internal 함수 호출
 		Result = AddNonStackableItem(ItemToAdd, EmptySlots);
@@ -380,7 +424,7 @@ int32 UNAInventoryComponent::TryAddItem(UNAItemData* ItemToAdd)
 		Result.OperationResult == ENAItemAddStatus::IAR_AddedPartial)
 	{
 		// 성공(전부 혹은 일부 추가)이므로 정렬 실행
-		SortInventoryItems();
+		SortInvenSlotItems();
 
 		const int32 Added = Result.ActualAmountAdded;
 		// “전부 추가”인 경우 Added == OriginalQuantity 이므로 (Remaining = 0) 
@@ -398,7 +442,8 @@ UNAItemData* UNAInventoryComponent::TryRemoveItem(const FName& SlotID, int32 Req
 {
 	if (IsEmptySlot(SlotID)) { return nullptr; }
 	if (RequestedAmount <= 0) { return nullptr; }
-	UNAItemData* ItemToRemove = InventoryContents[SlotID].Get();
+	
+	UNAItemData* ItemToRemove = GetItemDataFromSlot(SlotID);
 	if (!ItemToRemove) { return nullptr; }
 	if (ItemToRemove->GetOwningInventory() != this) { ensure(false); return nullptr; }
 	if (ItemToRemove->GetItemMaxSlotStackSize() < RequestedAmount) { return nullptr; }
@@ -409,7 +454,7 @@ UNAItemData* UNAInventoryComponent::TryRemoveItem(const FName& SlotID, int32 Req
 		const bool bSucceed = HandleRemoveItem(SlotID);
 		if (bSucceed)
 		{
-			SortInventoryItems();
+			SortInvenSlotItems();
 		}
 		return bSucceed ? ItemToRemove : nullptr;
 	}
@@ -422,13 +467,27 @@ UNAItemData* UNAInventoryComponent::TryRemoveItem(const FName& SlotID, int32 Req
 bool UNAInventoryComponent::HasItemOfClass(const UClass* ItemClass) const
 {
 	if (!ItemClass) { return false; }
-	for (const auto& Pair : InventoryContents)
+	if (ItemClass->IsChildOf<ANAWeapon>())
 	{
-		if (Pair.Value.IsValid() && Pair.Value->GetItemActorClass() == ItemClass)
+		for (const auto& Pair : WeaponSlotContents)
 		{
-			return true;
+			if (Pair.Value.IsValid() && Pair.Value->GetItemActorClass() == ItemClass)
+			{
+				return true;
+			}
 		}
 	}
+	else
+	{
+		for (const auto& Pair : InvenSlotContents)
+		{
+			if (Pair.Value.IsValid() && Pair.Value->GetItemActorClass() == ItemClass)
+			{
+				return true;
+			}
+		}
+	}
+	
 	return false;
 }
 
@@ -436,53 +495,89 @@ void UNAInventoryComponent::GetSlotIDsWithItemClass(const UClass* ItemClass, TAr
 {
 	OutSlotIDs.Reset();
 	if (!ItemClass) { return; }
-	for (const auto& Pair : InventoryContents)
+	if (ItemClass->IsChildOf<ANAWeapon>())
 	{
-		if (Pair.Value.IsValid() && Pair.Value->GetItemActorClass() == ItemClass)
+		for (const auto& Pair : WeaponSlotContents)
 		{
-			OutSlotIDs.Add(Pair.Key);
-		}
+			if (Pair.Value.IsValid() && Pair.Value->GetItemActorClass() == ItemClass)
+			{
+				OutSlotIDs.Add(Pair.Key);
+			}
+		}	
+	}
+	else
+	{
+		for (const auto& Pair : InvenSlotContents)
+		{
+			if (Pair.Value.IsValid() && Pair.Value->GetItemActorClass() == ItemClass)
+			{
+				OutSlotIDs.Add(Pair.Key);
+			}
+		}	
 	}
 }
 
 int32 UNAInventoryComponent::GetSlotRemainingStack(const FName& SlotID) const
 {
 	// 슬롯에 데이터가 없거나, nullptr이거나, IsEmptySlot일 때
-	if (!InventoryContents.Contains(SlotID) || IsEmptySlot(SlotID))
+	if (!IsValidSlotID(SlotID) || IsEmptySlot(SlotID))
 	{
 		return -1;
 	}
 
-	const int32 CurrentStackSize = InventoryContents[SlotID]->GetQuantity();
-	const int32 MaxStackSize = InventoryContents[SlotID]->GetItemMaxSlotStackSize();
+	int32 CurrentStackSize, MaxStackSize;
+	if (InvenSlotContents.Contains(SlotID))
+	{
+		CurrentStackSize = InvenSlotContents[SlotID]->GetQuantity();
+		MaxStackSize = InvenSlotContents[SlotID]->GetItemMaxSlotStackSize();
+	}
+	else if (WeaponSlotContents.Contains(SlotID))
+	{
+		CurrentStackSize = WeaponSlotContents[SlotID]->GetQuantity();
+		MaxStackSize = WeaponSlotContents[SlotID]->GetItemMaxSlotStackSize();
+	}
+	else
+	{
+		check(false);
+		return -1;
+	}
+	
 	return FMath::Max(MaxStackSize - CurrentStackSize, 0); // 0 미만 반환 방지
 }
 
 bool UNAInventoryComponent::IsEmptySlot(const FName& SlotID) const
 {
-	if (!SlotID.IsNone() && InventoryContents.Contains(SlotID))
+	if (!SlotID.IsNone())
 	{
-		return !InventoryContents[SlotID].IsValid();
+		if (InvenSlotContents.Contains(SlotID))
+		{
+			return !InvenSlotContents[SlotID].IsValid();
+		}
+		else if (WeaponSlotContents.Contains(SlotID))
+		{
+			return !WeaponSlotContents[SlotID].IsValid();
+		}
+		else { check(false); }
 	}
 	return false;
 }
 
-void UNAInventoryComponent::GatherEmptyInventorySlots(TArray<FName>& OutEmptySlots) const
+void UNAInventoryComponent::GatherEmptyInvenSlots(TArray<FName>& OutEmptySlots) const
 {
 	OutEmptySlots.Empty();
 	OutEmptySlots.Reserve(MaxInventorySlots);
 
-	for (const auto& Pair : InventoryContents)
+	for (const auto& Pair : InvenSlotContents)
 	{
 		// 값이 비어있으면서(FName→값이 nullptr) “Inven_”으로 시작하는 Key만 수집
-		const FName& SlotID = Pair.Key;
+		//const FName& SlotID = Pair.Key;
 		if (!Pair.Value.IsValid())
 		{
-			const FString SlotStr = SlotID.ToString();
-			if (SlotStr.StartsWith(TEXT("Inven_")))
-			{
-				OutEmptySlots.Add(SlotID);
-			}
+			//const FString SlotStr = SlotID.ToString();
+			//if (SlotStr.StartsWith(TEXT("Inven_")))
+			//{
+			OutEmptySlots.Add(Pair.Key);
+			//}
 		}
 	}
 }
@@ -491,17 +586,17 @@ void UNAInventoryComponent::GatherEmptyWeaponSlots(TArray<FName>& OutEmptySlots)
 	OutEmptySlots.Empty();
 	OutEmptySlots.Reserve(MaxWeaponSlots);
 
-	for (const auto& Pair : InventoryContents)
+	for (const auto& Pair : WeaponSlotContents)
 	{
 		// 값이 비어있으면서 “Weapon_”으로 시작하는 Key만 수집
-		const FName& SlotID = Pair.Key;
+		//const FName& SlotID = Pair.Key;
 		if (!Pair.Value.IsValid())
 		{
-			const FString SlotStr = SlotID.ToString();
-			if (SlotStr.StartsWith(TEXT("Weapon_")))
-			{
-				OutEmptySlots.Add(SlotID);
-			}
+			//const FString SlotStr = SlotID.ToString();
+			//if (SlotStr.StartsWith(TEXT("Weapon_")))
+			//{
+			OutEmptySlots.Add(Pair.Key);
+			//}
 		}
 	}
 }
@@ -517,7 +612,14 @@ bool UNAInventoryComponent::IsFullSlot(const FName& SlotID) const
 
 bool UNAInventoryComponent::HasNoEmptySlot() const
 {
-	for (const auto& Pair : InventoryContents)
+	for (const auto& Pair : InvenSlotContents)
+	{
+		if (IsEmptySlot(Pair.Key))
+		{
+			return false;
+		}
+	}
+	for (const auto& Pair : WeaponSlotContents)
 	{
 		if (IsEmptySlot(Pair.Key))
 		{
@@ -529,7 +631,14 @@ bool UNAInventoryComponent::HasNoEmptySlot() const
 
 bool UNAInventoryComponent::IsAtFullCapacity() const
 {
-	for (const auto& Pair : InventoryContents)
+	for (const auto& Pair : InvenSlotContents)
+	{
+		if (IsEmptySlot(Pair.Key) || !IsFullSlot(Pair.Key))
+		{
+			return false;
+		}
+	}
+	for (const auto& Pair : WeaponSlotContents)
 	{
 		if (IsEmptySlot(Pair.Key) || !IsFullSlot(Pair.Key))
 		{
@@ -539,12 +648,13 @@ bool UNAInventoryComponent::IsAtFullCapacity() const
 	return true;
 }
 
-void UNAInventoryComponent::GatherPartialSlots(UClass* ItemClass, TArray<FName>& OutPartialSlots) const
+void UNAInventoryComponent::GatherPartialInvenSlots(UClass* ItemClass, TArray<FName>& OutPartialSlots) const
 {
 	if (!ItemClass) { ensure(false); return; }
-	
+	if (ItemClass->IsChildOf<ANAWeapon>()) { return; }
 	OutPartialSlots.Empty();
-	for (const auto& Pair : InventoryContents)
+
+	for (const auto& Pair : InvenSlotContents)
 	{
 		if (Pair.Value.IsValid() && Pair.Value->GetItemActorClass() == ItemClass)
 		{
@@ -559,23 +669,61 @@ void UNAInventoryComponent::GatherPartialSlots(UClass* ItemClass, TArray<FName>&
 	}
 }
 
-void UNAInventoryComponent::GatherEmptySlots(UClass* ItemClass, TArray<FName>& OutEmptySlots) const
+void UNAInventoryComponent::GatherPartialWeaponSlots(UClass* ItemClass, TArray<FName>& OutPartialSlots) const
+{
+	if (!ItemClass) { ensure(false); return; }
+	if (!ItemClass->IsChildOf<ANAWeapon>()) { return; }
+	
+	OutPartialSlots.Empty();
+	for (const auto& Pair : WeaponSlotContents)
+	{
+		if (Pair.Value.IsValid() && Pair.Value->GetItemActorClass() == ItemClass)
+		{
+			// 해당 슬롯의 현재 수량이 최대 슬롯 스택에 도달하지 않았으면 후보로 추가
+			const int32 CurrQty = Pair.Value->GetQuantity();
+			const int32 MaxSlotStack = Pair.Value->GetItemMaxSlotStackSize();
+			if (CurrQty < MaxSlotStack)
+			{
+				OutPartialSlots.Add(Pair.Key);
+			}
+		}
+	}
+}
+
+void UNAInventoryComponent::GatherEmptyInvenSlotsWithClass(UClass* ItemClass, TArray<FName>& OutEmptySlots) const
 {
 	if (!ItemClass) { ensure(false); return; }
 	
 	OutEmptySlots.Empty();
-	// ItemClass가 Weapon이면 Weapon 슬롯만, 아니면 Inven 슬롯만
-	const bool bIsWeapon = ItemClass->IsChildOf<ANAWeapon>();
+	if (ensure(ItemClass->IsChildOf<ANAWeapon>()))
+	{
+		return;
+	}
     
-	for (const auto& Pair : InventoryContents)
+	for (const auto& Pair : InvenSlotContents)
 	{
 		if (!Pair.Value.IsValid())
 		{
-			const FString SlotStr = Pair.Key.ToString();
-			if (bIsWeapon ? SlotStr.StartsWith(TEXT("Weapon_")) : SlotStr.StartsWith(TEXT("Inven_")))
-			{
-				OutEmptySlots.Add(Pair.Key);
-			}
+			OutEmptySlots.Add(Pair.Key);
+		}
+	}
+}
+
+void UNAInventoryComponent::GatherEmptyWeaponSlotsWithClass(UClass* ItemClass, TArray<FName>& OutEmptySlots) const
+{
+	if (!ItemClass) { ensure(false); return; }
+	
+	OutEmptySlots.Empty();
+	if (!ensure(ItemClass->IsChildOf<ANAWeapon>()))
+	{
+		return;
+	}
+    
+	for (const auto& Pair : WeaponSlotContents)
+	{
+		if (!Pair.Value.IsValid())
+		{
+			OutEmptySlots.Add(Pair.Key);
 		}
 	}
 }
@@ -590,8 +738,8 @@ int32 UNAInventoryComponent::ComputeDistributableAmount(UNAItemData* InputItem, 
 	int32 CurrTotalHold = 0;
 	for (const FName& Slot : PartialSlots)
 	{
-		if (!InventoryContents[Slot].IsValid()) { continue; }
-		CurrTotalHold += InventoryContents[Slot]->GetQuantity();
+		if (!InvenSlotContents[Slot].IsValid()) { continue; }
+		CurrTotalHold += InvenSlotContents[Slot]->GetQuantity();
 	}
 	const int32 RemainingHold = MaxInvHoldCount == 0 ?
 									RequestedAmount :
@@ -602,9 +750,9 @@ int32 UNAInventoryComponent::ComputeDistributableAmount(UNAItemData* InputItem, 
 	int32 PartialCapacity = 0;
 	for (const FName& Slot : PartialSlots)
 	{
-		if (!InventoryContents[Slot].IsValid()) { continue; }
+		if (!InvenSlotContents[Slot].IsValid()) { continue; }
 		PartialCapacity +=
-			InventoryContents[Slot]->GetItemMaxSlotStackSize() - InventoryContents[Slot]->GetQuantity();
+			InvenSlotContents[Slot]->GetItemMaxSlotStackSize() - InvenSlotContents[Slot]->GetQuantity();
 	}
 	
 	// 3) Empty 슬롯에서 만들 수 있는 신규 슬롯 여유 공간 합산
@@ -630,7 +778,7 @@ int32 UNAInventoryComponent::DistributeToSlots(UNAItemData* InputItem, int32 Amo
     for (const FName& Slot : PartialSlots)
     {
         if (AmountToDistribute <= 0) { break; }
-        UNAItemData* SlotItem = InventoryContents[Slot].Get();
+        UNAItemData* SlotItem = InvenSlotContents[Slot].Get();
         if (!SlotItem) { continue; }
 
         const int32 CurrQty   = SlotItem->GetQuantity();
@@ -655,7 +803,7 @@ int32 UNAInventoryComponent::DistributeToSlots(UNAItemData* InputItem, int32 Amo
     for (const FName& Slot : EmptySlots)
     {
         if (AmountToDistribute <= 0) { break; }
-        if (InventoryContents[Slot].IsValid())
+        if (InvenSlotContents[Slot].IsValid())
         {
             // 이미 다른 프로세스에서 채워졌거나, 슬롯에 데이터가 있는 경우 건너뜀
             continue;
@@ -686,7 +834,6 @@ int32 UNAInventoryComponent::DistributeToSlots(UNAItemData* InputItem, int32 Amo
         	// ───── *중요* ─────  
         	// 이제 InputItem 객체는 “인벤토리 슬롯에 들어간 데이터”가 되므로, 
         	// InputItem->Quantity(==RemainQty) 값을 바꿀 필요가 없습니다.
-        	// (절대로 InputItem->SetQuantity(0) 하지 마세요.)
         	
             Distributed       += ToAdd;
             AmountToDistribute -= ToAdd;
@@ -758,46 +905,81 @@ UNAItemData* UNAInventoryComponent::FindSameClassItem(const UClass* ItemClass) c
 {
 	if (ItemClass)
 	{
-		for (const auto& Pair : InventoryContents)
+		if (ItemClass->IsChildOf<ANAWeapon>())
 		{
-			if (!Pair.Value.IsValid())
+			for (const auto& Pair : InvenSlotContents)
 			{
-				continue;
-			}
+				if (!Pair.Value.IsValid())
+				{
+					continue;
+				}
 
-			if (Pair.Value->GetItemActorClass() == ItemClass)
-			{
-				return Pair.Value.Get();
+				if (Pair.Value->GetItemActorClass() == ItemClass)
+				{
+					return Pair.Value.Get();
+				}
 			}
+		}
+		else
+		{
+			for (const auto& Pair : InvenSlotContents)
+			{
+				if (!Pair.Value.IsValid())
+				{
+					continue;
+				}
+
+				if (Pair.Value->GetItemActorClass() == ItemClass)
+				{
+					return Pair.Value.Get();
+				}
+			}	
 		}
 	}
 	return nullptr;
 }
 
-bool UNAInventoryComponent::FindSlotIDForItem(const UNAItemData* ItemToFind, FName& OutName) const
+FName UNAInventoryComponent::FindSlotIDForItem(const UNAItemData* ItemToFind) const
 {
 	if (ItemToFind && ItemToFind->GetOwningInventory() == this)
 	{
-		for (const auto& Pair : InventoryContents)
+		if (ItemToFind->GetItemType() == EItemType::IT_Weapon)
 		{
-			if (!Pair.Value.IsValid())
+			for (const auto& Pair : WeaponSlotContents)
 			{
-				continue;
-			}
+				if (!Pair.Value.IsValid())
+				{
+					continue;
+				}
 
-			if (Pair.Value.Get() == ItemToFind)
-			{
-				OutName = Pair.Key;
-				return true;
+				if (Pair.Value.Get() == ItemToFind)
+				{
+					return Pair.Key;
+				}
 			}
 		}
+		else
+		{
+			for (const auto& Pair : InvenSlotContents)
+			{
+				if (!Pair.Value.IsValid())
+				{
+					continue;
+				}
+
+				if (Pair.Value.Get() == ItemToFind)
+				{
+					return Pair.Key;
+				}
+			}	
+		}
 	}
-	return false;
+	return NAME_None;
 }
 
 bool UNAInventoryComponent::HandleAddNewItem(UNAItemData* NewItemToAdd, const FName& SlotID)
 {
-	if (SlotID.IsNone() || !InventoryContents.Contains(SlotID))
+	if (SlotID.IsNone() || !(InvenSlotContents.Contains(SlotID) || WeaponSlotContents.Contains(SlotID)))
 	{
 		ensure(false);
 		return false;
@@ -808,8 +990,15 @@ bool UNAInventoryComponent::HandleAddNewItem(UNAItemData* NewItemToAdd, const FN
 		ensure(false);
 		return false;
 	}
-	
-	InventoryContents[SlotID] = NewItemToAdd;
+
+	if (NewItemToAdd->GetItemType() == EItemType::IT_Weapon)
+	{
+		WeaponSlotContents[SlotID] = NewItemToAdd;
+	}
+	else
+	{
+		InvenSlotContents[SlotID] = NewItemToAdd;
+	}
 	NewItemToAdd->SetOwningInventory(this);
 	InvenSubsys->AddItemToInventory(this, SlotID, NewItemToAdd);
 	return true;
@@ -823,8 +1012,7 @@ void UNAInventoryComponent::InitWidget()
 	{
 		if (UNAInventoryWidget* InventoryWidget = Cast<UNAInventoryWidget>(GetWidget()))
 		{
-			const bool bSucceed = InventoryWidget->MapSlotIDAndUIButton(SlotButtons);
-			ensureAlwaysMsgf(bSucceed, TEXT("[UNAInventoryComponent::InitWidget]  인벤토리 슬롯 & UI 매핑 실패"));
+			InventoryWidget->SetOwningInventoryComponent(this);
 		}
 	}
 }
@@ -837,30 +1025,35 @@ UNAInventoryWidget* UNAInventoryComponent::GetInventoryWidget() const
 UButton* UNAInventoryComponent::GetSlotButton(const FName& SlotID) const
 {
 	if (SlotID.IsNone()
-		|| !InventoryContents.Contains(SlotID)
-		|| !SlotButtons.Contains(SlotID))
+		|| !InvenSlotContents.Contains(SlotID)
+		|| !WeaponSlotContents.Contains(SlotID)
+		/*|| !SlotButtons.Contains(SlotID)*/)
 	{
 		ensureAlwaysMsgf(false, TEXT("[UNAInventoryComponent::GetSlotButton]  유효하지 않은 슬롯ID: %s"), *SlotID.ToString());
 		return nullptr;
 	}
 
-	return SlotButtons[SlotID].Get();
+	// @TODO
+	
+	return /*SlotButtons[SlotID].Get();*/ nullptr;
 }
 
 UButton* UNAInventoryComponent::GetSlotButton(const UNAItemData* ItemData) const
 {
-	FName SlotID = NAME_None;
-	const bool bFoundResult = FindSlotIDForItem(ItemData, SlotID);
+	FName SlotID = FindSlotIDForItem(ItemData);
 	if (!ItemData
-		|| !bFoundResult
-		|| !SlotButtons.Contains(SlotID))
+		|| SlotID.IsNone()
+		|| !IsValidSlotID(SlotID)
+		/*|| !SlotButtons.Contains(SlotID)*/)
 	{
 		ensureAlwaysMsgf(false, TEXT("[UNAInventoryComponent::GetSlotButton]  유효하지 않은 아이템 데이터: %s"),
 			*ItemData->GetItemID().ToString());
 		return nullptr;
 	}
-
-	return SlotButtons[SlotID].Get();
+	
+	// @TODO
+	
+	return/* SlotButtons[SlotID].Get();*/ nullptr;
 }
 
 bool UNAInventoryComponent::IsInventoryWidgetVisible() const
@@ -868,21 +1061,19 @@ bool UNAInventoryComponent::IsInventoryWidgetVisible() const
 	return IsVisible() && IsWidgetVisible();
 }
 
-void UNAInventoryComponent::ReleaseInventoryWidget()
+void UNAInventoryComponent::ReleaseInventory()
 {
-	if (UUserWidget* InventoryWidget = GetWidget())
+	if (UNAInventoryWidget* InventoryWidget = Cast<UNAInventoryWidget>(GetWidget()))
 	{
-		SetVisibility(true);
-		InventoryWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		InventoryWidget->ReleaseInventoryWidget();
 	}
 }
 
-void UNAInventoryComponent::CollapseInventoryWidget()
+void UNAInventoryComponent::CollapseInventory()
 {
-	if (UUserWidget* InventoryWidget = GetWidget())
+	if (UNAInventoryWidget* InventoryWidget = Cast<UNAInventoryWidget>(GetWidget()))
 	{
-		SetVisibility(false);
-		InventoryWidget->SetVisibility(ESlateVisibility::Collapsed);
+		InventoryWidget->CollapseInventoryWidget();
 	}
 }
 

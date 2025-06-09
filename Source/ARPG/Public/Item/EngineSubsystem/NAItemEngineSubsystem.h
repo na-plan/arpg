@@ -142,7 +142,10 @@ public:
 
 	// Inventory 관련
 	UNAItemData* CreateItemDataBySlot( UWorld* InWorld, const FNAInventorySlot& InInventorySlot );
-	
+
+	bool DestroyRuntimeItemData(const FName& InItemID);
+	bool DestroyRuntimeItemData(UNAItemData* InItemData);
+		
 private:
 	// 실제 사용할 DataTable 포인터 보관
 	UPROPERTY(VisibleAnywhere)

@@ -39,20 +39,25 @@ public:
 	// @TODO: 아이템 인터렉터블 데이터가 런타임 중에 변경될 일이 없다고 판단되면, 이 함수 지우기 & 인터렉터블 데이터 getter 함수 모두 const로 변경 
 	// @TODO: 이 함수 제거할 때, 코드에서는 아이템 인터렉터블 데이터의 수정 여부(에디터에서의 수동 편집 포함)를 캐싱하는 플래그만 수정하도록 변경 
 	// @see ANAItemActor::SetInteractableData
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
-	void SetInteractableData(const FNAInteractableData& NewInteractableData);
+	//UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
+	//void SetInteractableData(const FNAInteractableData& NewInteractableData);
 	
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
-	bool CanUseRootAsTriggerShape() const;
-	
+	bool CanInteract() const;
+
+	// UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
+	// bool IsReadyToInteract() const;
 	
 //====================================================================================================================================
 // 기본 클래스(C++)에서 구현 시 INAInteractableInterface::..._Implementation 호출이 필요한 가상 메서드
 //====================================================================================================================================
 
 	// If overriding this function in a base class, **you must manually call INAInteractableInterface::CanInteract_Implementation()**
+	// UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
+	// bool CanInteract() const;
+	
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
-	bool CanInteract() const;
+	bool IsOnInteract() const;
 	
 	/** If overriding this function in a base class, **you must manually call INAInteractableInterface::NotifyFocusBegin_Implementation()**
 	* @note	이 함수를 해당 객체(AActor 파생)의 OnActorBeginOverlap에 바인딩하기
@@ -72,6 +77,9 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
 	void NotifyInteractableFocusEnd(AActor* InteractableActor, AActor* InteractorActor);
 
+	virtual void DisableOverlapDuringInteraction() {};
+	
+protected:
 	/** If overriding this function in a base class, **you must manually call INAInteractableInterface::BeginInteract_Implementation()**
 	* @param	InteractorActor:	상호작용 대상자(캐릭터)
 	* @note	호출 순서) 유저가 상호작용 시작 입력 시 UNAInteractionComponent에서 BeginInteraction 호출 -> INAInteractableInterface::BeginInteract
@@ -84,27 +92,14 @@ public:
 	* @note	호출 순서) 유저가 상호작용 종료 입력 시 UNAInteractionComponent에서 EndInteraction 호출 -> INAInteractableInterface::EndInteract
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
+	
 	void EndInteract(AActor* InteractorActor);
-
 	/** If overriding this function in a base class, **you must manually call INAInteractableInterface::ExecuteInteract_Implementation()**
 	* @param	InteractorActor:	상호작용 대상자(캐릭터)
 	* @note	호출 순서) UNAInteractionComponent에서 ExecuteInteraction 호출 -> INAInteractableInterface::ExecuteInteract
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
-	void ExecuteInteract(AActor* InteractorActor);
-
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
-	bool IsOnInteract() const;
-
-protected:
-	// If overriding this function in a base class, **you must manually call INAInteractableInterface::InitInteractableData_Implementation()**
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
-	void SetInteractableDataToBaseline(
-		ENAInteractableType InteractableType,
-		const FString& InteractionName,
-		//const FString& InteractionScript,
-		float InteractionDuration,
-		int32 InQuantity);
+	bool ExecuteInteract(AActor* InteractorActor);
 	
 //====================================================================================================================================
 // c++에서만 호출 가능한 일반 메서드
@@ -112,6 +107,16 @@ protected:
 protected:
 	const FNAInteractableData* TryGetInteractableData(const FNAItemBaseTableRow* InItemMetaData) const;
 	class UNAInteractionComponent* TryGetInteractionComponent(AActor* InActor);
+
+	static void TransferInteractableStateToDuplicatedActor(TScriptInterface<INAInteractableInterface> OldInteractable,
+		TScriptInterface<INAInteractableInterface> NewInteractable)
+	{
+		if (OldInteractable && NewInteractable)
+		{
+			NewInteractable->bIsFocused = OldInteractable->bIsFocused;
+			NewInteractable->bIsOnInteract = OldInteractable->bIsOnInteract;
+		}
+	}
 	
 protected:
 	uint8 bIsFocused : 1 = false;

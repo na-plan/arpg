@@ -8,7 +8,7 @@
 UENUM(BlueprintType)
 enum class EItemType : uint8
 {
-	IT_None					UMETA(DisplayName = "None"), // 초기화 필요
+	IT_None					UMETA(Hidden), // 초기화 필요
 
 	IT_Weapon				UMETA(DisplayName = "Weapon"),
 	IT_Tool					UMETA(DisplayName = "Tool"),

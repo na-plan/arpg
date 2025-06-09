@@ -1,7 +1,6 @@
 
 #include "Item/ItemActor/NAItemActor.h"
 
-#include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
 #include "Components/SphereComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -24,6 +23,10 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	ItemInteractionButtonText->SetupAttachment(ItemInteractionButton);
 	
 	ItemDataID = NAME_None;
+
+	bReplicates = true;
+	AActor::SetReplicateMovement( true );
+	bAlwaysRelevant = true;
 }
 
 #if WITH_EDITOR
@@ -151,15 +154,25 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	ItemMesh->AttachToComponent(ItemRootShape, FAttachmentTransformRules::KeepRelativeTransform);
 	ItemInteractionButton->AttachToComponent(ItemMesh, FAttachmentTransformRules::KeepRelativeTransform);
 	ItemInteractionButtonText->AttachToComponent(ItemInteractionButton, FAttachmentTransformRules::KeepRelativeTransform);
+
+	// 부모, 자식에서 Property로 설정된 컴포넌트들을 조회
+	TSet<UActorComponent*> SubObjsActorComponents;
+	for ( TFieldIterator<FObjectProperty> It ( GetClass() ); It; ++It )
+	{
+		if ( It->PropertyClass->IsChildOf( UActorComponent::StaticClass() ) )
+		{
+			if ( UActorComponent* Component = Cast<UActorComponent>( It->GetObjectPropertyValue_InContainer( this ) ) )
+			{
+				SubObjsActorComponents.Add( Component );
+			}
+		}
+	}
 	
 	for (UActorComponent* OwnedComponent : GetComponents().Array())
 	{
 		if (USceneComponent* OwnedSceneComp = Cast<USceneComponent>(OwnedComponent))
 		{
-			if (OwnedSceneComp == ItemRootShape
-				|| OwnedSceneComp == ItemMesh
-				|| OwnedSceneComp == ItemInteractionButton
-				|| OwnedSceneComp == ItemInteractionButtonText)
+			if ( SubObjsActorComponents.Contains( OwnedComponent ) )
 			{
 				OwnedSceneComp->RegisterComponent();
 				AddInstanceComponent(OwnedSceneComp);
@@ -219,6 +232,19 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	ItemMesh->SetRelativeTransform(MetaData->MeshTransform);
 	ItemInteractionButton->SetRelativeTransform(MetaData->IxButtonTransform);
 	ItemInteractionButtonText->SetRelativeTransform(MetaData->IxButtonTextTransform);
+}
+
+void ANAItemActor::PostLoad()
+{
+	Super::PostLoad();
+
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		if (ItemDataID.IsNone() && !GetWorld()->IsPreviewWorld())
+		{
+			InitItemData();
+		}
+	}
 }
 
 void ANAItemActor::InitItemData()
@@ -347,6 +373,16 @@ EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTa
 	return DirtyFlags;
 }
 
+void ANAItemActor::OnActorBeginOverlap_Impl(AActor* OverlappedActor, AActor* OtherActor)
+{
+	Execute_NotifyInteractableFocusBegin(this, OverlappedActor, OtherActor);
+}
+
+void ANAItemActor::OnActorEndOverlap_Impl(AActor* OverlappedActor, AActor* OtherActor)
+{
+	Execute_NotifyInteractableFocusEnd(this, OverlappedActor, OtherActor);
+}
+
 void ANAItemActor::VerifyInteractableData()
 {
 	if (InteractableInterfaceRef != nullptr)
@@ -369,14 +405,14 @@ void ANAItemActor::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	if (Execute_CanUseRootAsTriggerShape(this))
+	if (Execute_CanInteract(this))
 	{
-		OnActorBeginOverlap.AddDynamic(this, &ThisClass::NotifyInteractableFocusBegin);
-		OnActorEndOverlap.AddDynamic(this, &ThisClass::NotifyInteractableFocusEnd);
+		OnActorBeginOverlap.AddUniqueDynamic(this, &ThisClass::OnActorBeginOverlap_Impl);
+		OnActorEndOverlap.AddUniqueDynamic(this, &ThisClass::OnActorEndOverlap_Impl);
 	}
 }
 
-const UNAItemData* ANAItemActor::GetItemData() const
+UNAItemData* ANAItemActor::GetItemData() const
 {
 	return UNAItemEngineSubsystem::Get()->GetRuntimeItemData(ItemDataID);
 }
@@ -415,15 +451,15 @@ bool ANAItemActor::GetInteractableData_Internal(FNAInteractableData& OutIxData) 
 	return InteractableDataRef ? true : false;
 }
 
-bool ANAItemActor::CanUseRootAsTriggerShape_Implementation() const
-{
-	return ItemRootShape && (ItemRootShape->GetBodySetup() ? true : false);
-}
-
 bool ANAItemActor::CanInteract_Implementation() const
 {
-	return bIsFocused && Execute_CanUseRootAsTriggerShape(this); // && Execute_GetInteractableData(this).InteractingCharacter.IsValid(); // sehee: 임시로 interactiondata 없어도 동작하게 함
+	return IsValid(ItemRootShape) && InteractableInterfaceRef != nullptr;
 }
+
+// bool ANAItemActor::CanInteract_Implementation() const
+// {
+// 	return Execute_CanInteract(this)/* && Execute_GetInteractableData(this).InteractingCharacter.IsValid()*/;
+// }
 
 void ANAItemActor::NotifyInteractableFocusBegin_Implementation(AActor* InteractableActor, AActor* InteractorActor)
 {
@@ -433,7 +469,6 @@ void ANAItemActor::NotifyInteractableFocusBegin_Implementation(AActor* Interacta
 	{
 		if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(InteractorActor))
 		{
-			//InteractionComp->OnInteractableFound(this);
 			const bool bSucceed = InteractionComp->OnInteractableFound(this);
 			// @TODO: ANAItemActor 쪽에서 '상호작용 버튼 위젯' release?
 		}
@@ -448,7 +483,6 @@ void ANAItemActor::NotifyInteractableFocusEnd_Implementation(AActor* Interactabl
 	{
 		if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(InteractorActor))
 		{
-			//InteractionComp->OnInteractableLost(this);
 			const bool bSucceed = InteractionComp->OnInteractableLost(this);
 			// @TODO: ANAItemActor 쪽에서 '상호작용 버튼 위젯' collapse?
 		}
@@ -467,15 +501,15 @@ void ANAItemActor::BeginInteract_Implementation(AActor* InteractorActor)
 
 void ANAItemActor::EndInteract_Implementation(AActor* InteractorActor)
 {
-	//if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(InteractorActor))
-	//{
-	bIsOnInteract = false;
-
-	// @TODO: 상호작용 종료 시 필요한 로직이 있으면 여기에 추가, 상호작용 종료를 알리는 이벤트라고 생각하면 됨
-	//}
+	if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(InteractorActor))
+	{
+		bIsOnInteract = false;
+		InteractionComp->OnInteractionEnded(InteractableInterfaceRef);
+		// @TODO: 상호작용 종료 시 필요한 로직이 있으면 여기에 추가, 상호작용 종료를 알리는 이벤트라고 생각하면 됨
+	}
 }
 
-void ANAItemActor::ExecuteInteract_Implementation(AActor* InteractorActor)
+bool ANAItemActor::ExecuteInteract_Implementation(AActor* InteractorActor)
 {
 	ensureAlwaysMsgf(bIsOnInteract, TEXT("[INAInteractableInterface::ExecuteInteract_Implementation]  bIsOnInteract이 false였음"));
 	
@@ -484,7 +518,7 @@ void ANAItemActor::ExecuteInteract_Implementation(AActor* InteractorActor)
 
 	// @TODO: 상호작용 실행에 필요한 로직이 있으면 여기에 추가
 	//}
-	
+	return false;
 }
 
 bool ANAItemActor::IsOnInteract_Implementation() const

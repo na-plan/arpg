@@ -3,128 +3,735 @@
 
 #include "Inventory/Widget/NAInventoryWidget.h"
 
+#include "Item/ItemData/NAItemData.h"
 #include "Inventory/NAInventoryComponent.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
+#include "Components/Image.h"
+#include "Components/TextBlock.h"
+
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Widgets/SViewport.h"
+
+FNAInvenSlotWidgets::FNAInvenSlotWidgets(UButton* Button, UImage* Icon, UTextBlock* Text)
+	: InvenSlotButton(Button), InvenSlotIcon(Icon), InvenSlotQty(Text)
+{
+}
+
+FNAWeaponSlotWidgets::FNAWeaponSlotWidgets(UButton* Button, UImage* Icon)
+	: WeaponSlotButton(Button), WeaponSlotIcon(Icon)
+{
+}
+
+// 슬롯 ID에서 번호 추출 헬퍼 함수
+// @param	SlotID: xxx_00 형식을 전제
+int32 ExtractSlotNumber(const FName& SlotID)
+{
+	const FString SlotStr = SlotID.ToString();
+	int32 UnderscoreIndex = INDEX_NONE;
+	if (SlotStr.FindLastChar(TEXT('_'), UnderscoreIndex))
+	{
+		const FString NumberStr = SlotStr.Mid(UnderscoreIndex + 1);
+		if (NumberStr.IsNumeric())
+		{
+			return FCString::Atoi(*NumberStr);
+		}
+		else
+		{
+			// 숫자가 아님: 예외 케이스
+			ensureAlwaysMsgf(false, TEXT("[ExtractSlotNumber] 잘못된 SlotID(숫자 아님): %s"), *SlotStr);
+			return INT_MAX;
+		}
+	}
+	else
+	{
+		// 언더바 없음: 예외 케이스
+		ensureAlwaysMsgf(false, TEXT("[ExtractSlotNumber] 언더바 없는 SlotID: %s"), *SlotStr);
+		return INT_MAX;
+	}
+}
+
+bool ConvertIndexTo2D(int32 Index, int32& OutRow, int32& OutCol)
+{
+	constexpr int32 NumCols = InventoryColumnCount;
+	constexpr int32 MaxIndex = MaxInventorySlots - 1;
+	if (!ensureAlwaysMsgf(Index >= 0 && Index <= MaxIndex, TEXT("Index out of range: %d"), Index))
+	{
+		return false;
+	}
+	OutRow = Index / NumCols;
+	OutCol = Index % NumCols;
+	return true;
+}
 
 void UNAInventoryWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
-
-	WeaponSlotButtons[0] = Weapon_00;
-	WeaponSlotButtons[1] = Weapon_01;
-	WeaponSlotButtons[2] = Weapon_02;
-	WeaponSlotButtons[3] = Weapon_03;
-
-	InvenSlotButtons[0][0] = Inven_00;
-	InvenSlotButtons[0][1] = Inven_01;
-	InvenSlotButtons[0][2] = Inven_02;
-	InvenSlotButtons[0][3] = Inven_03;
-	InvenSlotButtons[0][4] = Inven_04;
-
-	InvenSlotButtons[1][0] = Inven_05;
-	InvenSlotButtons[1][1] = Inven_06;
-	InvenSlotButtons[1][2] = Inven_07;
-	InvenSlotButtons[1][3] = Inven_08;
-	InvenSlotButtons[1][4] = Inven_09;
-
-	InvenSlotButtons[2][0] = Inven_10;
-	InvenSlotButtons[2][1] = Inven_11;
-	InvenSlotButtons[2][2] = Inven_12;
-	InvenSlotButtons[2][3] = Inven_13;
-	InvenSlotButtons[2][4] = Inven_14;
-
-	InvenSlotButtons[3][0] = Inven_15;
-	InvenSlotButtons[3][1] = Inven_16;
-	InvenSlotButtons[3][2] = Inven_17;
-	InvenSlotButtons[3][3] = Inven_18;
-	InvenSlotButtons[3][4] = Inven_19;
-
-	InvenSlotButtons[4][0] = Inven_20;
-	InvenSlotButtons[4][1] = Inven_21;
-	InvenSlotButtons[4][2] = Inven_22;
-	InvenSlotButtons[4][3] = Inven_23;
-	InvenSlotButtons[4][4] = Inven_24;
 }
 
-bool UNAInventoryWidget::MapSlotIDAndUIButton(TMap<FName, TWeakObjectPtr<UButton>>& SlotButtons) const
+void UNAInventoryWidget::NativeConstruct()
 {
-	if (!ensure(SlotButtons.Num() == UNAInventoryComponent::MaxTotalSlots))
+	Super::NativeConstruct();
+	if (OwningInventoryComponent)
 	{
-		return false;
+		ForceLayoutPrepass();
+		SetVisibility(ESlateVisibility::Collapsed);
+			
+		InitInvenSlotSlates();
+		InitWeaponSlotSlates();
+
+		InitInvenButtonsNavigation();
+		InitWeaponButtonsNavigation();
+	}
+}
+
+void UNAInventoryWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+}
+
+TArray<FNAInvenSlotWidgets> UNAInventoryWidget::GetInvenSlotWidgets() const
+{
+	TArray<FNAInvenSlotWidgets> InvenSlots;
+	if (!bHaveInvenSlotsMapped) return InvenSlots;
+
+	InvenSlots.Reserve(MaxInventorySlots);
+	for (int Row = 0; Row < InventoryRowCount; ++Row)
+	{
+		for (int Col = 0; Col < InventoryColumnCount; ++Col)
+		{
+			InvenSlots.Add(InvenSlotWidgets[Row][Col]);
+		}
 	}
 	
-	UClass* MyClass = GetClass();
-	if (!MyClass) { return false; }
+	return InvenSlots;
+}
 
-	int32 WeaponSlotCount = UNAInventoryComponent::MaxWeaponSlots;
-	int32 InventorySlotCount = UNAInventoryComponent::MaxInventorySlots;
-
-	for (TFieldIterator<FProperty> It(MyClass); It; ++It)
+void UNAInventoryWidget::InitInvenSlotSlates()
+{
+	if (bHaveInvenSlotsMapped) return;
+	
+	bool bResult = true;
+	InvenSButtonMap.Reserve(MaxInventorySlots);
+	for (int32 i = 0; i < MaxInventorySlots; ++i)
 	{
-		FProperty* Property = *It;
-		if (!Property) { continue; }
-		bool bIsWeaponSlot = false;
-		bool bIsInventorySlot = false;
-		if (!Property->HasMetaData("Category")) { continue; }
+		int32 Row = i / InventoryRowCount;
+		int32 Col = i % InventoryColumnCount;
 
-		FString Category = Property->GetMetaData("Category");
-		if (Category.Equals(TEXT("Weapon Slots")))
+		FString NumStr = FString::Printf(TEXT("%02d"), i);
+		FName BtnName = FName(*FString::Printf(TEXT("Inven_%s"), *NumStr));
+		FName IconName = FName(*FString::Printf(TEXT("Inven_%s_Icon"), *NumStr));
+		FName QtyName = FName(*FString::Printf(TEXT("Inven_%s_Qty"), *NumStr));
+
+		UButton* Btn = Cast<UButton>(GetWidgetFromName(BtnName));
+		UImage* Icon = Cast<UImage>(GetWidgetFromName(IconName));
+		UTextBlock* Qty = Cast<UTextBlock>(GetWidgetFromName(QtyName));
+
+		if (!Btn || !Icon || !Qty)
 		{
-			bIsWeaponSlot = true;
+			bResult = false;
+			UE_LOG(LogTemp, Warning, TEXT("Inventory Slot Widget Binding Failed: [%02d] (%s%s%s)"),
+				i,
+				Btn ? TEXT("") : TEXT("Btn "),
+				Icon ? TEXT("") : TEXT("Icon "),
+				Qty ? TEXT("") : TEXT("Qty ")
+			);
+			continue;
 		}
-		else if (Category.Equals(TEXT("Inventory Slots")))
-		{
-			bIsInventorySlot = true;
-		}
-		else { continue; }
 		
-		FName PropName = FName(Property->GetName());
-		if (!SlotButtons.Contains(PropName)) { continue; }
-
-		if (FObjectProperty* ObjProp = CastField<FObjectProperty>(Property))
+		InvenSlotWidgets[Row][Col] = FNAInvenSlotWidgets(Btn, Icon, Qty);
+		if (Btn)
 		{
-			UObject* Obj = ObjProp->GetObjectPropertyValue(this);
-			if (UButton* SlotButton = Cast<UButton>(Obj))
+			TSharedPtr<SButton> SBtn = StaticCastSharedPtr<SButton>(Btn->GetCachedWidget());
+			if (!SBtn.IsValid())
 			{
-				SlotButtons[PropName] = SlotButton;
-				if (bIsWeaponSlot)
-				{
-					WeaponSlotCount -= 1;
-				}
-				else if (bIsInventorySlot)
-				{
-					InventorySlotCount -= 1;
-				}
+				// 필요하다면 TakeWidget() 시도
+				SBtn = StaticCastSharedPtr<SButton>(Btn->TakeWidget().ToSharedPtr());
+			}
+			if (SBtn.IsValid())
+			{
+				// 매핑
+				InvenSButtonMap.Add(SBtn, Btn);
 			}
 		}
 	}
-
-	ensureAlwaysMsgf(false, TEXT("[UNAInventoryWidget::MapSlotIDAndUIButton]  웨폰 슬롯 매핑 결과: %d개 실패"), WeaponSlotCount);
-	ensureAlwaysMsgf(false, TEXT("[UNAInventoryWidget::MapSlotIDAndUIButton]  인벤 슬롯 매핑 결과: %d개 실패"), InventorySlotCount);
-	return true;
+	ensureAlwaysMsgf(bResult, TEXT("[InitInvenSlotSlates]  Failed to initialize inventory slots binding."));
+	bHaveInvenSlotsMapped = bResult;
 }
 
-void UNAInventoryWidget::RefreshWeaponSlotButtons(const TMap<FName, TWeakObjectPtr<UNAItemData>>& InventoryItems,
-	const TMap<FName, TWeakObjectPtr<UButton>>& SlotButtons)
+TArray<FNAWeaponSlotWidgets> UNAInventoryWidget::GetWeaponSlotWidgets() const
 {
-	const bool bValidCheck = InventoryItems.Num() == UNAInventoryComponent::MaxInventorySlots
-			&& SlotButtons.Num() == UNAInventoryComponent::MaxWeaponSlots;
-	if (!ensureAlwaysMsgf(bValidCheck,TEXT("[UNAInventoryWidget::RefreshWeaponSlotButtons]  InventoryItems.Num()과 SlotButtons.Num()이 유효하지 않음")))
+	TArray<FNAWeaponSlotWidgets> WeaponSlots;
+	if (!bHaveWeaponSlotsMapped) return WeaponSlots;
+
+	WeaponSlots.Reserve(MaxWeaponSlots);
+	for (int32 i = 0; i < MaxWeaponSlots; ++i)
 	{
+		WeaponSlots.Add(WeaponSlotWidgets[i]);
+	}
+	return WeaponSlots;
+}
+
+void UNAInventoryWidget::InitWeaponSlotSlates()
+{
+	if (bHaveWeaponSlotsMapped) return;
+	
+	bool bResult = true;
+	for (int32 i = 0; i < MaxWeaponSlots; ++i)
+	{
+		FString NumStr = FString::Printf(TEXT("%02d"), i);
+		FName BtnName = FName(*FString::Printf(TEXT("Weapon_%s"), *NumStr));
+		FName IconName = FName(*FString::Printf(TEXT("Weapon_%s_Icon"), *NumStr));
+
+		UButton* Btn = Cast<UButton>(GetWidgetFromName(BtnName));
+		UImage* Icon = Cast<UImage>(GetWidgetFromName(IconName));
+		
+		if (!Btn || !Icon)
+		{
+			bResult = false;
+			UE_LOG(LogTemp, Warning, TEXT("Weapon Slot Widget Binding Failed: [%02d] (%s%s)"),
+				i,
+				Btn ? TEXT("") : TEXT("Btn "),
+				Icon ? TEXT("") : TEXT("Icon ")
+			);
+			continue;
+		}
+
+		WeaponSlotWidgets[i] = FNAWeaponSlotWidgets(Btn, Icon);
+		if (Btn)
+		{
+			TSharedPtr<SButton> SBtn = StaticCastSharedPtr<SButton>(Btn->GetCachedWidget());
+			if (!SBtn.IsValid())
+			{
+				// 필요하다면 TakeWidget() 시도
+				SBtn = StaticCastSharedPtr<SButton>(Btn->TakeWidget().ToSharedPtr());
+			}
+			if (SBtn.IsValid())
+			{
+				// 매핑
+				WeaponSButtonMap.Add(SBtn, Btn);
+			}
+		}
+	}
+	ensureAlwaysMsgf(bResult, TEXT("[InitWeaponSlotSlates]  Failed to initialize weapon slots binding."));
+	bHaveWeaponSlotsMapped = bResult;
+}
+
+// 인벤토리 슬롯(버튼) 네비게이션 설정
+void UNAInventoryWidget::InitInvenButtonsNavigation() const
+{
+	if (!ensure(bHaveInvenSlotsMapped)) return;
+
+	for (int Row = 0; Row < InventoryRowCount; ++Row)
+	{
+		for (int Col = 0; Col < InventoryColumnCount; ++Col)
+		{
+			UButton* CurButton = InvenSlotWidgets[Row][Col].InvenSlotButton.Get();
+			if (!CurButton) continue;
+
+			// 위쪽: 같은 열의 윗 행 버튼
+			if (Row > 0)
+			{
+				UButton* NextButton = InvenSlotWidgets[Row-1][Col].InvenSlotButton.Get();
+				if (!NextButton)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("[InitInvenButtonsNavigation]  버튼 네비게이션 설정 실패: %d번, 행: %d, 열: %d")
+						,1, Row - 1, Col);
+					continue;
+				}
+				CurButton->SetNavigationRuleExplicit(EUINavigation::Up, NextButton);
+			}
+			// 아래쪽: 같은 열의 아랫 행 버튼
+			if (Row < InventoryRowCount && Row + 1 < InventoryRowCount)
+			{
+				UButton* NextButton = InvenSlotWidgets[Row + 1][Col].InvenSlotButton.Get();
+				if (!NextButton)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("[InitInvenButtonsNavigation]  버튼 네비게이션 설정 실패: %d번, 행: %d, 열: %d")
+						,2, Row + 1, Col);
+					continue;
+				}
+				CurButton->SetNavigationRuleExplicit(EUINavigation::Down, NextButton);
+			}
+			// 왼쪽
+			if (Col == 0)
+			{
+				CurButton->SetNavigationRuleExplicit(EUINavigation::Left, Weapon_03);
+			}
+			if (Col > 0)
+			{
+				UButton* NextButton = InvenSlotWidgets[Row][Col - 1].InvenSlotButton.Get();
+				if (!NextButton)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("[InitInvenButtonsNavigation]  버튼 네비게이션 설정 실패: %d번, 행: %d, 열: %d")
+					       , 3, Row, Col - 1);
+					continue;
+				}
+				CurButton->SetNavigationRuleExplicit(EUINavigation::Left, NextButton);
+			}
+			// 오른쪽
+			if (Col < InventoryColumnCount && Col + 1 < InventoryColumnCount)
+			{
+				UButton* NextButton = InvenSlotWidgets[Row][Col + 1].InvenSlotButton.Get();
+				if (!NextButton)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("[InitInvenButtonsNavigation]  버튼 네비게이션 설정 실패: %d번, 행: %d, 열: %d")
+						   , 4, Row, Col + 1);
+					continue;
+				}
+				CurButton->SetNavigationRuleExplicit(EUINavigation::Right, NextButton);
+			}
+		}
+	}
+}
+
+void UNAInventoryWidget::InitWeaponButtonsNavigation() const
+{
+	if (!ensure(bHaveWeaponSlotsMapped)) return;
+
+	// 1) 각 슬롯 인덱스에 대응되는 2D 좌표 (X: +1→우측, –1→좌측 / Y: +1→위, –1→아래)
+	const FVector2D Coords[MaxWeaponSlots] = {
+		/* 0: Weapon_00 */ FVector2D( 0.f, +1.f),
+		/* 1: Weapon_01 */ FVector2D( 0.f, -1.f),
+		/* 2: Weapon_02 */ FVector2D(-1.f,  0.f),
+		/* 3: Weapon_03 */ FVector2D(+1.f,  0.f)
+	};
+
+	// 2) 네비게이션 방향별 벡터 매핑
+	const TPair<EUINavigation, FVector2D> DirVecs[4] = {
+		{ EUINavigation::Up,    FVector2D( 0.f, +1.f) },
+		{ EUINavigation::Down,  FVector2D( 0.f, -1.f) },
+		{ EUINavigation::Left,  FVector2D(-1.f,  0.f) },
+		{ EUINavigation::Right, FVector2D(+1.f,  0.f) }
+	};
+
+	// 3) 배열 순회 → 이웃 좌표가 있으면 룰 설정
+	for (int Index = 0; Index < MaxWeaponSlots; ++Index)
+	{
+		UButton* CurBtn = WeaponSlotWidgets[Index].WeaponSlotButton.Get();
+		if (!CurBtn) continue;
+
+		const FVector2D MyCoord = Coords[Index];
+
+		for (int i = 0; i < 4; ++i)
+		{
+			const EUINavigation NavDir		 = DirVecs[i].Key;
+			const FVector2D		Offset		 = DirVecs[i].Value;
+			const FVector2D		TargetCoord	 = MyCoord + Offset;
+			
+			if (FMath::Abs( TargetCoord.X) == 2 ||  FMath::Abs(TargetCoord.Y) == 2)
+			{
+				if (TargetCoord.X > 0)
+				{
+					ensure(InvenSlotWidgets[2][0].IsValid());
+					CurBtn->SetNavigationRuleExplicit(NavDir, InvenSlotWidgets[2][0].InvenSlotButton.Get());
+				}
+				else if (TargetCoord.Y > 0)
+				{
+					// 인벱토리 위젯 최상단 아이콘 버튼으로
+					/*CurBtn->SetNavigationRuleExplicit(NavDir, );*/
+				}
+				continue;
+			}
+
+			UButton* NextBtn = WeaponSlotWidgets[i].WeaponSlotButton.Get();
+			if (NextBtn)
+			{
+				CurBtn->SetNavigationRuleExplicit(NavDir, NextBtn);
+			}
+		}
+	}
+}
+
+// void UNAInventoryWidget::FillSlotButtonMapFromArrays(TMap<FName, TWeakObjectPtr<UButton>>& OutSlotButtons) const
+// {
+// 	// 1. Weapon 슬롯
+// 	for (int i = 0; i < 4; ++i)
+// 	{
+// 		//FString SlotIDStr = FString::Printf(TEXT("Weapon_%02d"), i);
+// 		FName SlotID = UNAInventoryComponent::MakeWeaponSlotID(i);
+// 		OutSlotButtons.Add(SlotID, WeaponSlotButtons[i]);
+// 	}
+//
+// 	// 2. 인벤 슬롯
+// 	for (int row = 0; row < 5; ++row)
+// 	{
+// 		for (int col = 0; col < 5; ++col)
+// 		{
+// 			int index = row * 5 + col; // 0~24
+// 			//FString SlotIDStr = FString::Printf(TEXT("Inven_%02d"), index);
+// 			FName SlotID = UNAInventoryComponent::MakeInventorySlotID(index);
+// 			OutSlotButtons.Add(SlotID, InvenSlotButtons[row][col]);
+// 		}
+// 	}
+// }
+
+void UNAInventoryWidget::ReleaseInventoryWidget()
+{
+	if (!OwningInventoryComponent || !WidgetExpand) return;
+	if (!GetOwningPlayer()) return;
+	
+	bReleaseInventoryWidget = true;
+	
+	OwningInventoryComponent->SetVisibility(true);
+	OwningInventoryComponent->SetWindowVisibility(EWindowVisibility::Visible);
+	SetVisibility(ESlateVisibility::HitTestInvisible);
+	PlayAnimationForward(WidgetExpand);
+}
+
+void UNAInventoryWidget::OnInventoryWidgetReleased()
+{
+	if (!OwningInventoryComponent || !WidgetExpand) return;
+	if (!GetOwningPlayer()) return;
+	
+	if (bReleaseInventoryWidget)
+	{
+		// 움직이면서 인벤토리 위젯 조작 가능은 한데, 진입할때 게임쪽 입력이 끊김 whyyyyyyyyy
+		UWidgetBlueprintLibrary::SetInputMode_GameAndUIEx(GetOwningPlayer(), nullptr, EMouseLockMode::LockAlways, true, false);
+
+		// 일단 땜빵: [인벤 위젯 활성화 시 마우스 커서 노출되는 문제 + 마우스 버튼 다운/업 시 인벤 위젯에서 키보드 포커스 빠지는 문제] 틀어막음 
+		UGameViewportClient* GameViewportClient = GetWorld()->GetGameViewport();
+		TSharedPtr<SViewport> ViewportWidget = GameViewportClient->GetGameViewportWidget();
+		if (ViewportWidget.IsValid())
+		{
+			FReply& SlateOperations = GetOwningLocalPlayer()->GetSlateOperations();
+			TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.ToSharedRef();
+			SlateOperations.UseHighPrecisionMouseMovement(ViewportWidgetRef);
+			SlateOperations.LockMouseToWidget(ViewportWidgetRef);
+			GameViewportClient->SetIgnoreInput(false);
+			GameViewportClient->SetHideCursorDuringCapture(true);
+			GameViewportClient->SetMouseCaptureMode(EMouseCaptureMode::NoCapture);
+		}
+		
+		OwningInventoryComponent->SetWindowFocusable(true);
+		SetIsEnabled(true);
+		if (!LastFocusedSlotButton.IsValid())
+		{
+			Weapon_00->SetKeyboardFocus();	
+		}
+		else
+		{
+			LastFocusedSlotButton->SetKeyboardFocus();
+		}
+	}
+}
+
+void UNAInventoryWidget::CollapseInventoryWidget()
+{
+	if (!OwningInventoryComponent || !WidgetExpand) return;
+	if (!GetOwningPlayer()) return;
+	
+	bReleaseInventoryWidget = false;
+	
+	UWidgetBlueprintLibrary::SetInputMode_GameOnly(GetOwningPlayer(), false);
+	OwningInventoryComponent->SetWindowFocusable(false);
+	SetIsEnabled(false);
+	PlayAnimationReverse(WidgetExpand, 1.3f);
+}
+
+void UNAInventoryWidget::OnInventoryWidgetCollapsed()
+{
+	if (!OwningInventoryComponent || !WidgetExpand) return;
+	if (!GetOwningPlayer()) return;
+	
+	if (!bReleaseInventoryWidget)
+	{
+		SetVisibility(ESlateVisibility::Hidden);
+		OwningInventoryComponent->SetWindowVisibility(EWindowVisibility::SelfHitTestInvisible);
+		OwningInventoryComponent->SetVisibility(false);
+	}
+}
+
+FReply UNAInventoryWidget::NativeOnFocusReceived(const FGeometry& InGeometry, const FFocusEvent& InFocusEvent)
+{
+	return Super::NativeOnFocusReceived(InGeometry, InFocusEvent).Handled();
+}
+
+void UNAInventoryWidget::NativeOnFocusLost(const FFocusEvent& InFocusEvent)
+{
+	Super::NativeOnFocusLost(InFocusEvent);
+}
+
+void UNAInventoryWidget::NativeOnFocusChanging(const FWeakWidgetPath& PreviousFocusPath,
+                                               const FWidgetPath& NewWidgetPath, const FFocusEvent& InFocusEvent)
+{
+	Super::NativeOnFocusChanging(PreviousFocusPath, NewWidgetPath, InFocusEvent);
+
+	TWeakPtr<SWidget> PreWidget = PreviousFocusPath.GetLastWidget();
+	if (!PreWidget.IsValid()) return;
+
+	TSharedPtr<SWidget> PreSWidgetRef = PreviousFocusPath.GetLastWidget().Pin();
+	if (!PreSWidgetRef.IsValid()) return;
+
+	// SButton으로 캐스팅
+	TSharedPtr<SButton> PreSButtonWidget = StaticCastSharedPtr<SButton>(PreSWidgetRef);
+	if (!PreSButtonWidget.IsValid()) return;
+
+	// 키를 TWeakPtr로 만들어서 검색
+	TWeakPtr<SButton> PreSKey = PreSButtonWidget;
+
+	TWeakObjectPtr<UButton> PreUBtnPtr;
+	if (InvenSButtonMap.Contains(PreSKey))
+	{
+		PreUBtnPtr = InvenSButtonMap[PreSKey];
+		if (PreUBtnPtr.IsValid())
+		{
+			UButton* Btn = PreUBtnPtr.Get();
+			Btn->SetBackgroundColor(DefaultInvenSlotColor);
+			Btn->SetColorAndOpacity(DefaultInvenSlotColor);
+			LastFocusedSlotButton = Btn; 
+		}
+	}
+	else if (WeaponSButtonMap.Contains(PreSKey))
+	{
+		PreUBtnPtr = WeaponSButtonMap[PreSKey];
+		if (PreUBtnPtr.IsValid())
+		{
+			UButton* Btn = PreUBtnPtr.Get();
+			Btn->SetBackgroundColor(DefaultWeaponSlotColor);
+			Btn->SetColorAndOpacity(DefaultWeaponSlotColor);
+		}
+	}
+	
+	TWeakPtr<SWidget> NewSWidget = NewWidgetPath.GetLastWidget();
+	if (!NewSWidget.IsValid()) return;
+
+	TSharedPtr<SWidget> NewSWidgetRef = NewWidgetPath.GetLastWidget();
+	if (!NewSWidgetRef.IsValid()) return;
+
+	// SButton으로 캐스팅
+	TSharedPtr<SButton> NewSButtonWidget = StaticCastSharedPtr<SButton>(NewSWidgetRef);
+	if (!NewSButtonWidget.IsValid()) return;
+
+	// 키를 TWeakPtr로 만들어서 검색
+	TWeakPtr<SButton> NewSKey = NewSButtonWidget;
+
+	TWeakObjectPtr<UButton> NewUBtnPtr;
+	if (InvenSButtonMap.Contains(NewSKey))
+	{
+		NewUBtnPtr = InvenSButtonMap[NewSKey];
+		if (NewUBtnPtr.IsValid())
+		{
+			UButton* Btn = NewUBtnPtr.Get();
+			Btn->SetBackgroundColor(FocusedInvenSlotBackgroundColor);
+			Btn->SetColorAndOpacity(FLinearColor::White);
+		}
+	}
+	else if (WeaponSButtonMap.Contains(NewSKey))
+	{
+		NewUBtnPtr = WeaponSButtonMap[NewSKey];
+		if (NewUBtnPtr.IsValid())
+		{
+			UButton* Btn = NewUBtnPtr.Get();
+			Btn->SetBackgroundColor(FocusedWeaponSlotBackgroundColor);
+			Btn->SetColorAndOpacity(FLinearColor::White);
+		}
+	}
+}
+
+FReply UNAInventoryWidget::NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	const FKey Key = InKeyEvent.GetKey();
+	if (Key == EKeys::Up || Key == EKeys::Down || Key == EKeys::Left || Key == EKeys::Right)
+	{
+		return Super::NativeOnPreviewKeyDown(InGeometry, InKeyEvent);
+	}
+	return Super::NativeOnPreviewKeyDown(InGeometry, InKeyEvent).Unhandled();
+}
+
+FReply UNAInventoryWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	const FKey Key = InKeyEvent.GetKey();
+
+	if (Key == EKeys::Up || Key == EKeys::Down || Key == EKeys::Left || Key == EKeys::Right)
+	{
+		return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+	}
+	return Super::NativeOnPreviewKeyDown(InGeometry, InKeyEvent).Unhandled();
+}
+
+FReply UNAInventoryWidget::NativeOnKeyUp(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	const FKey Key = InKeyEvent.GetKey();
+
+	if (Key == EKeys::Up || Key == EKeys::Down || Key == EKeys::Left || Key == EKeys::Right)
+	{
+		return Super::NativeOnKeyUp(InGeometry, InKeyEvent);
+	}
+	return Super::NativeOnPreviewKeyDown(InGeometry, InKeyEvent).Unhandled();
+}
+
+FReply UNAInventoryWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	return Super::NativeOnMouseMove(InGeometry, InMouseEvent).Unhandled();
+}
+
+FReply UNAInventoryWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent).Unhandled();
+}
+
+FReply UNAInventoryWidget::NativeOnPreviewMouseButtonDown(const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent)
+{
+	return Super::NativeOnPreviewMouseButtonDown(InGeometry, InMouseEvent).Unhandled();
+}
+
+FReply UNAInventoryWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	return Super::NativeOnMouseButtonUp(InGeometry, InMouseEvent).Unhandled();
+}
+
+UButton* UNAInventoryWidget::GetInvenSlotButton(const FName& SlotID) const
+{
+	ensure(bHaveInvenSlotsMapped);
+
+	ExtractSlotNumber(SlotID);
+
+	// @TODO
+		
+	return nullptr;
+}
+
+UButton* UNAInventoryWidget::GetWeaponSlotButton(const FName& SlotID) const
+{
+	ensure(bHaveWeaponSlotsMapped);
+	
+	ExtractSlotNumber(SlotID);
+
+	// @TODO
+	
+	return nullptr;
+}
+
+void UNAInventoryWidget::RefreshSlotWidgets(const TMap<FName, TWeakObjectPtr<UNAItemData>>& InventoryItems
+	, const TMap<FName, TWeakObjectPtr<UNAItemData>>& WeaponItems)
+{
+	if (!ensure(InventoryItems.Num() == MaxInventorySlots
+		&& WeaponItems.Num() == MaxWeaponSlots))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[RefreshSlotWidgets]  유효하지 않은 InventoryItems, WeaponItems"));
 		return;
 	}
+	
+	// 각 슬롯 ID 기준으로 순회
+	for (const auto& Pair : InventoryItems)
+	{
+		const FName& SlotID = Pair.Key;
+		// 해당 슬롯에 할당된 아이템 데이터 가져오기
+		const TWeakObjectPtr<UNAItemData>* FoundItemPtr = InventoryItems.Find(SlotID);
+		if (!FoundItemPtr->IsValid()) continue;
+		const UNAItemData* FoundItem = FoundItemPtr->Get();
+		
+		int32 Index = ExtractSlotNumber(SlotID);
+		int32 Row = -1;
+		int32 Col = -1;
+		const bool bSucceed = ConvertIndexTo2D(Index, Row, Col);
+		if (!bSucceed)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[RefreshWeaponSlotWidgets]  ConvertIndexTo2D: index -> [Row][Col] 변환실패."));
+			continue;
+		}
 
+		FNAInvenSlotWidgets InvenSlotSlates = InvenSlotWidgets[Row][Col];
+		check(InvenSlotSlates.IsValid());
+
+		// 인벤토리 슬롯 UI 갱신 함수 호출
+		UpdateInvenSlotDrawData(FoundItem, InvenSlotSlates);
+	}
+
+	for (const auto& Pair : WeaponItems)
+	{
+		const FName& SlotID = Pair.Key;
+		// 해당 슬롯에 할당된 아이템 데이터 가져오기
+		const TWeakObjectPtr<UNAItemData>* FoundItemPtr = WeaponItems.Find(SlotID);
+		if (!FoundItemPtr->IsValid()) continue;
+		const UNAItemData* FoundItem = FoundItemPtr->Get();
+		
+		int32 Index = ExtractSlotNumber(SlotID);
+		if (!FMath::IsWithinInclusive(Index, 0, MaxWeaponSlots))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[RefreshSlotWidgets]  슬롯ID의 뒷 넘버가 유효한 Index가 아니었음."));
+			continue;
+		}
+
+		FNAWeaponSlotWidgets WeaponSlotSlates = WeaponSlotWidgets[Index];
+		check(WeaponSlotSlates.IsValid());
+
+		// 무기 슬롯 UI 갱신 함수 호출
+		UpdateWeaponSlotDrawData(FoundItem, WeaponSlotSlates);
+	}
+	
 	InvalidateLayoutAndVolatility();
 }
 
-void UNAInventoryWidget::RefreshInvenSlotButtons(const TMap<FName, TWeakObjectPtr<UNAItemData>>& InventoryItems,
-	const TMap<FName, TWeakObjectPtr<UButton>>& SlotButtons)
+void UNAInventoryWidget::UpdateInvenSlotDrawData(const UNAItemData* ItemData, const FNAInvenSlotWidgets& Inven_SlotWidgets)
 {
+	// 1) 버튼, 아이콘, 수량 텍스트 찾기
+	UButton* SlotButton = Inven_SlotWidgets.InvenSlotButton.Get();
+	UImage* IconImage = Inven_SlotWidgets.InvenSlotIcon.Get();
+	UTextBlock* NumText = Inven_SlotWidgets.InvenSlotQty.Get();
 	
+	// 2-A) ItemData가 있다면 내용 갱신
+	if (ItemData)
+	{
+		// 아이템 Texture 및 수량
+		UTexture2D* Icon = ItemData->GetItemIcon();
+		int32 Quantity = ItemData->GetQuantity();
+	
+		if (IconImage && Icon)
+		{
+			IconImage->SetBrushResourceObject(Icon);
+			IconImage->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		}
+		if (NumText)
+		{
+			NumText->SetText(FText::AsNumber(Quantity));
+			NumText->SetVisibility(Quantity > 0 ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Hidden);
+		}
+	}
+	// 2-B) 아이템이 없는 빈 슬롯이면 아이콘, 텍스트 감추기
+	else
+	{
+		if (IconImage)
+		{
+			IconImage->SetBrushResourceObject(nullptr);
+			IconImage->SetVisibility(ESlateVisibility::Hidden);
+		}
+		if (NumText)
+		{
+			NumText->SetText(FText::GetEmpty());
+			NumText->SetVisibility(ESlateVisibility::Hidden);
+		}
+	}
 }
 
-void UNAInventoryWidget::RefreshSlotButton(const UNAItemData* ItemData, UButton* SlotButton)
+void UNAInventoryWidget::UpdateWeaponSlotDrawData(const UNAItemData* ItemData, const FNAWeaponSlotWidgets& Weapon_SlotWidgets)
 {
+	// 1) 버튼, 아이콘, 수량 텍스트 찾기
+	UButton* SlotButton = Weapon_SlotWidgets.WeaponSlotButton.Get();
+	UImage* IconImage = Weapon_SlotWidgets.WeaponSlotIcon.Get();
 	
+	// 2-A) ItemData가 있다면 내용 갱신
+	if (ItemData)
+	{
+		// 아이템 Texture 및 수량
+		UTexture2D* Icon = ItemData->GetItemIcon();
+		int32 Quantity = ItemData->GetQuantity();
+	
+		if (IconImage && Icon)
+		{
+			IconImage->SetBrushResourceObject(Icon);
+			IconImage->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		}
+	}
+	// 2-B) 아이템이 없는 빈 슬롯이면 아이콘, 텍스트 감추기
+	else
+	{
+		if (IconImage)
+		{
+			IconImage->SetBrushResourceObject(nullptr);
+			IconImage->SetVisibility(ESlateVisibility::Hidden);
+		}
+	}
 }

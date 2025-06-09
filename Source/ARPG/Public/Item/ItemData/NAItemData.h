@@ -73,6 +73,8 @@ public:
 	}
 	
 	FString GetItemName() const;
+
+	class UTexture2D* GetItemIcon() const;
 	
 	UFUNCTION(BlueprintCallable, Category = "Item Data")
 	bool IsPickableItem() const;

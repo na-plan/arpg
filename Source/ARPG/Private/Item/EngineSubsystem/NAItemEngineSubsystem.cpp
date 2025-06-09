@@ -221,3 +221,27 @@ UNAItemData* UNAItemEngineSubsystem::CreateItemDataBySlot(UWorld* InWorld, const
 	ensureAlwaysMsgf(false, TEXT("[UNAItemEngineSubsystem::CreateItemDataBySlot]  InInventorySlot의 ItemMetaDataKey가 유효하지 않음."));
 	return nullptr;
 }
+
+bool UNAItemEngineSubsystem::DestroyRuntimeItemData(const FName& InItemID)
+{
+	bool bResult = RuntimeItemDataMap.Contains(InItemID);
+	if (bResult)
+	{
+		UNAItemData* ItemData = RuntimeItemDataMap[InItemID];
+		if (ensureAlways(IsValid(ItemData)))
+		{
+			ItemData->RemoveFromRoot();
+			ItemData->ConditionalBeginDestroy();
+
+			RuntimeItemDataMap[InItemID] =  nullptr;
+			int32 bSucceed = RuntimeItemDataMap.Remove(InItemID);
+			bResult = bSucceed == 1;
+		}
+	}
+	return bResult;
+}
+
+bool UNAItemEngineSubsystem::DestroyRuntimeItemData(UNAItemData* InItemData)
+{
+	return DestroyRuntimeItemData(InItemData->ID);
+}

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Components/SphereComponent.h"
 #include "GameFramework/Actor.h"
 #include "Interaction/NAInteractableInterface.h"
+#include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
 #include "NAItemActor.generated.h"
 
 class UTextRenderComponent;
@@ -17,8 +17,7 @@ enum class EItemSubobjDirtyFlags : uint8
 	MF_RootShape		= (1<<0),
 	MF_Mesh				= (1<<1),
 	MF_IxButtonSprite	= (1<<4),
-	MF_IxButtonText		= (1<<5),
-	MF_Combat           = (1<<6),
+	MF_IxButtonText		= (1<<5)
 };
 ENUM_CLASS_FLAGS(EItemSubobjDirtyFlags)
 
@@ -31,6 +30,8 @@ class ARPG_API ANAItemActor : public AActor, public INAInteractableInterface
 public:
 	ANAItemActor(const FObjectInitializer& ObjectInitializer);
 	virtual void OnConstruction(const FTransform& Transform) override;
+
+	virtual void PostLoad() override;
 	
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -41,10 +42,30 @@ protected:
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Item Actor")
-	const UNAItemData* GetItemData() const;
+	UNAItemData* GetItemData() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Item Actor")
 	bool HasValidItemID() const;
+
+	static void TransferItemDataToDuplicatedActor(ANAItemActor* OldItemActor, ANAItemActor* NewDuplicated)
+	{
+		if ( UNAItemEngineSubsystem::Get() && OldItemActor && NewDuplicated)
+		{
+			if (UNAItemEngineSubsystem::Get()->DestroyRuntimeItemData(NewDuplicated->ItemDataID))
+			{
+				NewDuplicated->ItemDataID = OldItemActor->ItemDataID;
+				if (OldItemActor->InteractableInterfaceRef && NewDuplicated->InteractableInterfaceRef)
+				{
+					INAInteractableInterface::TransferInteractableStateToDuplicatedActor(
+						OldItemActor->InteractableInterfaceRef
+						, NewDuplicated->InteractableInterfaceRef); // 어우 길어
+				}
+
+				OldItemActor->ItemDataID = NAME_None;
+				OldItemActor->Destroy();
+			}
+		}
+	}
 	
 protected:
 	// OnItemDataInitialized: BP 확장 가능
@@ -54,6 +75,11 @@ protected:
 	
 	virtual EItemSubobjDirtyFlags CheckDirtySubobjectFlags(const FNAItemBaseTableRow* MetaData) const;
 
+	UFUNCTION()
+	void OnActorBeginOverlap_Impl( AActor* OverlappedActor, AActor* OtherActor );
+	UFUNCTION()
+	void OnActorEndOverlap_Impl( AActor* OverlappedActor, AActor* OtherActor );
+	
 private:
 	void InitItemData();
 	void VerifyInteractableData();
@@ -87,14 +113,14 @@ private:
 public:
 	virtual FNAInteractableData GetInteractableData_Implementation() const override;
 	virtual bool GetInteractableData_Internal(FNAInteractableData& OutIxData) const override;
-	virtual bool CanUseRootAsTriggerShape_Implementation() const override;
 	virtual bool CanInteract_Implementation() const override;
+	//virtual bool CanInteract_Implementation() const override;
 	virtual void NotifyInteractableFocusBegin_Implementation(AActor* InteractableActor, AActor* InteractorActor) override;
 	virtual void NotifyInteractableFocusEnd_Implementation(AActor* InteractableActor, AActor* InteractorActor) override;
 
 	virtual void BeginInteract_Implementation(AActor* Interactor) override;
 	virtual void EndInteract_Implementation(AActor* Interactor) override;
-	virtual void ExecuteInteract_Implementation(AActor* Interactor) override;
+	virtual bool ExecuteInteract_Implementation(AActor* Interactor) override;
 
 	virtual bool IsOnInteract_Implementation() const override;
 

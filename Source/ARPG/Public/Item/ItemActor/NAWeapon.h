@@ -3,30 +3,42 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AbilitySystemInterface.h"
 #include "NAPickableItemActor.h"
 #include "GameFramework/Actor.h"
 #include "NAWeapon.generated.h"
 
+class UNiagaraComponent;
 class UNAMontageCombatComponent;
 
 UCLASS()
-class ARPG_API ANAWeapon : public ANAPickableItemActor
+class ARPG_API ANAWeapon : public ANAPickableItemActor, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
 	friend class UNAItemEngineSubsystem;
 	friend struct FCombatUpdatePredication;
 
-	UPROPERTY( EditDefaultsOnly, BlueprintReadWrite, Category="Combat", meta=(AllowPrivateAccess="true"))
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Replicated, Category="Combat", meta=(AllowPrivateAccess="true"))
 	UNAMontageCombatComponent* CombatComponent;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Replicated, Category="Combat", meta=(AllowPrivateAccess="true"))
+	UAbilitySystemComponent* AbilitySystemComponent;
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category="FX", meta=(AllowPrivateAccess="true"))
+	UNiagaraComponent* MuzzleFlashComponent;
 	
 public:
 	// Sets default values for this actor's properties
 	ANAWeapon();
 
+	FORCEINLINE virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent; }
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 public:
 	// Called every frame
