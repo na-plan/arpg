@@ -134,26 +134,28 @@ bool ANAPickableItemActor::ExecuteInteract_Implementation(AActor* Interactor)
 	// @TODO : (근데 보통 Holdable 가능한 아이템이면 1 액터 1 수량이라 자주 있는 시나리오는 아님)
 	if (EnumHasAnyFlags(PickupMode, EPickupMode::PM_Inventory))
 	{
-		const bool bSucceed = InteractComp->TryAddItemToInventory(this);
-		
-		if (bSucceed) // 인벤토리에 전부 추가 성공
+		const bool bSucced = InteractComp->TryAddItemToInventory(this);
+		if ( bSucced && !HasAuthority() )
 		{
-			if (EnumHasAnyFlags(PickupMode, EPickupMode::PM_Holdable))
-			{
-				TScriptInterface<INAInteractableInterface> NewInteractableActor = InteractComp->
-					TryAttachItemMeshToOwner(this);
-				if (NewInteractableActor != nullptr)
-				{
-					// @TODO: 사용 대기 상태(bIsOnInteract이 true)일 때 ... 여기서 수행해야할 뭔가가 있을지 고민해보기
+			// 클라이언트와 인벤토리 상태 동기화
+			InteractComp->Client_AddItemToInventory( this );
+		}
 
-					NewInteractableActor->DisableOverlapDuringInteraction();
-					return true;
-				}
-			}
-			else // holdable이 아니면서, 전부 추가 성공 -> 상호장용 종료 true
+		if (EnumHasAnyFlags(PickupMode, EPickupMode::PM_Holdable))
+		{
+			TScriptInterface<INAInteractableInterface> NewInteractableActor = InteractComp->
+				TryAttachItemMeshToOwner(this);
+			if (NewInteractableActor != nullptr)
 			{
+				// @TODO: 사용 대기 상태(bIsOnInteract이 true)일 때 ... 여기서 수행해야할 뭔가가 있을지 고민해보기
+
+				NewInteractableActor->DisableOverlapDuringInteraction();
 				return true;
 			}
+		}
+		else // holdable이 아니면서, 전부 추가 성공 -> 상호장용 종료 true
+		{
+			return true;
 		}
 		// 부분 추가 or 추가 실패 -> (임시) 부분 추가되면 어태치 시도 안함
 	}

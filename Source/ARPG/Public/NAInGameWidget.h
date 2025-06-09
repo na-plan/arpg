@@ -16,7 +16,4 @@ class ARPG_API UNAInGameWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
-private:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true", BindWidget))
-	UNAHPWidget* HPWidget;
 };

@@ -218,6 +218,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
 	UNAItemData* FindSameClassItem(const UClass* ItemClass) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
+	bool FindSameClassItems( const UClass* ItemClass, TArray<UNAItemData*>& OutItems ) const;
 	
 	FName FindSlotIDForItem(const UNAItemData* ItemToFind) const;
 	

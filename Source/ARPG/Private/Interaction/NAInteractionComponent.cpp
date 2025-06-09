@@ -17,6 +17,8 @@ UNAInteractionComponent::UNAInteractionComponent()
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 	SetComponentTickEnabled(false);
 
+	SetIsReplicatedByDefault( true );
+
 	// ...
 }
 
@@ -82,12 +84,6 @@ void UNAInteractionComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	if ( AActor* InteractionActor = GetOwner();
-		 InteractionActor && GetNetMode() != NM_Client )
-	{
-		//InteractionActor->OnActorBeginOverlap.AddUniqueDynamic( this, &UNAInteractionComponent::OnActorBeginOverlap );
-		//InteractionActor->OnActorEndOverlap.AddUniqueDynamic( this, &UNAInteractionComponent::OnActorEndOverlap );
-	}
 }
 
 // Called every frame
@@ -131,9 +127,9 @@ void UNAInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType
 			if ( !HandActor->GetRightHandChildActorComponent()->GetChildActor() )
 			{
 				HandActor->GetRightHandChildActorComponent()->SetChildActorClass( ActiveInteractableInstance->GetClass());
-				if (AActor* NewRightHandChlidActor = HandActor->GetRightHandChildActorComponent()->GetChildActor())
+				if (AActor* NewRightHandChildActor = HandActor->GetRightHandChildActorComponent()->GetChildActor())
 				{
-					FWeakInteractableHandle NewRightHandle(NewRightHandChlidActor); // 여기서 인터페이스 구현 여부, 유효성 검사 다 함
+					FWeakInteractableHandle NewRightHandle(NewRightHandChildActor); // 여기서 인터페이스 구현 여부, 유효성 검사 다 함
 					if (ensureAlways(NewRightHandle.IsValid())) // 혹시 모르니깐 한 번 더...
 					{
 						ANAItemActor* NewlyAttachedItemActor = CastChecked<ANAItemActor>(NewRightHandle.GetRawObject());
@@ -149,9 +145,9 @@ void UNAInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType
 			if ( !HandActor->GetLeftHandChildActorComponent()->GetChildActor())
 			{
 				HandActor->GetLeftHandChildActorComponent()->SetChildActorClass( ActiveInteractableInstance->GetClass() );
-				if (AActor* NewLeftHandChlidActor = HandActor->GetLeftHandChildActorComponent()->GetChildActor())
+				if (AActor* NewLeftHandChildActor = HandActor->GetLeftHandChildActorComponent()->GetChildActor())
 				{
-					FWeakInteractableHandle NewLeftHandle(NewLeftHandChlidActor); // 여기서 인터페이스 구현 여부, 유효성 검사 다 함
+					FWeakInteractableHandle NewLeftHandle(NewLeftHandChildActor); // 여기서 인터페이스 구현 여부, 유효성 검사 다 함
 					if (ensureAlways(NewLeftHandle.IsValid())) // 혹시 모르니깐 한 번 더...
 					{
 						ANAItemActor* NewlyAttachedItemActor = CastChecked<ANAItemActor>(NewLeftHandle.GetRawObject());
@@ -179,6 +175,12 @@ void UNAInteractionComponent::TransferInteractableMidInteraction(FWeakInteractab
 		FocusedInteractableMap.Emplace(NewActiveInteractable, CachedInteractableData);
 		ActiveInteractable = NewActiveInteractable;
 	}
+}
+
+void UNAInteractionComponent::Client_AddItemToInventory_Implementation( ANAItemActor* ItemActor )
+{
+	// 서버에서는 성공했는데 클라이언트에서는 실패한 경우, 동기화가 뭔가 잘못됐을 가능성
+	check( TryAddItemToInventory( ItemActor ) );
 }
 
 void UNAInteractionComponent::UpdateInteractionData()
@@ -393,29 +395,6 @@ void UNAInteractionComponent::OnInteractionEnded(TScriptInterface<INAInteractabl
 	ActiveInteractable = nullptr;
 	bHasPendingUseItem = false;
 }
-
-// void UNAInteractionComponent::EndInteraction(/*INAInteractableInterface* InteractableActor*/)
-// {
-// 	if (!NearestInteractable.IsValid())
-// 	{
-// 		UE_LOG(LogTemp, Warning, TEXT("[UNAInteractionComponent::EndInteraction]  NearestInteractable이 유효하지 않음"));
-// 		return;
-// 	}
-//
-// 	ActiveInteractable.ToWeakInterface()->Execute_EndInteract(ActiveInteractable.GetRawObject(), GetOwner());
-// 	ActiveInteractable = nullptr;
-// }
-
-// void UNAInteractionComponent::ExecuteInteraction(/*INAInteractableInterface* InteractableActor*/)
-// {
-// 	if (!ActiveInteractable.IsValid())
-// 	{
-// 		UE_LOG(LogTemp, Warning, TEXT("[UNAInteractionComponent::ExecuteInteraction]  ActiveInteractable 유효하지 않음"));
-// 		return;
-// 	}
-//
-// 	ActiveInteractable.ToWeakInterface()->Execute_ExecuteInteract(ActiveInteractable.GetRawObject(), GetOwner());
-// }
 
 bool UNAInteractionComponent::TryAddItemToInventory(ANAItemActor* ItemActor)
 {

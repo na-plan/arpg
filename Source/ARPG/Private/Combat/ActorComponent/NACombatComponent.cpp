@@ -46,6 +46,11 @@ void UNACombatComponent::SetGrabAbility(const TSubclassOf<UGameplayAbility>& InA
 	GrabAbility = InAbility;
 }
 
+TSubclassOf<UGameplayEffect> UNACombatComponent::GetAmmoType() const
+{
+	return AmmoType;
+}
+
 void UNACombatComponent::ReplayAttack()
 {
 	bCanAttack = IsAbleToAttack();
