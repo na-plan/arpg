@@ -16,7 +16,7 @@ class ARPG_API UNAGA_FireGun : public UGameplayAbility
 
 	UNAGA_FireGun();
 
-	static bool ConsumeAmmo(UAbilitySystemComponent* InAbilitySystemComponent);
+	static bool ConsumeAmmo(UAbilitySystemComponent* InAbilitySystemComponent, const TSubclassOf<UGameplayEffect>& InAmmoType);
 
 protected:
 	UFUNCTION()
