@@ -46,6 +46,15 @@ void UNAReviveWidgetComponent::OnReviveApplied( UAbilitySystemComponent* Ability
 		StartInServerTime = Context->StartServerWorldTime;
 		
 		SetVisibility( true );
+		if ( !GetUserWidgetObject() )
+		{
+			InitWidget(); // todo: 왜 이 시점에서 위젯이 없지?
+			UE_LOG( LogReviveWidget, Warning, TEXT( "%hs: %s not initialized, Reinitializing... " ), __FUNCTION__, *GetNameSafe( GetUserWidgetObject() ) )
+		}
+		if ( UNAReviveWidget* ReviveWidget = Cast<UNAReviveWidget>( GetUserWidgetObject() ) )
+		{
+			ReviveWidget->SetImage( RuntimeInstance );
+		}
 		SetComponentTickEnabled( true );
 	}
 }
@@ -71,11 +80,18 @@ void UNAReviveWidgetComponent::BeginPlay()
 	// ...
 
 	RuntimeInstance = UMaterialInstanceDynamic::Create( BaseMaterial, this );
+
 	InitWidget();
-	Cast<UNAReviveWidget>( GetWidget() )->SetImage( RuntimeInstance );
+	if ( UNAReviveWidget* ReviveWidget = Cast<UNAReviveWidget>( GetUserWidgetObject() ) )
+	{
+		ReviveWidget->SetImage( RuntimeInstance );
+		ReviveWidget->SetVisibility( ESlateVisibility::Hidden );
+	}
+	
 	SetDrawSize( { 100, 100 } );
 	SetAbsolute( false, true, false );
 	SetVisibility( false );
+	SetComponentTickEnabled( false );
 
 	const ANACharacter* Character = Cast<ANACharacter>( GetOwner() );
 	check( Character );
