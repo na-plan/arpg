@@ -3,19 +3,20 @@
 
 #include "Item/GameplayEffect/NAGE_PlasmaAmmo.h"
 
+#include "GameplayEffectComponents/AssetTagsGameplayEffectComponent.h"
 #include "GameplayEffectComponents/TargetTagsGameplayEffectComponent.h"
 
 UNAGE_PlasmaAmmo::UNAGE_PlasmaAmmo()
 {
 	StackExpirationPolicy = EGameplayEffectStackingExpirationPolicy::RemoveSingleStackAndRefreshDuration;
-	StackDurationRefreshPolicy = EGameplayEffectStackingDurationPolicy::NeverRefresh;
+	StackDurationRefreshPolicy = EGameplayEffectStackingDurationPolicy::RefreshOnSuccessfulApplication;
 	DurationPolicy = EGameplayEffectDurationType::Infinite;
 	StackingType = EGameplayEffectStackingType::AggregateByTarget;
-	
-	TargetTagsGameplayEffectComponent = CreateDefaultSubobject<UTargetTagsGameplayEffectComponent>( "TargetTagsGameplayEffectComponent" );
-	GEComponents.AddUnique( TargetTagsGameplayEffectComponent );
+
+	AssetTagsGameplayEffectComponent = CreateDefaultSubobject<UAssetTagsGameplayEffectComponent>( "TargetTagsGameplayEffectComponent" );
+	GEComponents.AddUnique( AssetTagsGameplayEffectComponent );
 
 	FInheritedTagContainer TagContainer;
 	TagContainer.AddTag( FGameplayTag::RequestGameplayTag( "Weapon.Ammo.Plasma" ) );
-	TargetTagsGameplayEffectComponent->SetAndApplyTargetTagChanges( TagContainer );
+	AssetTagsGameplayEffectComponent->SetAndApplyAssetTagChanges( TagContainer );
 }

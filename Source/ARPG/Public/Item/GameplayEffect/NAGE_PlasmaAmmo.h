@@ -4,9 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "GameplayEffect.h"
-#include "GameplayEffectComponents/TargetTagsGameplayEffectComponent.h"
 #include "NAGE_PlasmaAmmo.generated.h"
 
+class UAssetTagsGameplayEffectComponent;
 /**
  * 
  */
@@ -18,5 +18,5 @@ class ARPG_API UNAGE_PlasmaAmmo : public UGameplayEffect
 	UNAGE_PlasmaAmmo();
 
 	UPROPERTY()
-	UTargetTagsGameplayEffectComponent* TargetTagsGameplayEffectComponent;
+	UAssetTagsGameplayEffectComponent* AssetTagsGameplayEffectComponent;
 };
