@@ -1001,6 +1001,47 @@ UNAItemData* UNAInventoryComponent::FindSameClassItem(const UClass* ItemClass) c
 	return nullptr;
 }
 
+bool UNAInventoryComponent::FindSameClassItems( const UClass* ItemClass, TArray<UNAItemData*>& OutItems ) const
+{
+	OutItems.Empty();
+	
+	if (ItemClass)
+	{
+		if (ItemClass->IsChildOf<ANAWeapon>())
+		{
+			for (const auto& Pair : InvenSlotContents)
+			{
+				if (!Pair.Value.IsValid())
+				{
+					continue;
+				}
+
+				if ( Pair.Value->GetItemActorClass()->IsChildOf( ItemClass ) )
+				{
+					OutItems.Emplace( Pair.Value.Get() );
+				}
+			}
+		}
+		else
+		{
+			for (const auto& Pair : InvenSlotContents)
+			{
+				if (!Pair.Value.IsValid())
+				{
+					continue;
+				}
+
+				if ( Pair.Value->GetItemActorClass()->IsChildOf( ItemClass ) )
+				{
+					OutItems.Emplace( Pair.Value.Get() );
+				}
+			}	
+		}
+	}
+
+	return OutItems.IsEmpty();
+}
+
 FName UNAInventoryComponent::FindSlotIDForItem(const UNAItemData* ItemToFind) const
 {
 	if (ItemToFind && ItemToFind->GetOwningInventory() == this)
