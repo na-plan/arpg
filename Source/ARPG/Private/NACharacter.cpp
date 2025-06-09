@@ -13,10 +13,8 @@
 #include "InputActionValue.h"
 #include "InputMappingContext.h"
 #include "NAPlayerState.h"
-#include "Algo/RemoveIf.h"
 #include "ARPG/ARPG.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
-#include "EntitySystem/MovieSceneEntityManager.h"
 #include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "HP/GameplayAbility/NAGA_Revive.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
@@ -26,6 +24,7 @@
 #include "Interaction/NAInteractionComponent.h"
 #include "Inventory/NAInventoryComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Weapon/PickableItemActor/NAWeaponAmmoBox.h"
 
 
 DEFINE_LOG_CATEGORY( LogTemplateCharacter );
@@ -196,13 +195,16 @@ void ANACharacter::BeginPlay()
 		RightHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
 	}
 
-	// 클라이언트의 BeginPlay에 맞춰 직접 RPC로 요청
-	// 서버에서 직접 수행할 경우 클라이언트에서의 순서:
-	// - Character -> BeginPlay -> GiveAbility -> PlayerState -> AbilityComponent 초기화
-	// 초기화가 되지 않은 시점에서의 GiveAbility의 Replication을 받은 Client은 제대로된 값을 받지 못함
 	if ( GetController() == GetWorld()->GetFirstPlayerController() )
 	{
+		// 클라이언트의 BeginPlay에 맞춰 직접 RPC로 요청
+    	// 서버에서 직접 수행할 경우 클라이언트에서의 순서:
+    	// - Character -> BeginPlay -> GiveAbility -> PlayerState -> AbilityComponent 초기화
+    	// 초기화가 되지 않은 시점에서의 GiveAbility의 Replication을 받은 Client은 제대로된 값을 받지 못함
 		Server_RequestReviveAbility();
+		
+		// 총알을 소모했을때, 인벤토리에 있는 총알의 갯수도 동기화, 인벤토리 상태는 클라이언트에서 업데이트
+		AbilitySystemComponent->OnAnyGameplayEffectRemovedDelegate().AddUObject( this, &ANACharacter::SyncAmmoConsumptionWithInventory );
 	}
 
 	InteractionComponent->SetActive( true );
@@ -766,4 +768,43 @@ void ANACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME( ANACharacter, DefaultCombatComponent );
 	DOREPLIFETIME( ANACharacter, LeftHandChildActor );
 	DOREPLIFETIME( ANACharacter, RightHandChildActor );
+}
+
+void ANACharacter::SyncAmmoConsumptionWithInventory( const FActiveGameplayEffect& ActiveGameplayEffect )
+{
+	FGameplayTagContainer Container;
+	FGameplayTagContainer AmmoParentContainer;
+	AmmoParentContainer.AddTag( FGameplayTag::RequestGameplayTag( "Weapon.Ammo" ) );
+	ActiveGameplayEffect.Spec.GetAllAssetTags( Container );
+
+	// 현재 활성화된 모든 게임태그를 가져온 다음 총알 관련 태그로만 분류
+	if ( !Container.HasAny( AmmoParentContainer ) )
+	{
+		return;
+	}
+
+	// 인벤토리에서 총알 관련 아이템만을 가져옴
+	TArray<UNAItemData*> OutItems;
+	InventoryComponent->FindSameClassItems( ANAWeaponAmmoBox::StaticClass(), OutItems );
+
+	const UNAItemData* DesignatedAmmo = nullptr;
+	// 소모된 게임 이펙트에 해당하는 총알로 구분해 액터를 가져옴
+	for ( const UNAItemData* Item : OutItems )
+	{
+		if ( ANAWeaponAmmoBox* AmmoBox = Cast<ANAWeaponAmmoBox>( Item->GetItemActorClass()->GetDefaultObject() );
+			 ensureAlways( AmmoBox ) ) // AmmoBox에서 파생된 클래스가 아닌데 잡힘
+		{
+			if ( ActiveGameplayEffect.Spec.Def->IsA( AmmoBox->GetAmmoEffectType() ) )
+			{
+				DesignatedAmmo = Item;
+				break;
+			}
+		}
+	}
+
+	// 인벤토리 수량 감소
+	if ( ensureAlways( DesignatedAmmo ) ) // 총알이 변했는데 변한 총알을 찾을 수 없는 경우..
+	{
+		check( InventoryComponent->TryRemoveItem( InventoryComponent->FindSlotIDForItem( DesignatedAmmo ), 1 ) );
+	}
 }

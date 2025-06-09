@@ -202,6 +202,8 @@ protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	void SyncAmmoConsumptionWithInventory( const FActiveGameplayEffect& ActiveGameplayEffect );
 	
 	// To add mapping context
 	virtual void BeginPlay() override;
