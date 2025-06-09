@@ -131,9 +131,9 @@ void UNAInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType
 			if ( !HandActor->GetRightHandChildActorComponent()->GetChildActor() )
 			{
 				HandActor->GetRightHandChildActorComponent()->SetChildActorClass( ActiveInteractableInstance->GetClass());
-				if (AActor* NewRightHandChlidActor = HandActor->GetRightHandChildActorComponent()->GetChildActor())
+				if (AActor* NewRightHandChildActor = HandActor->GetRightHandChildActorComponent()->GetChildActor())
 				{
-					FWeakInteractableHandle NewRightHandle(NewRightHandChlidActor); // 여기서 인터페이스 구현 여부, 유효성 검사 다 함
+					FWeakInteractableHandle NewRightHandle(NewRightHandChildActor); // 여기서 인터페이스 구현 여부, 유효성 검사 다 함
 					if (ensureAlways(NewRightHandle.IsValid())) // 혹시 모르니깐 한 번 더...
 					{
 						ANAItemActor* NewlyAttachedItemActor = CastChecked<ANAItemActor>(NewRightHandle.GetRawObject());
@@ -149,9 +149,9 @@ void UNAInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType
 			if ( !HandActor->GetLeftHandChildActorComponent()->GetChildActor())
 			{
 				HandActor->GetLeftHandChildActorComponent()->SetChildActorClass( ActiveInteractableInstance->GetClass() );
-				if (AActor* NewLeftHandChlidActor = HandActor->GetLeftHandChildActorComponent()->GetChildActor())
+				if (AActor* NewLeftHandChildActor = HandActor->GetLeftHandChildActorComponent()->GetChildActor())
 				{
-					FWeakInteractableHandle NewLeftHandle(NewLeftHandChlidActor); // 여기서 인터페이스 구현 여부, 유효성 검사 다 함
+					FWeakInteractableHandle NewLeftHandle(NewLeftHandChildActor); // 여기서 인터페이스 구현 여부, 유효성 검사 다 함
 					if (ensureAlways(NewLeftHandle.IsValid())) // 혹시 모르니깐 한 번 더...
 					{
 						ANAItemActor* NewlyAttachedItemActor = CastChecked<ANAItemActor>(NewLeftHandle.GetRawObject());

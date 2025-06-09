@@ -34,6 +34,7 @@ bool ANAWeaponAmmoBox::ExecuteInteract_Implementation( AActor* InteractorActor )
 	{
 		if ( const TScriptInterface<IAbilitySystemInterface>& Interface = InteractorActor )
 		{
+			// 총알 갯수만큼 반복해서 이펙트를 적용을 시도하고
 			for ( int32 i = 0; i < AmmoCount; ++i )
 			{
 				if ( !bResult )
@@ -46,6 +47,7 @@ bool ANAWeaponAmmoBox::ExecuteInteract_Implementation( AActor* InteractorActor )
 				bResult &= ActiveHandle.WasSuccessfullyApplied();
 			}
 
+			// 만약 하나라도 실패하면 다시 원상복귀
 			if ( !bResult )
 			{
 				const FInheritedTagContainer& Container = Cast<UTargetTagsGameplayEffectComponent>( AmmoEffectType.GetDefaultObject()->FindComponent( UTargetTagsGameplayEffectComponent::StaticClass() ) )->GetConfiguredTargetTagChanges();
@@ -65,6 +67,9 @@ void ANAWeaponAmmoBox::EndInteract_Implementation( AActor* InteractorActor )
 {
 	Super::EndInteract_Implementation( InteractorActor );
 
+	// todo: 드랍하는 총알에 갯수 적용하기
+
+	// 적용돼있던 총알 효과 모두 제거
 	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = InteractorActor )
 	{
 		const FInheritedTagContainer& Container = Cast<UTargetTagsGameplayEffectComponent>( AmmoEffectType.GetDefaultObject()->FindComponent( UTargetTagsGameplayEffectComponent::StaticClass() ) )->GetConfiguredTargetTagChanges();
