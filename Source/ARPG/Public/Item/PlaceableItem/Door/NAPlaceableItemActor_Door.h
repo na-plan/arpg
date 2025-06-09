@@ -14,7 +14,7 @@ enum class EDoorType : uint8
 	Max
 };
 
-DECLARE_DELEGATE_OneParam(FOnTickInteraction,AActor*);
+DECLARE_DELEGATE_RetVal_OneParam(bool, FOnTickInteraction, AActor*);
 
 UCLASS()
 class ARPG_API ANAPlaceableItemActor_Door : public ANAPlaceableItemActor
@@ -35,7 +35,7 @@ public:
 public:
 	virtual void BeginInteract_Implementation(AActor* Interactor) override;
 	virtual void EndInteract_Implementation(AActor* Interactor) override;
-	virtual void ExecuteInteract_Implementation(AActor* Interactor) override;
+	virtual	bool ExecuteInteract_Implementation(AActor* Interactor) override;
 	
 protected:
 	// Called when the game starts or when spawned
@@ -73,6 +73,9 @@ protected:
 	UPROPERTY()
 	float CurrentTime = 0.f;
 
+	UPROPERTY()
+	FTransform PivotTF;
+	
 	UPROPERTY()
 	FTransform OriginTF1;
 

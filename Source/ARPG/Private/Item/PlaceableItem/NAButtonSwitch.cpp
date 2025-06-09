@@ -39,11 +39,11 @@ void ANAButtonSwitch::EndInteract_Implementation(AActor* Interactor)
 	Super::EndInteract_Implementation(Interactor);
 }
 
-void ANAButtonSwitch::ExecuteInteract_Implementation(AActor* Interactor)
+bool ANAButtonSwitch::ExecuteInteract_Implementation(AActor* Interactor)
 {
 	Super::ExecuteInteract_Implementation(Interactor);
 
-	bIsActive = true;
+	return bIsActive = true;
 }
 
 // Called when the game starts or when spawned

@@ -47,11 +47,13 @@ void ANAPlaceableItemActor_Door::EndInteract_Implementation(AActor* Interactor)
 	TickInteraction.Unbind();
 }
 
-void ANAPlaceableItemActor_Door::ExecuteInteract_Implementation(AActor* Interactor)
+bool ANAPlaceableItemActor_Door::ExecuteInteract_Implementation(AActor* Interactor)
 {
-	//Super::ExecuteInteract_Implementation(Interactor);
+	Super::ExecuteInteract_Implementation(Interactor);
 
 	ActiveDoor();
+
+	return true;
 }
 
 // Called when the game starts or when spawned
@@ -72,6 +74,8 @@ void ANAPlaceableItemActor_Door::BeginPlay()
 	
 	OriginTF1 = Door1->GetComponentTransform();
 	OriginTF2 = Door2->GetComponentTransform();
+
+	PivotTF = RootComponent->GetRelativeTransform();
 }
 
 // Called every frame
@@ -82,7 +86,7 @@ void ANAPlaceableItemActor_Door::Tick(float DeltaTime)
 	if (bIsOnInteract)
 	{
 		CurrentTime += DeltaTime;
-		TickInteraction.ExecuteIfBound(CurrentInteractingActor);
+		TickInteraction.Execute(CurrentInteractingActor);
 	}
 }
 
@@ -98,7 +102,7 @@ void ANAPlaceableItemActor_Door::ActiveDoor()
 	FVector OriginPos1 = OriginTF1.GetLocation();
 	FVector OriginPos2 = OriginTF2.GetLocation();
 
-	FVector Direction = DoorType == EDoorType::UpDown ? FVector::UpVector : FVector::RightVector;
+	FVector Direction = DoorType == EDoorType::UpDown ? PivotTF.GetRotation().GetUpVector() : PivotTF.GetRotation().GetRightVector();
 						
 	FVector TargetPos1 = OriginTF1.GetLocation() + Direction * MoveDist;
 	FVector TargetPos2 = OriginTF2.GetLocation() - Direction * MoveDist;
