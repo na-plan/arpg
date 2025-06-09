@@ -17,6 +17,8 @@ UNAInteractionComponent::UNAInteractionComponent()
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 	SetComponentTickEnabled(false);
 
+	SetIsReplicatedByDefault( true );
+
 	// ...
 }
 
@@ -82,12 +84,6 @@ void UNAInteractionComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	if ( AActor* InteractionActor = GetOwner();
-		 InteractionActor && GetNetMode() != NM_Client )
-	{
-		//InteractionActor->OnActorBeginOverlap.AddUniqueDynamic( this, &UNAInteractionComponent::OnActorBeginOverlap );
-		//InteractionActor->OnActorEndOverlap.AddUniqueDynamic( this, &UNAInteractionComponent::OnActorEndOverlap );
-	}
 }
 
 // Called every frame
@@ -179,6 +175,12 @@ void UNAInteractionComponent::TransferInteractableMidInteraction(FWeakInteractab
 		FocusedInteractableMap.Emplace(NewActiveInteractable, CachedInteractableData);
 		ActiveInteractable = NewActiveInteractable;
 	}
+}
+
+void UNAInteractionComponent::Client_AddItemToInventory_Implementation( ANAItemActor* ItemActor )
+{
+	// 서버에서는 성공했는데 클라이언트에서는 실패한 경우, 동기화가 뭔가 잘못됐을 가능성
+	check( TryAddItemToInventory( ItemActor ) );
 }
 
 void UNAInteractionComponent::UpdateInteractionData()
@@ -393,29 +395,6 @@ void UNAInteractionComponent::OnInteractionEnded(TScriptInterface<INAInteractabl
 	ActiveInteractable = nullptr;
 	bHasPendingUseItem = false;
 }
-
-// void UNAInteractionComponent::EndInteraction(/*INAInteractableInterface* InteractableActor*/)
-// {
-// 	if (!NearestInteractable.IsValid())
-// 	{
-// 		UE_LOG(LogTemp, Warning, TEXT("[UNAInteractionComponent::EndInteraction]  NearestInteractable이 유효하지 않음"));
-// 		return;
-// 	}
-//
-// 	ActiveInteractable.ToWeakInterface()->Execute_EndInteract(ActiveInteractable.GetRawObject(), GetOwner());
-// 	ActiveInteractable = nullptr;
-// }
-
-// void UNAInteractionComponent::ExecuteInteraction(/*INAInteractableInterface* InteractableActor*/)
-// {
-// 	if (!ActiveInteractable.IsValid())
-// 	{
-// 		UE_LOG(LogTemp, Warning, TEXT("[UNAInteractionComponent::ExecuteInteraction]  ActiveInteractable 유효하지 않음"));
-// 		return;
-// 	}
-//
-// 	ActiveInteractable.ToWeakInterface()->Execute_ExecuteInteract(ActiveInteractable.GetRawObject(), GetOwner());
-// }
 
 bool UNAInteractionComponent::TryAddItemToInventory(ANAItemActor* ItemActor)
 {

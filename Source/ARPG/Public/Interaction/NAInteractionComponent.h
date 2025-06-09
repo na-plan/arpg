@@ -155,11 +155,14 @@ public:
 	
 protected:
 	void TransferInteractableMidInteraction(FWeakInteractableHandle NewActiveInteractable);
-
+	
 public:
 	//==================================================================================================
 	// 인벤토리 연계
 	//==================================================================================================
 
+	UFUNCTION( Client, Reliable )
+	void Client_AddItemToInventory(ANAItemActor* ItemActor);
+	
 	bool TryAddItemToInventory(ANAItemActor* ItemActor);
 };

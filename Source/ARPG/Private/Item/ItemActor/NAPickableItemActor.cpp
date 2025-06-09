@@ -134,9 +134,14 @@ bool ANAPickableItemActor::ExecuteInteract_Implementation(AActor* Interactor)
 	// @TODO : (근데 보통 Holdable 가능한 아이템이면 1 액터 1 수량이라 자주 있는 시나리오는 아님)
 	if (EnumHasAnyFlags(PickupMode, EPickupMode::PM_Inventory))
 	{
-		const bool bSucceed = InteractComp->TryAddItemToInventory(this);
-		
-		if (bSucceed) // 인벤토리에 전부 추가 성공
+		const bool bSucced = InteractComp->TryAddItemToInventory(this);
+		if (bSucced)
+		{
+			// 클라이언트와 인벤토리 상태 동기화
+			InteractComp->Client_AddItemToInventory( this );
+		}
+
+		if (EnumHasAnyFlags(PickupMode, EPickupMode::PM_Holdable))
 		{
 			if (EnumHasAnyFlags(PickupMode, EPickupMode::PM_Holdable))
 			{

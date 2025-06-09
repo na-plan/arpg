@@ -109,6 +109,8 @@ ANACharacter::ANACharacter()
 	DefaultCombatComponent = CreateDefaultSubobject<UNAMontageCombatComponent>( TEXT( "DefaultCombatComponent" ) );
 
 	InteractionComponent = CreateDefaultSubobject<UNAInteractionComponent>(TEXT("InteractionComponent"));
+	InteractionComponent->SetIsReplicated( true );
+	InteractionComponent->SetNetAddressable();
 
 	InventoryWidgetBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("InventorySpringArm"));
 	InventoryWidgetBoom->SetupAttachment(RootComponent);
@@ -416,7 +418,7 @@ void ANACharacter::RetrieveAsset(const AActor* InCDO)
 					
 					GEngine->CopyPropertiesForUnrelatedObjects( OriginComponent, ThisComponent, Params );
 				}
-				
+
 				ThisComponent->RegisterComponent();
 			}
 		}
@@ -769,6 +771,7 @@ void ANACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME( ANACharacter, DefaultCombatComponent );
 	DOREPLIFETIME( ANACharacter, LeftHandChildActor );
 	DOREPLIFETIME( ANACharacter, RightHandChildActor );
+	DOREPLIFETIME_CONDITION( ANACharacter, InteractionComponent, COND_OwnerOnly )
 }
 
 void ANACharacter::SyncAmmoConsumptionWithInventory( const FActiveGameplayEffect& ActiveGameplayEffect )
