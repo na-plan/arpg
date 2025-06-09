@@ -94,3 +94,12 @@ Binaries
 DerivedDataCache
 Intermediate
 Saved
+
+
+
+*
+!Source
+!Source/***
+!.gitignore
+!.editorconfig
+!Config/***
