@@ -150,7 +150,7 @@ public:
 	}
 	
 	// @ return	새로 생성된 Interactable 객체
-	// 어태치에 성공하면 기존 액터의 Destory를 다음 프레임에 예약해놓음
+	// 어태치에 성공하면 기존 액터를 Destory
 	/*AActor**/TScriptInterface<INAInteractableInterface> TryAttachItemMeshToOwner(TScriptInterface<INAInteractableInterface> InteractableActor);
 	
 protected:
