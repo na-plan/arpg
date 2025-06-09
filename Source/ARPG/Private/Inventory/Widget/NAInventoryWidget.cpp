@@ -766,7 +766,11 @@ void UNAInventoryWidget::RefreshSlotWidgets(const TMap<FName, TWeakObjectPtr<UNA
 		const FName& SlotID = Pair.Key;
 		// 해당 슬롯에 할당된 아이템 데이터 가져오기
 		const TWeakObjectPtr<UNAItemData>* FoundItemPtr = InventoryItems.Find(SlotID);
-		const UNAItemData* FoundItem = FoundItem = FoundItemPtr->Get();
+		const UNAItemData* FoundItem = nullptr;
+		if (FoundItemPtr != nullptr)
+		{
+			FoundItem = FoundItemPtr->Get();
+		}
 		
 		int32 Index = ExtractSlotNumber(SlotID);
 		int32 Row = -1;
@@ -790,8 +794,12 @@ void UNAInventoryWidget::RefreshSlotWidgets(const TMap<FName, TWeakObjectPtr<UNA
 	{
 		const FName& SlotID = Pair.Key;
 		// 해당 슬롯에 할당된 아이템 데이터 가져오기
-		const TWeakObjectPtr<UNAItemData>* FoundItemPtr = InventoryItems.Find(SlotID);
-		const UNAItemData* FoundItem = FoundItemPtr->Get();
+		const TWeakObjectPtr<UNAItemData>* FoundItemPtr = WeaponItems.Find(SlotID);
+		const UNAItemData* FoundItem = nullptr;
+		if (FoundItemPtr != nullptr)
+		{
+			FoundItem = FoundItemPtr->Get();
+		}
 		
 		int32 Index = ExtractSlotNumber(SlotID);
 		if (!FMath::IsWithinInclusive(Index, 0, MaxWeaponSlotCount))
