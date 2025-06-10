@@ -20,6 +20,7 @@
 #include "HP/GameplayEffect/NAGE_Damage.h"
 #include "HP/WidgetComponent/NAReviveWidgetComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "DefaultAnimInstance.h"
 
 #include "Interaction/NAInteractionComponent.h"
 #include "Inventory/NAInventoryComponent.h"
@@ -311,6 +312,8 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		
 		EnhancedInputComponent->BindAction(MedPackShortcutAction, ETriggerEvent::Started, this, &ANACharacter::UseMedPackByShortcut);
 		EnhancedInputComponent->BindAction(StasisPackShortcutAction, ETriggerEvent::Started, this, &ANACharacter::UseStasisPackByShortcut);
+
+		EnhancedInputComponent->BindAction(RightMouseAttackAction, ETriggerEvent::Started, this, &ANACharacter::Zoom);
 	}
 	else
 	{
@@ -526,6 +529,61 @@ void ANACharacter::StopLeftMouseAttack()
 		}
 	}
 }
+
+void ANACharacter::OnRep_Zoom()
+{
+	// 서버가 바뀌면 다른 클라한테 전달
+	if (!IsLocallyControlled())
+	{
+		ZoomImpl(bIsZoom);
+	}
+}
+
+void ANACharacter::Zoom()
+{
+	SetZoom();
+}
+
+void ANACharacter::ZoomImpl(bool bZoom)
+{
+	// 카메라 처리 과정 입니다
+	// zoom 상태
+	if (bZoom)
+	{
+		CameraBoom->TargetArmLength = 0;
+		bUseControllerRotationYaw = true; // 서버클라 동기화 필요
+	}
+	//Zoom 상태 해제
+	else if (!bZoom)
+	{		
+		CameraBoom->TargetArmLength = 200;
+		bUseControllerRotationYaw = false;// 서버클라 동기화 필요
+	}
+}
+
+void ANACharacter::SetZoom()
+{
+	bIsZoom = !bIsZoom;
+	ZoomImpl(bIsZoom);
+	GetMesh()->SetOwnerNoSee(bIsZoom);
+	
+	if (!HasAuthority())
+	{
+		ServerSetZoom(bIsZoom);
+	}
+}
+
+void ANACharacter::ServerSetZoom_Implementation(bool bZoom)
+{
+	bIsZoom = bZoom;
+	ZoomImpl(bZoom);
+}
+
+bool ANACharacter::ServerSetZoom_Validate(bool bZoom)
+{
+	return true;
+}
+
 
 void ANACharacter::TryInteract()
 {
@@ -759,6 +817,7 @@ void ANACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME( ANACharacter, DefaultCombatComponent );
 	DOREPLIFETIME( ANACharacter, LeftHandChildActor );
 	DOREPLIFETIME( ANACharacter, RightHandChildActor );
+	DOREPLIFETIME( ANACharacter, bIsZoom);
 	DOREPLIFETIME_CONDITION( ANACharacter, InteractionComponent, COND_OwnerOnly )
 }
 

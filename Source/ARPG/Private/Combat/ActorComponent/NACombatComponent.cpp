@@ -46,6 +46,10 @@ void UNACombatComponent::SetGrabAbility(const TSubclassOf<UGameplayAbility>& InA
 	GrabAbility = InAbility;
 }
 
+void UNACombatComponent::SetZoomAbility(const TSubclassOf<UGameplayAbility>& InAbility)
+{
+}
+
 TSubclassOf<UGameplayEffect> UNACombatComponent::GetAmmoType() const
 {
 	return AmmoType;
@@ -113,6 +117,11 @@ bool UNACombatComponent::IsAbleToAttack()
 	return AttackAbility != nullptr && IsActive();
 }
 
+bool UNACombatComponent::IsAbleToZoom()
+{
+	return false;
+}
+
 void UNACombatComponent::SetAttack(const bool NewAttack)
 {
 	if (!bCanAttack && NewAttack)
@@ -171,6 +180,11 @@ void UNACombatComponent::UpdateAttackAbilityToASC( const bool bOnlyRemove )
 	}
 }
 
+void UNACombatComponent::SetZooming(bool NewZoom)
+{
+
+}
+
 void UNACombatComponent::PostSetAttack()
 {
 	if (bAttacking)
@@ -187,6 +201,17 @@ void UNACombatComponent::PostSetAttack()
 		}
 	}
 }
+
+//void UNACombatComponent::Server_SetZoom_Implementation(const bool NewAttack)
+//{
+//}
+//void UNACombatComponent::Server_SetZoom_Validate(const bool NewAttack)
+//{
+//}
+
+//void UNACombatComponent::Client_SyncZoom_Implementation(const bool NewFire)
+//{
+//}
 
 void UNACombatComponent::Server_SetAttack_Implementation(const bool NewAttack)
 {
@@ -345,6 +370,11 @@ TSubclassOf<UGameplayAbility> UNACombatComponent::GetAttackAbility() const
 	return AttackAbility;
 }
 
+void UNACombatComponent::Server_RequestZoom_Implementation()
+{
+	//SetZoomAbility(ZoomAbility);
+}
+
 void UNACombatComponent::Server_RequestAttackAbility_Implementation()
 {
 	UpdateAttackAbilityToASC( false );
@@ -356,6 +386,11 @@ void UNACombatComponent::StopAttack()
 	{
 		SetAttack( false );
 	}
+}
+
+void UNACombatComponent::ZoomToggle()
+{
+
 }
 
 // Called every frame

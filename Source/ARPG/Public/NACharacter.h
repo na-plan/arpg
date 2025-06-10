@@ -56,6 +56,7 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Asset", meta=(AllowPrivateAccess="true"))
 	FName AssetName;
 
+
 	// 상호작용 컴포넌트, RPC 사용을 위해 Replication
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Interaction", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UNAInteractionComponent> InteractionComponent;
@@ -73,6 +74,9 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	// 양손에 무기가 없을때 사용되는 전투 컴포넌트
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Replicated, Category = "Combat", meta=(AllowPrivateAccess="true"))
 	UNAMontageCombatComponent* DefaultCombatComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_Zoom, Category = "AnimInstance", meta = (AllowPrivateAccess = "true"))
+	bool bIsZoom;
 
 	
 // Default MappingContext & Input Actions //////////////////////////////////////////////////////////////////////////////
@@ -94,6 +98,10 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
 	UInputAction* LeftMouseAttackAction;
+
+	/* Zoom Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* RightMouseAttackAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
 	UInputAction* ReviveAction;
@@ -136,6 +144,8 @@ public:
 	
 	virtual void OnConstruction(const FTransform& Transform) override;
 
+	bool IsZoom() const { return bIsZoom; }
+
 protected:
 	void SetChildActorOwnership( AActor* Actor );
 	
@@ -164,6 +174,20 @@ protected:
 	// 오른 클릭으로 공격을 시작할 경우
 	UFUNCTION()
 	void StopLeftMouseAttack();
+
+	UFUNCTION()
+	void OnRep_Zoom();
+
+	// 무기 Zoom 상태 
+	UFUNCTION()
+	void Zoom();
+
+	void ZoomImpl(bool bZoom);
+
+	void SetZoom();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerSetZoom(bool bZoom);
 
 	// Interaction Input
 	UFUNCTION()
