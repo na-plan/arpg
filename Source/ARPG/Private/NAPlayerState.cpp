@@ -29,7 +29,7 @@ int32 ANAPlayerState::GetMaxHealth() const
 	if (const ANACharacter* Character = Cast<ANACharacter>( GetPawn() ))
 	{
 		const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>(Character->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()));
-		return AttributeSet->Health.GetBaseValue();
+		return AttributeSet->GetMaxHealth();
 	}
 
 	check(false);
