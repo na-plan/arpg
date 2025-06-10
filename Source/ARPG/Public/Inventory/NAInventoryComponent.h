@@ -144,10 +144,10 @@ public:
 	int32 TryAddItem(UNAItemData* ItemToAdd);
 
 	/** 
-	 * @return remove에 성공한 아이템 데이터. 수량에 따라 원본 or 복제본일 수 있음
+	 * @return remove의 성공 여부
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
-	UNAItemData* TryRemoveItem(const FName& SlotID, int32 RequestedAmount);
+	bool TryRemoveItem(const FName& SlotID, int32 RequestedAmount);
 
 protected:
 	// Partial 슬롯 목록을 반환 (동일 클래스가 들어 있고, 아직 MaxSlotStackSize만큼 차지 않은 슬롯)

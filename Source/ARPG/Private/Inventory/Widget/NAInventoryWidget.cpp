@@ -731,7 +731,7 @@ UButton* UNAInventoryWidget::GetWeaponSlotButton(const FName& SlotID) const
 
 void UNAInventoryWidget::RefreshSingleSlotWidget(const FName& SlotID, const UNAItemData* SlotData)
 {
-	if (!SlotData) return;
+	//if (!SlotData) return;
 	
 	int32 Row, Col, Index = -1;
 	if (ParseSlotIDToInvenGrid(SlotID, Row, Col))
@@ -748,6 +748,8 @@ void UNAInventoryWidget::RefreshSingleSlotWidget(const FName& SlotID, const UNAI
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[UNAInventoryWidget::RefreshSingleSlotWidget]  유효하지 않은 슬롯ID: %s"), *SlotID.ToString());
 	}
+	
+	InvalidateLayoutAndVolatility();
 }
 
 void UNAInventoryWidget::RefreshSlotWidgets(const TMap<FName, TWeakObjectPtr<UNAItemData>>& InventoryItems

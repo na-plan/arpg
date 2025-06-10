@@ -67,45 +67,6 @@ void UNAInventoryComponent::BeginPlay()
 	SetWindowFocusable(false);
 }
 
-bool UNAInventoryComponent::HandleRemoveItem(const FName& SlotID)
-{
-	if (IsEmptySlot(SlotID))
-	{
-		return false;
-	}
-	UNAItemData* ItemToRemove = nullptr;
-	if (InvenSlotContents.Contains(SlotID))
-	{
-		ItemToRemove = InvenSlotContents[SlotID].Get();
-		if (ItemToRemove)
-		{
-			InvenSlotContents[SlotID] = nullptr;
-		}
-	}
-	else if (WeaponSlotContents.Contains(SlotID))
-	{
-		ItemToRemove = WeaponSlotContents[SlotID].Get();
-		if (ItemToRemove)
-		{
-			WeaponSlotContents[SlotID] = nullptr;
-		}
-	}
-	else { check(false); }
-	
-	if (!ItemToRemove) { return false; }
-	if (ItemToRemove->GetOwningInventory() != this) { return ensure(false); }
-	
-	if (UNAInventoryGameInstanceSubsystem* InvenSubsys = UNAInventoryGameInstanceSubsystem::Get(GetWorld()))
-	{
-		UNAItemData* RemovedItem = InvenSubsys->RemoveItemFromInventory(ItemToRemove);
-		if (!RemovedItem || ItemToRemove != RemovedItem) { return ensure(false); }
-		RemovedItem->SetOwningInventory(nullptr);
-		return true;
-	}
-	
-	return ensure(false);
-}
-
 UNAItemData* UNAInventoryComponent::GetItemDataFromSlot(const FName& SlotID) const
 {
 	const bool bIsInvenSlot = InvenSlotContents.Contains(SlotID);
@@ -500,30 +461,84 @@ int32 UNAInventoryComponent::TryAddItem(UNAItemData* ItemToAdd)
 	}
 }
 
-UNAItemData* UNAInventoryComponent::TryRemoveItem(const FName& SlotID, int32 RequestedAmount)
+bool UNAInventoryComponent::TryRemoveItem(const FName& SlotID, int32 RequestedAmount)
 {
-	if (IsEmptySlot(SlotID)) { return nullptr; }
-	if (RequestedAmount <= 0) { return nullptr; }
+	if (IsEmptySlot(SlotID)) { return false; }
+	if (RequestedAmount <= 0) { return false; }
+	if (!GetInventoryWidget()) { return false; }
 	
 	UNAItemData* ItemToRemove = GetItemDataFromSlot(SlotID);
-	if (!ItemToRemove) { return nullptr; }
-	if (ItemToRemove->GetOwningInventory() != this) { ensure(false); return nullptr; }
-	if (ItemToRemove->GetItemMaxSlotStackSize() < RequestedAmount) { return nullptr; }
+	if (!ItemToRemove) { return false; }
+	if (ItemToRemove->GetOwningInventory() != this) { ensure(false); return false; }
+	if (ItemToRemove->GetItemMaxSlotStackSize() < RequestedAmount) { return false; }
 	
 	int32 NewQuantity = ItemToRemove->GetQuantity() - RequestedAmount;
+	// 제거 요청된 수량이 현재 수량보다 많은 경우 -> 인벤토리에서 이 아이템 데이터를 빼기
 	if (NewQuantity <= 0)
 	{
 		const bool bSucceed = HandleRemoveItem(SlotID);
-		if (bSucceed)
-		{
-			SortInvenSlotItems();
-		}
-		return bSucceed ? ItemToRemove : nullptr;
+		if (!bSucceed) { return false; }
+		ItemToRemove = nullptr;
+		// if (bSucceed)
+		// {
+		// 	SortInvenSlotItems();
+		// }
+		// return bSucceed;
+	}
+	else
+	{
+		ItemToRemove->SetQuantity(NewQuantity);
 	}
 	
-	ItemToRemove->SetQuantity(NewQuantity);
-	// @TODO: 인벤토리 슬롯 UI에서 수량 표시 부분 리드로우 요청
-	return ItemToRemove;
+	GetInventoryWidget()->RefreshSingleSlotWidget(SlotID, ItemToRemove);
+	return true;
+}
+
+bool UNAInventoryComponent::HandleRemoveItem(const FName& SlotID)
+{
+	if (IsEmptySlot(SlotID))
+	{
+		return false;
+	}
+	UNAItemData* ItemToRemove = nullptr;
+	if (InvenSlotContents.Contains(SlotID))
+	{
+		ItemToRemove = InvenSlotContents[SlotID].Get();
+		if (!ItemToRemove
+			|| ItemToRemove->GetOwningInventory() != this) {  check(false); return false; }
+		if (ItemToRemove)
+		{
+			InvenSlotContents[SlotID] = nullptr;
+		}
+	}
+	else if (WeaponSlotContents.Contains(SlotID))
+	{
+		ItemToRemove = WeaponSlotContents[SlotID].Get();
+		if (!ItemToRemove
+			|| ItemToRemove->GetOwningInventory() != this) { check(false); return false; }
+		
+		if (ItemToRemove)
+		{
+			WeaponSlotContents[SlotID] = nullptr;
+		}
+	}
+	else { check(false); return false; }
+	
+	if (UNAInventoryGameInstanceSubsystem* InvenSubsys = UNAInventoryGameInstanceSubsystem::Get(GetWorld()))
+	{
+		UNAItemData* RemovedItem = InvenSubsys->RemoveItemFromInventory(ItemToRemove);
+		if (!RemovedItem || ItemToRemove != RemovedItem) { return ensure(false); }
+		RemovedItem->SetOwningInventory(nullptr);
+		
+		// 인벤토리에서 수량이 0으로 변경된 아이템 데이터를 제거
+		if (RemovedItem->GetQuantity() <= 0)
+		{
+			UNAItemEngineSubsystem::Get()->DestroyRuntimeItemData(RemovedItem);
+		}
+		return true;
+	}
+	
+	return ensure(false);
 }
 
 bool UNAInventoryComponent::HasItemOfClass(const UClass* ItemClass) const
@@ -976,7 +991,7 @@ UNAItemData* UNAInventoryComponent::FindSameClassItem(const UClass* ItemClass) c
 					continue;
 				}
 
-				if (Pair.Value->GetItemActorClass() == ItemClass)
+				if (Pair.Value->GetItemActorClass()->IsChildOf( ItemClass ))
 				{
 					return Pair.Value.Get();
 				}
@@ -991,7 +1006,7 @@ UNAItemData* UNAInventoryComponent::FindSameClassItem(const UClass* ItemClass) c
 					continue;
 				}
 
-				if (Pair.Value->GetItemActorClass() == ItemClass)
+				if (Pair.Value->GetItemActorClass()->IsChildOf( ItemClass ))
 				{
 					return Pair.Value.Get();
 				}
