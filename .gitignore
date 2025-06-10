@@ -94,3 +94,15 @@ Binaries
 DerivedDataCache
 Intermediate
 Saved
+
+
+
+*
+!Source
+!Source/***
+!.gitignore
+!.editorconfig
+!.vsconfig
+!ARPG.uproject
+!Config
+!Config/***
