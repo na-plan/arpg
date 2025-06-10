@@ -210,29 +210,6 @@ void ANACharacter::BeginPlay()
 	}
 
 	InteractionComponent->SetActive( true );
-	
-	// == 테스트 코드 ==
-	{
-		if (HasAuthority())
-		{
-			// 기본 공격이 정의되어있지 않음!
-			check( DefaultCombatComponent->GetMontage() && DefaultCombatComponent->GetAttackAbility() );
-			
-			// 데미지
-			FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
-			EffectContext.AddInstigator(GetController(), this);
-
-			// Gameplay Effect CDO, 레벨?, ASC에서 부여받은 Effect Context로 적용할 효과에 대한 설명을 생성
-			const FGameplayEffectSpecHandle DamageEffectSpec = AbilitySystemComponent->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1, EffectContext);
-
-			// 설명에 따라 효과 부여 (본인에게)
-			const auto& Handle = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*DamageEffectSpec.Data.Get());
-			// 다른 대상에게...
-			//AbilitySystemComponent->ApplyGameplayEffectSpecToTarget()
-			check(Handle.WasSuccessfullyApplied());
-		}
-	}
-	// ===============
 }
 
 void ANACharacter::PostNetInit()
