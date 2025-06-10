@@ -29,11 +29,6 @@ public:
 // 순수 가상 메서드
 //====================================================================================================================================
 
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
-	FNAInteractableData GetInteractableData() const;
-	virtual bool GetInteractableData_Internal(FNAInteractableData& OutInteractableData) const =0;
-	
-
 	// @TODO: 아이템 메타데이터를 non const로 받아와서 InteractableData에 직접 대입함. 아이템 메타 데이터의 무결성을 침해할 우려가 있음
 	// @TODO: 아이템 인터렉터블 데이터를 아이템 메타데이터처럼 취급? 아이템 인터렉터블 데이터가 런타임 중에 바뀔 일이 있나?
 	// @TODO: 아이템 인터렉터블 데이터가 런타임 중에 변경될 일이 없다고 판단되면, 이 함수 지우기 & 인터렉터블 데이터 getter 함수 모두 const로 변경 
@@ -105,7 +100,6 @@ protected:
 // c++에서만 호출 가능한 일반 메서드
 //====================================================================================================================================
 protected:
-	const FNAInteractableData* TryGetInteractableData(const FNAItemBaseTableRow* InItemMetaData) const;
 	class UNAInteractionComponent* TryGetInteractionComponent(AActor* InActor);
 
 	static void TransferInteractableStateToDuplicatedActor(TScriptInterface<INAInteractableInterface> OldInteractable,

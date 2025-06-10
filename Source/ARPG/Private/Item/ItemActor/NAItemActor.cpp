@@ -126,11 +126,7 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 
 		if (EnumHasAnyFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_IxButtonText))
 		{
-			FNAInteractableData InteractableData;
-			if (GetInteractableData_Internal(InteractableData))
-			{
-				ItemInteractionButtonText->SetText(InteractableData.InteractionName);
-			}
+			ItemInteractionButtonText->SetText(MetaData->InteractableData.InteractionName);
 		}
 		
 		if (!OldComponents.IsEmpty())
@@ -361,13 +357,10 @@ EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTa
 	{
 		return DirtyFlags;
 	}
-	FNAInteractableData InteractableData;
-	if (GetInteractableData_Internal(InteractableData))
+	
+	if (MetaData->InteractableData.InteractionName.ToString() != ItemInteractionButtonText->Text.ToString())
 	{
-		if (InteractableData.InteractionName.ToString() != ItemInteractionButtonText->Text.ToString())
-		{
-			EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_IxButtonText);
-		}
+		EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_IxButtonText);
 	}
 	
 	return DirtyFlags;
@@ -438,31 +431,6 @@ bool ANAItemActor::HasValidItemID() const
 //======================================================================================================================
 // Interactable Interface Implements
 //======================================================================================================================
-
-FNAInteractableData ANAItemActor::GetInteractableData_Implementation() const
-{
-	FNAInteractableData InteractableData;
-	GetInteractableData_Internal(InteractableData);
-	return InteractableData;
-}
-
-bool ANAItemActor::GetInteractableData_Internal(FNAInteractableData& OutIxData) const
-{
-	const FNAInteractableData* InteractableDataRef = nullptr;
-	const UNAItemData* RuntimeItemData = UNAItemEngineSubsystem::Get()->GetRuntimeItemData(ItemDataID);
-	if (RuntimeItemData)
-	{
-		if (const FNAItemBaseTableRow* ItemMetaData = RuntimeItemData->GetItemMetaDataStruct<FNAItemBaseTableRow>())
-		{
-			InteractableDataRef = TryGetInteractableData(ItemMetaData);
-		}
-	}
-	if (InteractableDataRef)
-	{
-		OutIxData = *InteractableDataRef;
-	}
-	return InteractableDataRef ? true : false;
-}
 
 bool ANAItemActor::CanInteract_Implementation() const
 {

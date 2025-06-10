@@ -100,6 +100,15 @@ FString UNAItemData::GetItemName() const
 	return {};
 }
 
+FText UNAItemData::GetItemDescription() const
+{
+	if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct())
+	{
+		return ItemMetaData->TextData.Description;
+	}
+	return FText::GetEmpty();
+}
+
 class UTexture2D* UNAItemData::GetItemIcon() const
 {
 	if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct())
@@ -180,4 +189,16 @@ bool UNAItemData::TryUseItem(AActor* User)
 		}
 	}
 	return bSucceed;
+}
+
+bool UNAItemData::GetInteractableData(FNAInteractableData& OutData) const
+{
+	if (!ID.IsNone())
+	{
+		if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct())
+		{
+			OutData = ItemMetaData->InteractableData;
+		}
+	}
+	return false;
 }

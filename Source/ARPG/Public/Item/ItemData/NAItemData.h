@@ -73,6 +73,7 @@ public:
 	}
 	
 	FString GetItemName() const;
+	FText GetItemDescription() const;
 
 	class UTexture2D* GetItemIcon() const;
 	
@@ -90,6 +91,8 @@ public:
 	void SetOwningInventory(UNAInventoryComponent* NewInventory);
 
 	bool TryUseItem(AActor* User);
+
+	bool GetInteractableData(FNAInteractableData& OutData) const;
 	
 private:
 	UPROPERTY(DuplicateTransient,

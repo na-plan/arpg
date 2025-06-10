@@ -75,7 +75,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnInventoryUpdated, UNAInventoryComponent*)
 class UNAItemData;
 class UButton;
 /**
- * Handle~: UNAInventoryGameInstanceSubsystem가 제공하는 인벤토리 APT에 대한 래퍼 메서드
+ * Handle~: UNAInventoryGameInstanceSubsystem가 제공하는 인벤토리 API에 대한 래퍼 메서드
  * 위젯 컴포넌트: BeginPlay 때 IniWidget 실행 -> CreateWidget (고정되어있다)
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))

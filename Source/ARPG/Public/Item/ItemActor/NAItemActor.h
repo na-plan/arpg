@@ -112,8 +112,6 @@ private:
 	// Interactable Interface Implements
 	//======================================================================================================================
 public:
-	virtual FNAInteractableData GetInteractableData_Implementation() const override;
-	virtual bool GetInteractableData_Internal(FNAInteractableData& OutIxData) const override;
 	virtual bool CanInteract_Implementation() const override;
 	//virtual bool CanInteract_Implementation() const override;
 	virtual void NotifyInteractableFocusBegin_Implementation(AActor* InteractableActor, AActor* InteractorActor) override;

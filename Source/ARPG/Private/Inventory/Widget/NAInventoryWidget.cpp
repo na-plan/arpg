@@ -11,7 +11,7 @@
 #include "Components/TextBlock.h"
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
-#include "Widgets/SViewport.h"
+#include "Components/Overlay.h"
 
 FNAInvenSlotWidgets::FNAInvenSlotWidgets(UButton* Button, UImage* Icon, UTextBlock* Text)
 	: InvenSlotButton(Button), InvenSlotIcon(Icon), InvenSlotQty(Text)
@@ -108,9 +108,37 @@ void UNAInventoryWidget::NativeConstruct()
 			
 		InitInvenSlotSlates();
 		InitWeaponSlotSlates();
-
+	
+		DefaultItemSlotColor = Inven_00->GetColorAndOpacity();
+		
 		InitInvenButtonsNavigation();
 		InitWeaponButtonsNavigation();
+	}
+
+	if (Above_Button_L && Above_Button_R && Above_Button_Title)
+	{
+		TWeakObjectPtr<UButton> AboveButtons[3];
+		AboveButtons[0] = Above_Button_L;
+		AboveButtons[1] = Above_Button_R;
+		AboveButtons[2] = Above_Button_Title;
+
+		for (int i =0; i < 3; ++i)
+		{
+			TSharedPtr<SButton> SBtn = StaticCastSharedPtr<SButton>(AboveButtons[i]->GetCachedWidget());
+			if (!SBtn.IsValid())
+			{
+				// 필요하다면 TakeWidget() 시도
+				SBtn = StaticCastSharedPtr<SButton>(AboveButtons[i]->TakeWidget().ToSharedPtr());
+			}
+			if (SBtn.IsValid())
+			{
+				// 매핑
+				AboveMenuSButtonMap.Add(SBtn, AboveButtons[i]);
+			}
+		}
+
+		Above_Button_Button_DefaultColor = Above_Button_L->GetColorAndOpacity();
+		Above_Button_Title_DefaultColor = Above_Button_Title->GetColorAndOpacity();
 	}
 }
 
@@ -259,6 +287,14 @@ void UNAInventoryWidget::InitInvenButtonsNavigation() const
 			if (!CurButton) continue;
 
 			// 위쪽: 같은 열의 윗 행 버튼
+			if (Row == 0)
+			{
+				if (Above_Button_Title)
+				{
+					// 인벱토리 위젯 최상단 타이틀로
+					CurButton->SetNavigationRuleExplicit(EUINavigation::Up, Above_Button_Title);
+				}
+			}
 			if (Row > 0)
 			{
 				UButton* NextButton = InvenSlotWidgets[Row-1][Col].InvenSlotButton.Get();
@@ -357,8 +393,11 @@ void UNAInventoryWidget::InitWeaponButtonsNavigation() const
 				}
 				else if (TargetCoord.Y > 0)
 				{
-					// 인벱토리 위젯 최상단 아이콘 버튼으로
-					/*CurBtn->SetNavigationRuleExplicit(NavDir, );*/
+					// 인벱토리 위젯 최상단 타이틀로
+					if (Above_Button_L)
+					{
+						CurBtn->SetNavigationRuleExplicit(NavDir, Above_Button_Title);
+					}
 				}
 				continue;
 			}
@@ -440,19 +479,19 @@ FName UNAInventoryWidget::GetCurrentFocusedSlotID() const
 
 void UNAInventoryWidget::ReleaseInventoryWidget()
 {
-	if (!OwningInventoryComponent || !WidgetExpand) return;
+	if (!OwningInventoryComponent || !Widget_Appear) return;
 	if (!GetOwningPlayer()) return;
 	bReleaseInventoryWidget = true;
 	
 	OwningInventoryComponent->SetVisibility(true);
 	OwningInventoryComponent->SetWindowVisibility(EWindowVisibility::Visible);
 	SetVisibility(ESlateVisibility::HitTestInvisible);
-	PlayAnimationForward(WidgetExpand);
+	PlayAnimationForward(Widget_Appear);
 }
 
 void UNAInventoryWidget::OnInventoryWidgetReleased()
 {
-	if (!OwningInventoryComponent || !WidgetExpand) return;
+	if (!OwningInventoryComponent || !Widget_Appear) return;
 	if (!GetOwningPlayer()) return;
 
 	if (bReleaseInventoryWidget)
@@ -489,19 +528,19 @@ void UNAInventoryWidget::OnInventoryWidgetReleased()
 
 void UNAInventoryWidget::CollapseInventoryWidget()
 {
-	if (!OwningInventoryComponent || !WidgetExpand) return;
+	if (!OwningInventoryComponent || !Widget_Appear) return;
 	if (!GetOwningPlayer()) return;
 	bReleaseInventoryWidget = false;
 	
 	UWidgetBlueprintLibrary::SetInputMode_GameOnly(GetOwningPlayer(), false);
 	OwningInventoryComponent->SetWindowFocusable(false);
 	SetIsEnabled(false);
-	PlayAnimationReverse(WidgetExpand, 1.3f);
+	PlayAnimationReverse(Widget_Appear, 1.3f);
 }
 
 void UNAInventoryWidget::OnInventoryWidgetCollapsed()
 {
-	if (!OwningInventoryComponent || !WidgetExpand) return;
+	if (!OwningInventoryComponent || !Widget_Appear) return;
 	if (!GetOwningPlayer()) return;
 	
 	if (!bReleaseInventoryWidget)
@@ -514,11 +553,13 @@ void UNAInventoryWidget::OnInventoryWidgetCollapsed()
 
 FReply UNAInventoryWidget::NativeOnFocusReceived(const FGeometry& InGeometry, const FFocusEvent& InFocusEvent)
 {
+	//CurrentFocusedSlotButton = nullptr;
 	return Super::NativeOnFocusReceived(InGeometry, InFocusEvent).Handled();
 }
 
 void UNAInventoryWidget::NativeOnFocusLost(const FFocusEvent& InFocusEvent)
 {
+	//CurrentFocusedSlotButton = nullptr;
 	Super::NativeOnFocusLost(InFocusEvent);
 }
 
@@ -529,31 +570,19 @@ void UNAInventoryWidget::NativeOnFocusChanging(const FWeakWidgetPath& PreviousFo
 
 	bool bIsLastFocusedBtnValid = false;
 	bool bIsCurrentFocusedBtnValid = false;
+	bool bIsItemSlot = false;
 	
 	TWeakPtr<SWidget> PreWidget = PreviousFocusPath.GetLastWidget();
-	if (!PreWidget.IsValid())
-	{
-		//LastFocusedSlotButton = bIsLastFocusedBtnValid ? LastFocusedSlotButton : nullptr;
-		//CurrentFocusedSlotButton = bIsCurrentFocusedBtnValid ? CurrentFocusedSlotButton : nullptr;
-		return;
-	}
+	if (!PreWidget.IsValid()) return;
 
 	TSharedPtr<SWidget> PreSWidgetRef = PreviousFocusPath.GetLastWidget().Pin();
-	if (!PreSWidgetRef.IsValid())
-	{
-		//LastFocusedSlotButton = bIsLastFocusedBtnValid ? LastFocusedSlotButton : nullptr;
-		//CurrentFocusedSlotButton = bIsCurrentFocusedBtnValid ? CurrentFocusedSlotButton : nullptr;
-		return;
-	}	
+	if (!PreSWidgetRef.IsValid()) return;
+	
 
 	// SButton으로 캐스팅
 	TSharedPtr<SButton> PreSButtonWidget = StaticCastSharedPtr<SButton>(PreSWidgetRef);
-	if (!PreSButtonWidget.IsValid())
-	{
-		//LastFocusedSlotButton = bIsLastFocusedBtnValid ? LastFocusedSlotButton : nullptr;
-		//CurrentFocusedSlotButton = bIsCurrentFocusedBtnValid ? CurrentFocusedSlotButton : nullptr;
-		return;
-	}
+	if (!PreSButtonWidget.IsValid()) return;
+	
 
 	// 키를 TWeakPtr로 만들어서 검색
 	TWeakPtr<SButton> PreSKey = PreSButtonWidget;
@@ -562,53 +591,34 @@ void UNAInventoryWidget::NativeOnFocusChanging(const FWeakWidgetPath& PreviousFo
 	if (InvenSButtonMap.Contains(PreSKey))
 	{
 		PreUBtnPtr = InvenSButtonMap[PreSKey];
-		if (PreUBtnPtr.IsValid())
-		{
-			UButton* Btn = PreUBtnPtr.Get();
-			Btn->SetBackgroundColor(DefaultInvenSlotColor);
-			Btn->SetColorAndOpacity(DefaultInvenSlotColor);
-			LastFocusedSlotButton = Btn;
-			bIsLastFocusedBtnValid = true;
-		}
 	}
 	else if (WeaponSButtonMap.Contains(PreSKey))
 	{
 		PreUBtnPtr = WeaponSButtonMap[PreSKey];
-		if (PreUBtnPtr.IsValid())
-		{
-			UButton* Btn = PreUBtnPtr.Get();
-			Btn->SetBackgroundColor(DefaultWeaponSlotColor);
-			Btn->SetColorAndOpacity(DefaultWeaponSlotColor);
-			LastFocusedSlotButton = Btn;
-			bIsLastFocusedBtnValid = true;
-		}
+	}
+	else if (AboveMenuSButtonMap.Contains(PreSKey))
+	{
+		PreUBtnPtr = AboveMenuSButtonMap[PreSKey];
+	}
+
+	if (PreUBtnPtr.IsValid())
+	{
+		OnItemSlotFocusLost( PreUBtnPtr.Get());
+		bIsLastFocusedBtnValid = true;
 	}
 	
 	TWeakPtr<SWidget> NewSWidget = NewWidgetPath.GetLastWidget();
-	if (!NewSWidget.IsValid())
-	{
-		//LastFocusedSlotButton = bIsLastFocusedBtnValid ? LastFocusedSlotButton : nullptr;
-		//CurrentFocusedSlotButton = bIsCurrentFocusedBtnValid ? CurrentFocusedSlotButton : nullptr;
-		return;
-	}
+	if (!NewSWidget.IsValid()) return;
+
 
 	TSharedPtr<SWidget> NewSWidgetRef = NewWidgetPath.GetLastWidget();
-	if (!NewSWidgetRef.IsValid())
-	{
-		//LastFocusedSlotButton = bIsLastFocusedBtnValid ? LastFocusedSlotButton : nullptr;
-		//CurrentFocusedSlotButton = bIsCurrentFocusedBtnValid ? CurrentFocusedSlotButton : nullptr;
-		return;
-	}
+	if (!NewSWidgetRef.IsValid()) return;
+
 
 	// SButton으로 캐스팅
 	TSharedPtr<SButton> NewSButtonWidget = StaticCastSharedPtr<SButton>(NewSWidgetRef);
-	if (!NewSButtonWidget.IsValid())
-	{
-		//LastFocusedSlotButton = bIsLastFocusedBtnValid ? LastFocusedSlotButton : nullptr;
-		//CurrentFocusedSlotButton = bIsCurrentFocusedBtnValid ? CurrentFocusedSlotButton : nullptr;
-		return;
-	}
-
+	if (!NewSButtonWidget.IsValid()) return;
+	
 	// 키를 TWeakPtr로 만들어서 검색
 	TWeakPtr<SButton> NewSKey = NewSButtonWidget;
 
@@ -616,30 +626,35 @@ void UNAInventoryWidget::NativeOnFocusChanging(const FWeakWidgetPath& PreviousFo
 	if (InvenSButtonMap.Contains(NewSKey))
 	{
 		NewUBtnPtr = InvenSButtonMap[NewSKey];
-		if (NewUBtnPtr.IsValid())
-		{
-			UButton* Btn = NewUBtnPtr.Get();
-			Btn->SetBackgroundColor(FocusedInvenSlotBackgroundColor);
-			Btn->SetColorAndOpacity(FLinearColor::White);
-			CurrentFocusedSlotButton = Btn;
-			bIsCurrentFocusedBtnValid = true;
-		}
+		bIsItemSlot = true;
 	}
 	else if (WeaponSButtonMap.Contains(NewSKey))
 	{
 		NewUBtnPtr = WeaponSButtonMap[NewSKey];
-		if (NewUBtnPtr.IsValid())
-		{
-			UButton* Btn = NewUBtnPtr.Get();
-			Btn->SetBackgroundColor(FocusedWeaponSlotBackgroundColor);
-			Btn->SetColorAndOpacity(FLinearColor::White);
-			CurrentFocusedSlotButton = Btn;
-			bIsCurrentFocusedBtnValid = true;
-		}
+		bIsItemSlot = true;
 	}
+	else if (AboveMenuSButtonMap.Contains(NewSKey))
+	{
+		NewUBtnPtr = AboveMenuSButtonMap[NewSKey];
+	}
+	
+	if (NewUBtnPtr.IsValid())
+	{
+		OnItemSlotFocusReceived(NewUBtnPtr.Get());
+		bIsCurrentFocusedBtnValid = true;
+	}
+	
+	LastFocusedSlotButton = bIsLastFocusedBtnValid ? LastFocusedSlotButton : nullptr;
+	CurrentFocusedSlotButton = bIsCurrentFocusedBtnValid ? CurrentFocusedSlotButton : nullptr;
 
-	//LastFocusedSlotButton = bIsLastFocusedBtnValid ? LastFocusedSlotButton : nullptr;
-	//CurrentFocusedSlotButton = bIsCurrentFocusedBtnValid ? CurrentFocusedSlotButton : nullptr;
+	const bool bShouldHiddenItemDesc = !bIsItemSlot
+	|| !CurrentFocusedSlotButton.IsValid()
+	|| (bIsItemSlot && OwningInventoryComponent->IsEmptySlot(FName(*CurrentFocusedSlotButton->GetName())));
+	
+	if (bShouldHiddenItemDesc)
+	{
+		Item_Desc_Menu->SetVisibility(ESlateVisibility::Hidden);
+	}
 }
 
 FReply UNAInventoryWidget::NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
@@ -704,6 +719,95 @@ void UNAInventoryWidget::SelectInventorySlotWidget() const
 		FString Log = TEXT("SelectInventorySlotButton: ");
 		Log += CurrentFocusedSlotButton->GetName();
 		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Magenta, *Log);
+	}
+}
+
+void UNAInventoryWidget::OnItemSlotFocusReceived(UButton* Button)
+{
+	if (!OwningInventoryComponent) return;
+	
+	if (Button)
+	{
+		if ( Button != CurrentFocusedSlotButton)
+		{
+			FName SlotID = NAME_None;
+			if (Button->GetName().StartsWith(InventorySlotPrefix))
+			{
+				Button->SetBackgroundColor(FocusedInvenSlotBackgroundColor);
+				Button->SetColorAndOpacity(FLinearColor::White);
+				SlotID = FName(*Button->GetName());
+			}
+			else if (Button->GetName().StartsWith(WeaponSlotPrefix))
+			{
+				Button->SetBackgroundColor(FocusedWeaponSlotBackgroundColor);
+				Button->SetColorAndOpacity(FLinearColor::White);
+				SlotID = FName(*Button->GetName());
+			}
+
+			if (Button == Above_Button_L)
+			{
+				PlayAnimation(Above_Button_L_Focused, 0.f,0);
+			}
+			else if (Button == Above_Button_R)
+			{
+				PlayAnimation(Above_Button_R_Focused, 0.f,0);
+			}
+			else if (Button == Above_Button_Title )
+			{
+				PlayAnimation(Above_Button_Title_Focused, 0.f,0);
+			}
+
+			if (!SlotID.IsNone())
+			{
+				UNAItemData* ItemData = OwningInventoryComponent->GetItemDataFromSlot(SlotID);
+				if (ItemData)
+				{
+					// @TODO: 포커스된 슬롯의 아이템 정보 가져와서 하단 아이템 Desc 메뉴에 아이템 정보 표시
+					// 아이템 Desc title에 띄울 아이콘은 일단 보류
+					Item_Desc_Name_Title->SetText(FText::FromString(ItemData->GetItemName()));
+					Item_Desc_Content->SetText(ItemData->GetItemDescription());
+					Item_Desc_Menu->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+				}
+			}
+		
+			CurrentFocusedSlotButton = Button;
+		}
+	}
+}
+
+void UNAInventoryWidget::OnItemSlotFocusLost(UButton* Button)
+{
+	if (!OwningInventoryComponent) return;
+	
+	if (Button)
+	{
+		if (Button != LastFocusedSlotButton)
+		{
+			if (Button->GetName().StartsWith(InventorySlotPrefix)
+				|| Button->GetName().StartsWith(WeaponSlotPrefix))
+			{
+				Button->SetBackgroundColor(DefaultItemSlotColor);
+				Button->SetColorAndOpacity(DefaultItemSlotColor);
+			}
+
+			if (Button == Above_Button_L)
+			{
+				StopAnimation(Above_Button_L_Focused);
+				Above_Button_L->SetColorAndOpacity(Above_Button_Button_DefaultColor);
+			}
+			else if (Button == Above_Button_R)
+			{
+				StopAnimation(Above_Button_R_Focused);
+				Above_Button_R->SetColorAndOpacity(Above_Button_Button_DefaultColor);
+			}
+			else if (Button == Above_Button_Title )
+			{
+				StopAnimation(Above_Button_Title_Focused);
+				Above_Button_Title->SetColorAndOpacity(Above_Button_Title_DefaultColor);
+			}
+
+			LastFocusedSlotButton = Button;
+		}
 	}
 }
 
