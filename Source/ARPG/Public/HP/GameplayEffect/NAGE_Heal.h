@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayEffect.h"
+#include "GameplayEffectComponents/AssetTagsGameplayEffectComponent.h"
 #include "UObject/Object.h"
 #include "NAGE_Heal.generated.h"
 
@@ -17,4 +18,7 @@ class ARPG_API UNAGE_Heal : public UGameplayEffect
 
 public:
 	UNAGE_Heal();
+
+	UPROPERTY()
+	UAssetTagsGameplayEffectComponent* AssetTagsComponent;
 };
