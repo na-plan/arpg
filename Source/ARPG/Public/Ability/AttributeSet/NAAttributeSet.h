@@ -21,6 +21,10 @@ public:
 	UPROPERTY(VisibleAnywhere, Replicated)
 	FGameplayAttributeData Health;
 
+	// 최대 체력
+	UPROPERTY(VisibleAnywhere, Replicated)
+	FGameplayAttributeData MaxHealth;
+
 	// 스테미나
 	UPROPERTY(VisibleAnywhere, Replicated)
 	FGameplayAttributeData AP;
@@ -31,6 +35,7 @@ public:
 
 	// note: 만약 새로운 속성을 추가할 경우 아래의 매크로를 같이 추가해주어야 함!
 	ATTRIBUTE_ACCESSORS(UNAAttributeSet, Health);
+	ATTRIBUTE_ACCESSORS(UNAAttributeSet, MaxHealth);
 	ATTRIBUTE_ACCESSORS(UNAAttributeSet, AP);
 	ATTRIBUTE_ACCESSORS(UNAAttributeSet, MovementSpeed);
 	

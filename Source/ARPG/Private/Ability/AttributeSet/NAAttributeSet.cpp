@@ -8,7 +8,8 @@
 void UNAAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UNAAttributeSet, Health);
-	DOREPLIFETIME(UNAAttributeSet, AP);
-	DOREPLIFETIME(UNAAttributeSet, MovementSpeed);
+	DOREPLIFETIME( UNAAttributeSet, Health );
+	DOREPLIFETIME( UNAAttributeSet, MaxHealth );
+	DOREPLIFETIME( UNAAttributeSet, AP );
+	DOREPLIFETIME( UNAAttributeSet, MovementSpeed );
 }
