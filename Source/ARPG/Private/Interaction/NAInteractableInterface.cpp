@@ -14,13 +14,3 @@ UNAInteractionComponent* INAInteractableInterface::TryGetInteractionComponent(AA
 	InteractionComp = InActor->FindComponentByClass<UNAInteractionComponent>();
 	return InteractionComp;
 }
-
-const FNAInteractableData* INAInteractableInterface::TryGetInteractableData(const FNAItemBaseTableRow* InItemMetaData) const
-{
-	if (InItemMetaData)
-	{
-		return &InItemMetaData->InteractableData;
-	}
-	
-	return nullptr;
-}

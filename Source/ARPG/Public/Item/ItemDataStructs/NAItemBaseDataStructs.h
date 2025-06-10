@@ -203,9 +203,7 @@ struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, Category = "Item Numeric Statics", meta=(ShowOnlyInnerProperties))
 	FItemNumericData NumericData;
-
-protected:
-	friend class INAInteractableInterface;
+	
 	UPROPERTY(EditAnywhere,/* Category = "Item Interactable Data", */meta=(ShowOnlyInnerProperties))
 	FNAInteractableData InteractableData;
 	

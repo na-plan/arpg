@@ -125,19 +125,36 @@ protected:
 	virtual FReply NativeOnPreviewMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent ) override;
 	virtual FReply NativeOnMouseButtonUp( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent ) override;
 
+	// 임시: 포커스된 버튼을 "선택" -> 어떤 버튼이었는지에 따라 후속 처리 다름
 	void SelectInventorySlotWidget() const;
+
+	void OnItemSlotFocusReceived(UButton* Button);
+	void OnItemSlotFocusLost(UButton* Button);
+	
 protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UNAInventoryComponent> OwningInventoryComponent;
 	
-	UPROPERTY(Transient, BlueprintReadOnly, meta = (BindWidgetAnim), Category = "Widget Animation")
-	TObjectPtr<UWidgetAnimation> WidgetExpand;
-
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UButton> LastFocusedSlotButton = nullptr;
 	
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UButton> CurrentFocusedSlotButton = nullptr;
+	
+	FLinearColor DefaultItemSlotColor; //= FLinearColor(0.647059f, 0.647059f, 0.647059f, 0.89f);
+	FLinearColor Above_Button_Button_DefaultColor;
+	FLinearColor Above_Button_Title_DefaultColor;
+
+// Animations ////////////////////////////////////////////////////////////////////////////////////////////////	
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (BindWidgetAnim), Category = "Widget Animation")
+	TObjectPtr<UWidgetAnimation> Widget_Appear;
+
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (BindWidgetAnim), Category = "Widget Animation")
+	TObjectPtr<UWidgetAnimation> Above_Button_L_Focused;
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (BindWidgetAnim), Category = "Widget Animation")
+	TObjectPtr<UWidgetAnimation> Above_Button_R_Focused;
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (BindWidgetAnim), Category = "Widget Animation")
+	TObjectPtr<UWidgetAnimation> Above_Button_Title_Focused;
 	
 // Slot Buttons //////////////////////////////////////////////////////////////////////////////////////
 // 변수명: 슬롯 ID와 일치시켜야 함
@@ -150,7 +167,6 @@ protected:
 	FNAInvenSlotWidgets InvenSlotWidgets[InventoryRowCount][InventoryColumnCount];
 	TMap<TWeakPtr<SButton>, TWeakObjectPtr<UButton>> InvenSButtonMap;
 
-	FLinearColor DefaultInvenSlotColor = FLinearColor(0.647059f, 0.647059f, 0.647059f, 0.89f);
 	FLinearColor FocusedInvenSlotBackgroundColor = FLinearColor(0.654990f, 0.833897f, 1.0f, 0.95f);
 	
 	UPROPERTY(Transient, BlueprintReadOnly)
@@ -340,7 +356,7 @@ protected:
 	FNAWeaponSlotWidgets WeaponSlotWidgets[MaxWeaponSlotCount];
 	TMap<TWeakPtr<SButton>, TWeakObjectPtr<UButton>> WeaponSButtonMap;
 
-	FLinearColor DefaultWeaponSlotColor = FLinearColor(0.647059f, 0.647059f, 0.647059f, 0.89f);
+	//FLinearColor DefaultWeaponSlotColor; //FLinearColor(0.647059f, 0.647059f, 0.647059f, 0.89f);
 	FLinearColor FocusedWeaponSlotBackgroundColor = FLinearColor(0.654990f, 0.833897f, 1.0f, 0.95f);
 	
 	UPROPERTY(Transient, BlueprintReadOnly)
@@ -366,4 +382,52 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Inven Slots")
 	TObjectPtr<UImage> Weapon_03_Icon;
 
+	// Above Menu //////////////////////////////////////////////////////////////////////////////////////////////////////
+	TMap<TWeakPtr<SButton>, TWeakObjectPtr<UButton>> AboveMenuSButtonMap;
+	
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Above Menu")
+	TObjectPtr<UButton> Above_Button_L;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Above Menu")
+	TObjectPtr<UButton> Above_Button_R;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Above Menu")
+	TObjectPtr<UButton> Above_Button_Title;
+
+	// Suit Menu ///////////////////////////////////////////////////////////////////////////////////////////////////////
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Suit Menu")
+	TObjectPtr<UTextBlock> Suit_State;
+	
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Suit Menu")
+	TObjectPtr<UTextBlock> Suit_Air_Qty;
+	
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Suit Menu")
+	TObjectPtr<UTextBlock> Suit_Armor_Dur;
+
+	// Nodes Menu //////////////////////////////////////////////////////////////////////////////////////////////////////
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Nodes Menu")
+	TObjectPtr<UImage> Nodes_Icon;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Nodes Menu")
+	TObjectPtr<UTextBlock> Nodes_Desc;
+
+	// Credits Menu ////////////////////////////////////////////////////////////////////////////////////////////////////
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Credits Menu")
+	TObjectPtr<UImage> Credits_Icon;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Credits Menu")
+	TObjectPtr<UTextBlock> Credits_Qty;
+
+	// Item Desc ///////////////////////////////////////////////////////////////////////////////////////////////////////
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Item Desc")
+	TObjectPtr<class UOverlay> Item_Desc_Menu;
+	
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Item Desc")
+	TObjectPtr<UImage> Item_Desc_Type_Icon;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Item Desc")
+	TObjectPtr<UTextBlock> Item_Desc_Name_Title;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Item Desc")
+	TObjectPtr<UTextBlock> Item_Desc_Content;
 };

@@ -13,6 +13,43 @@ FNAItemBaseTableRow::FNAItemBaseTableRow(UClass* InItemClass)
 }
 
 #if WITH_EDITOR
+template<typename EnumType>
+FString EnumToDisplayString(const EnumType EnumeratorValue)
+{
+	// For the C++ enum.
+	static_assert(TIsEnum<EnumType>::Value, "EnumeratorValue must be enum types.");
+	const UEnum* EnumClass = StaticEnum<EnumType>();
+	check(EnumClass != nullptr);
+	return EnumClass->GetNameStringByValue(static_cast<int64>(EnumeratorValue));
+}
+
+FString InsertSpacesBeforeUppercaseSmart(const FString& Input)
+{
+	FString Result;
+	const int32 Len = Input.Len();
+
+	for (int32 i = 0; i < Len; ++i)
+	{
+		const TCHAR Char = Input[i];
+		if (i == 0)
+		{
+			Result.AppendChar(Char);
+		}
+		else
+		{
+			bool bIsCurrentUpper = FChar::IsUpper(Char);
+			bool bIsPrevUpper = FChar::IsUpper(Input[i - 1]);
+
+			// 현재가 대문자고, 이전이 소문자인 경우에만 공백 추가
+			if (bIsCurrentUpper && !bIsPrevUpper)
+			{
+				Result.AppendChar(TEXT(' '));
+			}
+			Result.AppendChar(Char);
+		}
+	}
+	return Result;
+}
 
 void FNAItemBaseTableRow::OnDataTableChanged(const UDataTable* InDataTable, const FName InRowName)
 {
@@ -46,38 +83,41 @@ void FNAItemBaseTableRow::OnDataTableChanged(const UDataTable* InDataTable, cons
 		}
 		else
 		{
-				
 			if (!NumericData.bIsStackable)
 			{
 				NumericData.MaxSlotStackSize = 1;
+				NumericData.MaxInventoryHoldCount = FMath::Max(0, NumericData.MaxInventoryHoldCount);
 			}
-		
-			if (NumericData.MaxInventoryHoldCount < 0)
+			
+			if (NumericData.MaxInventoryHoldCount == 0)
 			{
-				NumericData.MaxInventoryHoldCount = 0;
-				NumericData.MaxSlotStackSize = 1;
-			}
-			else if (NumericData.MaxInventoryHoldCount == 0)
-			{
-				if (!ensure(NumericData.MaxSlotStackSize >= 1))
-				{
-					NumericData.MaxSlotStackSize = 1;
-				}
+				NumericData.MaxSlotStackSize = FMath::Max(0, NumericData.MaxSlotStackSize);
 			}
 			else if (NumericData.MaxInventoryHoldCount > 0)
 			{
-				if (!ensure(NumericData.MaxSlotStackSize >= 1
-					&& NumericData.MaxSlotStackSize <= NumericData.MaxInventoryHoldCount))
-				{
-					NumericData.MaxSlotStackSize = NumericData.MaxInventoryHoldCount;
-				}
+				NumericData.MaxSlotStackSize = FMath::Max(1, NumericData.MaxSlotStackSize);
 			}
 		}
 		
-		if (!InRowName.IsNone()
-			&& InRowName.ToString() != TextData.Name.ToString())
+		if (!InRowName.IsNone())
 		{
-			TextData.Name = FText::FromName(InRowName);
+			FString ItemNameStr = TextData.Name.ToString();
+			ItemNameStr.RemoveSpacesInline();
+			if ( !ItemNameStr.Equals(InRowName.ToString()))
+			{
+				FString NewItemName = InsertSpacesBeforeUppercaseSmart(InRowName.ToString());
+				TextData.Name = FText::FromString(NewItemName);
+			}
+		}
+
+		if (InteractableData.InteractableType != ENAInteractableType::None)
+		{
+			FString EnumStr = EnumToDisplayString(InteractableData.InteractableType);
+
+			if (InteractableData.InteractionName.ToString() != EnumStr)
+			{
+				InteractableData.InteractionName = FText::FromString(EnumStr);
+			}
 		}
 	}
 }

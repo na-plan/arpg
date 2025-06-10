@@ -94,12 +94,14 @@ ANACharacter::ANACharacter()
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 400.0f; // The camera follows at this distance behind the character	
+	CameraBoom->TargetArmLength = 200.0f; // The camera follows at this distance behind the character
+	CameraBoom->SocketOffset = FVector(0.f, 60.f, 80.f);
 	CameraBoom->bUsePawnControlRotation = true; // Rotate the arm based on the controller
 
 	// Create a follow camera
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
+	FollowCamera->SetRelativeRotation(FRotator(-20.0f, 0.0f, 0.0f));
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
@@ -112,32 +114,41 @@ ANACharacter::ANACharacter()
 	InteractionComponent->SetIsReplicated( true );
 	InteractionComponent->SetNetAddressable();
 
+	InventoryAngleBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("InventoryAngleBoom"));
+	InventoryAngleBoom->SetupAttachment(RootComponent);
+	InventoryAngleBoom->SetRelativeLocation(FVector(0.f, 58.f, 12.f));
+	InventoryAngleBoom->SetRelativeRotation(FRotator(-8.f, 13.f, 0.f));
+	InventoryAngleBoom->TargetArmLength = 176.f;
+	InventoryAngleBoom-> bUsePawnControlRotation = false;
+	InventoryAngleBoom-> bInheritPitch = false;
+	InventoryAngleBoom-> bInheritYaw = true;
+	InventoryAngleBoom-> bInheritRoll = false;
+	InventoryAngleBoom->bDoCollisionTest = false;
+	
 	InventoryWidgetBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("InventorySpringArm"));
 	InventoryWidgetBoom->SetupAttachment(RootComponent);
-	InventoryWidgetBoom->SetRelativeLocation(FVector(0.f, 65.f, -25.f));
+	InventoryWidgetBoom->SetRelativeLocation(FVector(0.f, 67.f, -25.f));
+	InventoryWidgetBoom->SetRelativeRotation(FRotator::ZeroRotator);
+	InventoryWidgetBoom->TargetArmLength = 160.f;
 	InventoryWidgetBoom-> bUsePawnControlRotation = false;
 	InventoryWidgetBoom-> bInheritPitch = false;
 	InventoryWidgetBoom-> bInheritYaw = true;
 	InventoryWidgetBoom-> bInheritRoll = false;
-	InventoryWidgetBoom->TargetArmLength = 80.f;
 	InventoryWidgetBoom->bDoCollisionTest = false;
 	InventoryWidgetBoom->bEnableCameraRotationLag = true;
 	InventoryWidgetBoom->CameraRotationLagSpeed = 28.f;
 	
 	InventoryComponent = CreateDefaultSubobject<UNAInventoryComponent>(TEXT("InventoryComponent"));
 	InventoryComponent->SetupAttachment(InventoryWidgetBoom, USpringArmComponent::SocketName);
+	InventoryComponent->SetRelativeLocation(FVector(0.f, -28.f, 31.f));
+	InventoryComponent->SetRelativeRotation(FRotator(9.f, 0.f, 0.f));
+	InventoryComponent->SetRelativeScale3D(FVector(0.37f));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface>
+		InventoryWidgetMaterial(TEXT(
+			"/Script/Engine.MaterialInstanceConstant'/Engine/EngineMaterials/Widget3DPassThrough_Translucent.Widget3DPassThrough_Translucent'"));
+	check(InventoryWidgetMaterial.Object);
+	InventoryComponent->SetMaterial(0, InventoryWidgetMaterial.Object);
 
-	InventoryAngleBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("InventoryAngleBoom"));
-	InventoryAngleBoom->SetupAttachment(RootComponent);
-	InventoryAngleBoom->SetRelativeLocation(FVector(0.f, 58.f, 7.f));
-	InventoryAngleBoom->SetRelativeRotation(FRotator(-8.f, 6.f, 0.f));
-	InventoryAngleBoom-> bUsePawnControlRotation = false;
-	InventoryAngleBoom-> bInheritPitch = false;
-	InventoryAngleBoom-> bInheritYaw = true;
-	InventoryAngleBoom-> bInheritRoll = false;
-	InventoryAngleBoom->TargetArmLength = 80.f;
-	InventoryAngleBoom->bDoCollisionTest = false;
-	
 	LeftHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("LeftHandChildActor"));
 	RightHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("RightHandChildActor"));
 
@@ -580,7 +591,7 @@ void ANACharacter::RotateSpringArmForInventory(bool bExpand, float Overtime)
 	FRotator TargetRotation;
 	if (bExpand)
 	{
-		TargetRotation = FRotator(0.0f, -179.999f, 0.0f);
+		TargetRotation = FRotator(0.0f, -163.f, 0.0f);
 	}
 	else
 	{

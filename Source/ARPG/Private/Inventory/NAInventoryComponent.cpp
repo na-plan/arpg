@@ -32,30 +32,20 @@ UNAInventoryComponent::UNAInventoryComponent()
 	BodyInstance.bGenerateWakeEvents = false;
 	BodyInstance.bUpdateMassWhenScaleChanges = false;
 	
-	SetRelativeLocation(FVector(0.f, -43.f, 27.f));
-	SetRelativeRotation(FRotator(9.0f, 8.0f, 0.0f));
-	SetRelativeScale3D(FVector(0.35f));
 	SetWidgetSpace(EWidgetSpace::World);
-	SetDrawSize(FVector2D(1280, 720));
+	SetDrawSize(FVector2D(680, 470));
 	SetGeometryMode(EWidgetGeometryMode::Cylinder);
 	SetCylinderArcAngle(15.f);
 	OpacityFromTexture = 1.f;
 	SetBlendMode(EWidgetBlendMode::Masked);
 	bIsTwoSided = true;
-	//SetVisibility(false);
 	SetDrawSize(FVector2D(1024, 576));
+	
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
-		// 슬롯 데이터 매핑 키 값만(ID) 초기화
-		//InitSlotIDs(InventoryContents);
-		// 슬롯 UI 매핑 키 값만(ID) 초기화
-		//InitSlotIDs(SlotButtons);
-		// -> InitWidget 단계에서 위젯 버튼과 매핑할 때 초기화
-
 		InitInventorySlotIDs(this);
 	}
 }
-
 
 // Called when the game starts
 void UNAInventoryComponent::BeginPlay()
