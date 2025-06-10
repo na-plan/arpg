@@ -5,6 +5,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
+#include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "Engine/OverlapResult.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
@@ -36,6 +37,10 @@ void UNAAnimNotifyState_SphereOverlapTest::NotifyBegin( USkeletalMeshComponent* 
 			ContextHandle.AddSourceObject( this );
 
 			SpecHandle = SourceInterface->GetAbilitySystemComponent()->MakeOutgoingSpec( UNAGE_Damage::StaticClass(), 1.f, ContextHandle );
+			if ( const UNAMontageCombatComponent* CombatComponent = MeshComp->GetOwner()->GetComponentByClass<UNAMontageCombatComponent>() )
+			{
+				SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( "Data.Damage" ), -CombatComponent->GetBaseDamage() );	
+			}
 		}
 
 		// 서버와 클라이언트 간 플레이어 컨트롤러 설정 동기화

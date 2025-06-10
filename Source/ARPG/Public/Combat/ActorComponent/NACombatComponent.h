@@ -55,6 +55,9 @@ class ARPG_API UNACombatComponent : public UActorComponent
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
 	TSubclassOf<UGameplayEffect> AmmoType;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
+	float BaseDamage = 10.f;
+
 	FGameplayAbilitySpecHandle AbilitySpecHandle;
 
 public:
@@ -100,6 +103,8 @@ public:
 	void SetConsiderChildActor( const bool InConsiderChildActor );
 
 	TSubclassOf<UGameplayAbility> GetAttackAbility() const;
+
+	float GetBaseDamage() const { return BaseDamage; }
 	
 	UFUNCTION( Server, Reliable )
 	void Server_RequestAttackAbility();

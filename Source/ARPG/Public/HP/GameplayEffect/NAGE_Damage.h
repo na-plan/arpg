@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayEffect.h"
+#include "GameplayEffectComponents/AssetTagsGameplayEffectComponent.h"
 #include "UObject/Object.h"
 #include "NAGE_Damage.generated.h"
 
@@ -18,4 +19,6 @@ class ARPG_API UNAGE_Damage : public UGameplayEffect
 public:
 	UNAGE_Damage();
 
+	UPROPERTY()
+	UAssetTagsGameplayEffectComponent* AssetTagsComponent;
 };

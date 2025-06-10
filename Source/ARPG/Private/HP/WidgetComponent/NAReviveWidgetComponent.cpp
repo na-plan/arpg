@@ -85,7 +85,7 @@ void UNAReviveWidgetComponent::BeginPlay()
 	if ( UNAReviveWidget* ReviveWidget = Cast<UNAReviveWidget>( GetUserWidgetObject() ) )
 	{
 		ReviveWidget->SetImage( RuntimeInstance );
-		ReviveWidget->SetVisibility( ESlateVisibility::Hidden );
+		ReviveWidget->SetVisibility( ESlateVisibility::Visible );
 	}
 	
 	SetDrawSize( { 100, 100 } );

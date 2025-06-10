@@ -93,7 +93,7 @@ void UNAVitalCheckComponent::BeginPlay()
 		// 초기 업데이트
 		if (const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>( Character->GetAbilitySystemComponent()->GetAttributeSet( UNAAttributeSet::StaticClass() ) ) )
 		{
-			ChangeHealthMesh( AttributeSet->GetHealth(), AttributeSet->Health.GetBaseValue() );
+			ChangeHealthMesh( AttributeSet->GetHealth(), AttributeSet->GetMaxHealth() );
 			HandleAlive( Character, AttributeSet->GetHealth() );
 			HandleKnockDown( Character, AttributeSet->GetHealth()  );
 			HandleDead( Character, AttributeSet->GetHealth()  );
@@ -183,7 +183,7 @@ void UNAVitalCheckComponent::OnHealthChanged( const FOnAttributeChangeData& OnAt
 			ChangeHealthMesh
 			(
 				OnAttributeChangeData.NewValue,
-				AttributeSet->Health.GetBaseValue()
+				AttributeSet->GetMaxHealth()
 			);
 		}
 	}

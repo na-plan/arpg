@@ -6,6 +6,7 @@
 #include "Components/SphereComponent.h"
 #include "AbilitySystemComponent.h"
 #include "NACharacter.h"
+#include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "Monster/Pawn/MonsterBase.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
 // Sets default values
@@ -44,6 +45,10 @@ void AGE_ApplyActor::SphereCollisionBeginOverlap(UPrimitiveComponent* Overlapped
 
 					// Gameplay Effect CDO, 레벨?, ASC에서 부여받은 Effect Context로 적용할 효과에 대한 설명을 생성
 					const FGameplayEffectSpecHandle DamageEffectSpec = Target->GetAbilitySystemComponent()->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1, EffectContext);
+					if ( const UNAMontageCombatComponent* CombatComponent = OwnerMonster->GetComponentByClass<UNAMontageCombatComponent>() )
+					{
+						DamageEffectSpec.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( "Data.Damage" ), -CombatComponent->GetBaseDamage() );
+					}
 
 					// damage 미확인중 notify 만들고 데미지 안입힐시 위 주석 해제 ㄱㄱ
 					{
@@ -74,9 +79,12 @@ void AGE_ApplyActor::SphereCollisionBeginOverlap(UPrimitiveComponent* Overlapped
 					EffectContext.AddInstigator(GetInstigator(), Target);
 
 					// Gameplay Effect CDO, 레벨?, ASC에서 부여받은 Effect Context로 적용할 효과에 대한 설명을 생성
-					// UNAGE_Damage에도 슬슬 데미지값을 넣어주는게 맞지 않을까?
 					const FGameplayEffectSpecHandle DamageEffectSpec = Target->GetAbilitySystemComponent()->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1, EffectContext);
-
+					if ( const UNAMontageCombatComponent* CombatComponent = OwnerMonster->GetComponentByClass<UNAMontageCombatComponent>() )
+					{
+						DamageEffectSpec.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( "Data.Damage" ), -CombatComponent->GetBaseDamage() );
+					}
+					
 					// damage 미확인중 notify 만들고 데미지 안입힐시 위 주석 해제 ㄱㄱ
 					{
 						// 일단 데미지만 주면 되기 때문에 자기 자신이데미지 주는 형식으로....

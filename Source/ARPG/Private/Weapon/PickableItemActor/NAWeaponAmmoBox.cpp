@@ -5,6 +5,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
+#include "GameplayEffectComponents/AssetTagsGameplayEffectComponent.h"
 #include "GameplayEffectComponents/TargetTagsGameplayEffectComponent.h"
 #include "Net/UnrealNetwork.h"
 
@@ -51,7 +52,7 @@ bool ANAWeaponAmmoBox::ExecuteInteract_Implementation( AActor* InteractorActor )
 			// 만약 하나라도 실패하면 다시 원상복귀
 			if ( !bResult )
 			{
-				const FInheritedTagContainer& Container = Cast<UTargetTagsGameplayEffectComponent>( AmmoEffectType.GetDefaultObject()->FindComponent( UTargetTagsGameplayEffectComponent::StaticClass() ) )->GetConfiguredTargetTagChanges();
+				const FInheritedTagContainer& Container = Cast<UAssetTagsGameplayEffectComponent>( AmmoEffectType.GetDefaultObject()->FindComponent( UAssetTagsGameplayEffectComponent::StaticClass() ) )->GetConfiguredAssetTagChanges();
 				Interface->GetAbilitySystemComponent()->RemoveActiveEffectsWithAppliedTags( Container.Added );
 			}
 		}
