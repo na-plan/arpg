@@ -102,5 +102,7 @@ Saved
 !Source/***
 !.gitignore
 !.editorconfig
+!.vsconfig
+!ARPG.uproject
 !Config
 !Config/***

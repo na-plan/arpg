@@ -1,0 +1,35 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "{1F440563-4C78-0B26-1121-1D84DF055472}",
+	"Category": "",
+	"Description": "",
+	"Modules": [
+		{
+			"Name": "ARPG",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"AIModule",
+				"GameplayAbilities"
+			]
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "ModelingToolsEditorMode",
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
+		},
+		{
+			"Name": "GameplayAbilities",
+			"Enabled": true
+		},
+		{
+			"Name": "USDImporter",
+			"Enabled": true
+		}
+	]
+}
