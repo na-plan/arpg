@@ -13,12 +13,12 @@ class UBillboardComponent;
 UENUM()
 enum class EItemSubobjDirtyFlags : uint8
 {
-	MF_None	= (0x0),
+	ISDF_None	= (0x0),
 	
-	MF_RootShape		= (1<<0),
-	MF_Mesh				= (1<<1),
-	MF_IxButtonSprite	= (1<<4),
-	MF_IxButtonText		= (1<<5)
+	ISDF_CollisionShape		= (1<<0),
+	ISDF_MeshType				= (1<<1),
+	//MF_IxButtonSprite	= (1<<4),
+	//MF_IxButtonText		= (1<<5)
 };
 ENUM_CLASS_FLAGS(EItemSubobjDirtyFlags)
 
@@ -86,8 +86,11 @@ private:
 	void VerifyInteractableData();
 
 protected:
-	UPROPERTY(Instanced, VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Root Shape")
-	TObjectPtr<UShapeComponent> ItemRootShape;
+	UPROPERTY(Instanced, VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Root Sphere")
+	TObjectPtr<class USphereComponent> RootSphere;
+	
+	UPROPERTY(Instanced, VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Collision Shape")
+	TObjectPtr<UShapeComponent> ItemCollision;
 	
 	UPROPERTY(Instanced, VisibleAnywhere, Category = "Item Actor | Mesh")
 	TObjectPtr<UMeshComponent> ItemMesh;
@@ -98,11 +101,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Static Mesh")
 	TObjectPtr<class UGeometryCollectionCache> ItemFractureCache;
 
-	UPROPERTY(Instanced, VisibleAnywhere, Category="Item Actor | Interaction Button")
-	TObjectPtr<UBillboardComponent> ItemInteractionButton;
-
-	UPROPERTY(Instanced, VisibleAnywhere, Category="Item Actor | Interaction Button")
-	TObjectPtr<UTextRenderComponent> ItemInteractionButtonText;
+	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Static Mesh")
+	TObjectPtr<class UNAItemWidgetComponent> ItemWidgetComponent;
 
 private:
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Item Actor", meta = (AllowPrivateAccess = "true"))

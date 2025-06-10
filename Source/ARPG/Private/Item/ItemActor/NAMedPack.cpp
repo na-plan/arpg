@@ -41,6 +41,11 @@ bool ANAMedPack::UseItem(UNAItemData* InItemData, AActor* User) const
 
 	if (const FNARecoveryPackDataStructs* RecoveryPackData = InItemData->GetItemMetaDataStruct<FNARecoveryPackDataStructs>())
 	{
+		float RecoveryAmount = RecoveryPackData->RecoveryAmount;
+		if (RecoveryPackData->bIsPercentRecovery)
+		{
+			RecoveryAmount *= RecoveryPackData->RecoveryFactor;
+		}
 		// @TODO: 회복팩 사용 로직 -> User의 체력 스탯 끌고 오기
 		if ( const TScriptInterface<IAbilitySystemInterface>& Interface = User )
 		{
@@ -50,7 +55,7 @@ bool ANAMedPack::UseItem(UNAItemData* InItemData, AActor* User) const
 			const FGameplayEffectSpecHandle& SpecHandle = Interface->GetAbilitySystemComponent()->MakeOutgoingSpec
 			(
 				UNAGE_Heal::StaticClass(),
-				1.f, // todo: 메디팩 퀄리티에 따른 힐 증가 수치 배수 설정
+				RecoveryAmount, // todo: 메디팩 퀄리티에 따른 힐 증가 수치 배수 설정
 				Handle
 			);
 			SpecHandle.Data->SetSetByCallerMagnitude

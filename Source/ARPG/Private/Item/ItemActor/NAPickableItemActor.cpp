@@ -215,6 +215,6 @@ void ANAPickableItemActor::EndInteract_Implementation(AActor* Interactor)
 
 	if (!IsPendingKillPending())
 	{
-		ItemRootShape->SetGenerateOverlapEvents(true);
+		ItemCollision->SetGenerateOverlapEvents(true);
 	}
 }

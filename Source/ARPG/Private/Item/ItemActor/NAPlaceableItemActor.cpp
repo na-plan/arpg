@@ -1,7 +1,7 @@
 #include "Item/ItemActor/NAPlaceableItemActor.h"
 
 ANAPlaceableItemActor::ANAPlaceableItemActor(const FObjectInitializer& ObjectInitializer)
-	:Super(ObjectInitializer)
+	:Super(ObjectInitializer.DoNotCreateDefaultSubobject(TEXT("ItemMesh(Static)")))
 {
 }
 

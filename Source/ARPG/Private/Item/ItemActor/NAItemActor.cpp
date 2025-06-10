@@ -5,22 +5,31 @@
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Interaction/NAInteractionComponent.h"
-#include "Components/BillboardComponent.h"
-#include "Components/TextRenderComponent.h"
 #include "GeometryCollection/GeometryCollectionObject.h"
+#include "Item/ItemWidget/NAItemWidgetComponent.h"
 
 
 ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	ItemRootShape = CreateDefaultSubobject<USphereComponent>(TEXT("ItemRootShape(Sphere)"));
-	ItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh(Static)"));
+	RootSphere = CreateDefaultSubobject<USphereComponent>("RootSphere");
+	SetRootComponent(RootSphere);
+	RootSphere->SetSphereRadius(100.0f);
 	
-	ItemInteractionButton = CreateDefaultSubobject<UBillboardComponent>(TEXT("ItemInteractionButton"));
-	ItemInteractionButton->SetupAttachment(ItemMesh);
-	
-	ItemInteractionButtonText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("ItemInteractionButtonText"));
-	ItemInteractionButtonText->SetupAttachment(ItemInteractionButton);
+	ItemCollision = CreateOptionalDefaultSubobject<USphereComponent>(TEXT("ItemCollision(Sphere)"));
+	if (ItemCollision)
+	{
+		ItemCollision->SetupAttachment(RootSphere);
+	}
+	ItemMesh = CreateOptionalDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh(Static)"));
+	if (ItemMesh)
+	{
+		ItemMesh->SetupAttachment(RootSphere);
+	}
+
+	ItemWidgetComponent = CreateDefaultSubobject<UNAItemWidgetComponent>(TEXT("ItemWidgetComponent"));
+	ItemWidgetComponent->SetupAttachment(RootSphere);
+	// @TODO 위젯 컴포넌트 트랜스폼 설정
 	
 	ItemDataID = NAME_None;
 
@@ -64,39 +73,40 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	
 	EItemSubobjDirtyFlags DirtyFlags = CheckDirtySubobjectFlags(MetaData);
 	FTransform CachedRootWorldTransform = GetRootComponent()->GetComponentTransform();
-	if (DirtyFlags != EItemSubobjDirtyFlags::MF_None)
+	
+	if (DirtyFlags != EItemSubobjDirtyFlags::ISDF_None)
 	{
 		EObjectFlags SubobjFlags = GetMaskedFlags(RF_PropagateToSubObjects);
 		
 		TArray<UActorComponent*> OldComponents;
 		OldComponents.Reset();
 		
-		if (EnumHasAnyFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_RootShape))
+		if (EnumHasAnyFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape))
 		{
-			if (IsValid(ItemRootShape))
+			if (IsValid(ItemCollision))
 			{
-				OldComponents.Emplace(ItemRootShape);
+				OldComponents.Emplace(ItemCollision);
 			}
 			
-			switch (MetaData->RootShapeType)
+			switch (MetaData->CollisionShape)
 			{
-			case EItemRootShapeType::IRT_Sphere:
-				ItemRootShape = NewObject<USphereComponent>(this, TEXT("ItemRootShape(Sphere)"), SubobjFlags);
+			case EItemCollisionShape::ICS_Sphere:
+				ItemCollision = NewObject<USphereComponent>(this, TEXT("ItemCollision(Sphere)"), SubobjFlags);
 				break;
-			case EItemRootShapeType::IRT_Box:
-				ItemRootShape = NewObject<UBoxComponent>(this, TEXT("ItemRootShape(Box)"), SubobjFlags);
+			case EItemCollisionShape::ICS_Box:
+				ItemCollision = NewObject<UBoxComponent>(this, TEXT("ItemCollision(Box)"), SubobjFlags);
 				break;
-			case EItemRootShapeType::IRT_Capsule:
-				ItemRootShape = NewObject<UCapsuleComponent>(this, TEXT("ItemRootShape(Capsule)"), SubobjFlags);
+			case EItemCollisionShape::ICS_Capsule:
+				ItemCollision = NewObject<UCapsuleComponent>(this, TEXT("ItemCollision(Capsule)"), SubobjFlags);
 				break;
 			default:
 				ensure(false);
 				break;
 			}
-			ensure(ItemRootShape != nullptr);
+			ensure(ItemCollision != nullptr);
 		}
 		
-		if (EnumHasAnyFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_Mesh))
+		if (EnumHasAnyFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_MeshType))
 		{
 			if (IsValid(ItemMesh))
 			{
@@ -119,16 +129,6 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			ensure(ItemMesh != nullptr);
 		}
 		
-		if (EnumHasAnyFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_IxButtonSprite))
-		{
-			ItemInteractionButton->SetSprite(MetaData->IconAssetData.IxButtonIcon);
-		}
-
-		if (EnumHasAnyFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_IxButtonText))
-		{
-			ItemInteractionButtonText->SetText(MetaData->InteractableData.InteractionName);
-		}
-		
 		if (!OldComponents.IsEmpty())
 		{
 			for (UActorComponent* OldComponent : OldComponents)
@@ -146,10 +146,9 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		}
 	}
 	
-	SetRootComponent(ItemRootShape);
-	ItemMesh->AttachToComponent(ItemRootShape, FAttachmentTransformRules::KeepRelativeTransform);
-	ItemInteractionButton->AttachToComponent(ItemMesh, FAttachmentTransformRules::KeepRelativeTransform);
-	ItemInteractionButtonText->AttachToComponent(ItemInteractionButton, FAttachmentTransformRules::KeepRelativeTransform);
+	ItemCollision->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	ItemMesh->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	ItemWidgetComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 
 	// 부모, 자식에서 Property로 설정된 컴포넌트들을 조회
 	TSet<UActorComponent*> SubObjsActorComponents;
@@ -197,17 +196,17 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		}
 	}
 	
-	if (USphereComponent* RootSphere = Cast<USphereComponent>(ItemRootShape))
+	if (USphereComponent* SphereCollision = Cast<USphereComponent>(ItemCollision))
 	{
-		RootSphere->SetSphereRadius(MetaData->RootSphereRadius);
+		SphereCollision->SetSphereRadius(MetaData->CollisionSphereRadius);
 	}
-	else if (UBoxComponent* RootBox = Cast<UBoxComponent>(ItemRootShape))
+	else if (UBoxComponent* BoxCollision = Cast<UBoxComponent>(ItemCollision))
 	{
-		RootBox->SetBoxExtent(MetaData->RootBoxExtent);
+		BoxCollision->SetBoxExtent(MetaData->CollisionBoxExtent);
 	}
-	else if (UCapsuleComponent* RootCapsule = Cast<UCapsuleComponent>(ItemRootShape))
+	else if (UCapsuleComponent* CapsuleCollision = Cast<UCapsuleComponent>(ItemCollision))
 	{
-		RootCapsule->SetCapsuleSize(MetaData->RootCapsuleSize.X, MetaData->RootCapsuleSize.Y);
+		CapsuleCollision->SetCapsuleSize(MetaData->CollisionCapsuleSize.X, MetaData->CollisionCapsuleSize.Y);
 	}
 	
 	if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(ItemMesh))
@@ -223,11 +222,12 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	}
 
 	// 트랜스폼 및 콜리전, 피직스 등등 설정 여기에
-	ItemRootShape->SetWorldTransform(CachedRootWorldTransform);
-	ItemRootShape->SetWorldScale3D(MetaData->RootShapeScaleFactor);
+	RootSphere->SetSphereRadius(MetaData->RootSphereRadius);
+	RootSphere->SetWorldTransform(CachedRootWorldTransform);
+	//RootSphere->SetWorldScale3D(MetaData->RootSphereScale);
+	ItemCollision->SetRelativeTransform(MetaData->CollisionTransform);
 	ItemMesh->SetRelativeTransform(MetaData->MeshTransform);
-	ItemInteractionButton->SetRelativeTransform(MetaData->IxButtonTransform);
-	ItemInteractionButtonText->SetRelativeTransform(MetaData->IxButtonTextTransform);
+	ItemWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, MetaData->RootSphereRadius * 1.5f));
 }
 
 void ANAItemActor::PostLoad()
@@ -264,7 +264,7 @@ void ANAItemActor::OnItemDataInitialized_Implementation()
 
 EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTableRow* MetaData) const
 {
-	EItemSubobjDirtyFlags DirtyFlags = EItemSubobjDirtyFlags::MF_None;
+	EItemSubobjDirtyFlags DirtyFlags = EItemSubobjDirtyFlags::ISDF_None;
 	
 	UClass* ItemClass = GetClass();
 	if (!ItemClass)
@@ -278,32 +278,35 @@ EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTa
 		return DirtyFlags;
 	}
 	
-	if (!IsValid(ItemRootShape))
+	if (!IsValid(ItemCollision))
 	{
-		EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_RootShape);
+		EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
 	}
 	else
 	{
-		switch (MetaData->RootShapeType)
+		switch (MetaData->CollisionShape)
 		{
-		case EItemRootShapeType::IRT_Sphere:
-			if (!ItemRootShape->IsA<USphereComponent>())
+		case EItemCollisionShape::ICS_Sphere:
+			if (!ItemCollision->IsA<USphereComponent>()
+				|| ItemCollision->GetName() != FString(TEXT("ItemCollision(Sphere)")))
 			{
-				EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_RootShape);
+				EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
 			}
 			break;
 		
-		case EItemRootShapeType::IRT_Box:
-			if (!ItemRootShape->IsA<UBoxComponent>())
+		case EItemCollisionShape::ICS_Box:
+			if (!ItemCollision->IsA<UBoxComponent>()
+				|| ItemCollision->GetName() != FString(TEXT("ItemCollision(Box)")))
 			{
-				EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_RootShape);
+				EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
 			}
 			break;
 		
-		case EItemRootShapeType::IRT_Capsule:
-			if (!ItemRootShape->IsA<UCapsuleComponent>())
+		case EItemCollisionShape::ICS_Capsule:
+			if (!ItemCollision->IsA<UCapsuleComponent>()
+				|| ItemCollision->GetName() != FString(TEXT("ItemCollision(Capsule)")))
 			{
-				EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_RootShape);
+				EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
 			}
 			break;
 		
@@ -316,7 +319,7 @@ EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTa
 	if (!IsValid(ItemMesh))
 	{
 		EnumAddFlags(DirtyFlags,
-			EItemSubobjDirtyFlags::MF_Mesh);
+			EItemSubobjDirtyFlags::ISDF_MeshType);
 	}
 	else
 	{
@@ -326,7 +329,7 @@ EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTa
 			if (!ItemMesh->IsA<UStaticMeshComponent>())
 			{
 				EnumAddFlags(DirtyFlags,
-					EItemSubobjDirtyFlags::MF_Mesh);
+					EItemSubobjDirtyFlags::ISDF_MeshType);
 			}
 			break;
 		
@@ -334,7 +337,7 @@ EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTa
 			if (!ItemMesh->IsA<USkeletalMeshComponent>())
 			{
 				EnumAddFlags(DirtyFlags,
-					EItemSubobjDirtyFlags::MF_Mesh);
+					EItemSubobjDirtyFlags::ISDF_MeshType);
 			}
 			break;
 		
@@ -344,24 +347,24 @@ EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTa
 		}
 	}
 
-	if (!ensure(IsValid(ItemInteractionButton)))
-	{
-		return DirtyFlags;
-	}
-	if (MetaData->IconAssetData.IxButtonIcon != ItemInteractionButton->Sprite)
-	{
-		EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_IxButtonSprite);
-	}
-
-	if (!ensure(IsValid(ItemInteractionButtonText)))
-	{
-		return DirtyFlags;
-	}
-	
-	if (MetaData->InteractableData.InteractionName.ToString() != ItemInteractionButtonText->Text.ToString())
-	{
-		EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_IxButtonText);
-	}
+	// if (!ensure(IsValid(ItemInteractionButton)))
+	// {
+	// 	return DirtyFlags;
+	// }
+	// if (MetaData->IconAssetData.IxButtonIcon != ItemInteractionButton->Sprite)
+	// {
+	// 	EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_IxButtonSprite);
+	// }
+	//
+	// if (!ensure(IsValid(ItemInteractionButtonText)))
+	// {
+	// 	return DirtyFlags;
+	// }
+	//
+	// if (MetaData->InteractableData.InteractionName.ToString() != ItemInteractionButtonText->Text.ToString())
+	// {
+	// 	EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_IxButtonText);
+	// }
 	
 	return DirtyFlags;
 }
@@ -434,7 +437,7 @@ bool ANAItemActor::HasValidItemID() const
 
 bool ANAItemActor::CanInteract_Implementation() const
 {
-	return IsValid(ItemRootShape) && InteractableInterfaceRef != nullptr;
+	return IsValid(ItemCollision) && InteractableInterfaceRef != nullptr;
 }
 
 // bool ANAItemActor::CanInteract_Implementation() const
@@ -511,6 +514,6 @@ void ANAItemActor::DisableOverlapDuringInteraction()
 {
 	if (Execute_IsOnInteract(this))
 	{
-		ItemRootShape->SetGenerateOverlapEvents(false);
+		ItemCollision->SetGenerateOverlapEvents(false);
 	}
 }

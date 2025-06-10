@@ -4,7 +4,7 @@
 #include "Inventory/Widget/NAInventoryWidget.h"
 
 #include "Item/ItemData/NAItemData.h"
-#include "Inventory/NAInventoryComponent.h"
+#include "Inventory/Component/NAInventoryComponent.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
 #include "Components/Image.h"

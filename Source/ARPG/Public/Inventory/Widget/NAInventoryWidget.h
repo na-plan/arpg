@@ -57,14 +57,15 @@ class ARPG_API UNAInventoryWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
-public:
+protected:
 	// CreateWidget으로 위젯 인스턴스가 생성되고 나서 호출됨
 	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	
 	//void FillSlotButtonMapFromArrays(TMap<FName, TWeakObjectPtr<UButton>>& OutSlotButtons) const;
-	
+
+public:
 	bool HaveInvenSlotWidgetsBound() const { return bHaveInvenSlotsMapped; }
 	bool HaveWeaponSlotWidgetsBound() const { return bHaveWeaponSlotsMapped; }
 

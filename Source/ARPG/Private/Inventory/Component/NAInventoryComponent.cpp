@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Inventory/NAInventoryComponent.h"
+#include "Inventory/Component/NAInventoryComponent.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Inventory/GameInstance/NAInventoryGameInstanceSubsystem.h"
@@ -39,7 +39,6 @@ UNAInventoryComponent::UNAInventoryComponent()
 	OpacityFromTexture = 1.f;
 	SetBlendMode(EWidgetBlendMode::Masked);
 	bIsTwoSided = true;
-	SetDrawSize(FVector2D(1024, 576));
 	
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{

@@ -101,23 +101,15 @@ void FNAItemBaseTableRow::OnDataTableChanged(const UDataTable* InDataTable, cons
 		
 		if (!InRowName.IsNone())
 		{
-			FString ItemNameStr = TextData.Name.ToString();
-			ItemNameStr.RemoveSpacesInline();
-			if ( !ItemNameStr.Equals(InRowName.ToString()))
-			{
-				FString NewItemName = InsertSpacesBeforeUppercaseSmart(InRowName.ToString());
-				TextData.Name = FText::FromString(NewItemName);
-			}
+			FString NewItemName = InsertSpacesBeforeUppercaseSmart(InRowName.ToString());
+			TextData.Name = FText::FromString(NewItemName);
 		}
 
 		if (InteractableData.InteractableType != ENAInteractableType::None)
 		{
 			FString EnumStr = EnumToDisplayString(InteractableData.InteractableType);
-
-			if (InteractableData.InteractionName.ToString() != EnumStr)
-			{
-				InteractableData.InteractionName = FText::FromString(EnumStr);
-			}
+			EnumStr = InsertSpacesBeforeUppercaseSmart(EnumStr);
+			InteractableData.InteractionName = FText::FromString(EnumStr);
 		}
 	}
 }
