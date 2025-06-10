@@ -36,6 +36,10 @@ void UNAAnimNotifyState_Suplex::NotifyBegin(USkeletalMeshComponent* MeshComp, UA
 				ContextHandle.SetAbility(OwnerASC->GetAnimatingAbility());
 				ContextHandle.AddSourceObject(this);
 				SpecHandle = OwnerASC->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1.f, ContextHandle);
+				if ( const UNAMontageCombatComponent* CombatComponent = MeshComp->GetOwner()->GetComponentByClass<UNAMontageCombatComponent>() )
+				{
+					SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( "Data.Damage" ), -CombatComponent->GetBaseDamage() );
+				}
 			}
 		}
 		// 서버와 클라이언트 간 플레이어 컨트롤러 설정 동기화
@@ -202,6 +206,10 @@ void UNAAnimNotifyState_Suplex::NotifyTick(USkeletalMeshComponent* MeshComp, UAn
 							AnimInstance->Montage_Play(SuplexedMontage);
 
 							FGameplayEffectSpecHandle PlayerSpecHandle = PlayerASC->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), Damage, ContextHandle);
+							if ( const UNAMontageCombatComponent* CombatComponent = MeshComp->GetOwner()->GetComponentByClass<UNAMontageCombatComponent>() )
+							{
+								SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( "Data.Damage" ), -CombatComponent->GetBaseDamage() );
+							}
 							OwnerASC->ApplyGameplayEffectSpecToTarget(*PlayerSpecHandle.Data.Get(), OwnerASC);
 
 						}

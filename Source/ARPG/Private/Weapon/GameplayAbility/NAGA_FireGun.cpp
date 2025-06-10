@@ -68,6 +68,13 @@ void UNAGA_FireGun::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 		return;
 	}
 
+	UNAMontageCombatComponent* CombatComponent = ActorInfo->AvatarActor->GetComponentByClass<UNAMontageCombatComponent>();
+	if ( !CombatComponent )
+	{
+		EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
+		return;
+	}
+
 	if ( HasAuthority( &ActivationInfo ) )
 	{
 		FGameplayEffectContextHandle ContextHandle = ActorInfo->AbilitySystemComponent->MakeEffectContext();
@@ -100,6 +107,7 @@ void UNAGA_FireGun::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 			if ( TScriptInterface<IAbilitySystemInterface> TargetInterface = Result.GetActor() )
 			{
 				FGameplayEffectSpecHandle SpecHandle = ActorInfo->AbilitySystemComponent->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1.f, ContextHandle);
+				SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( TEXT( "Data.Damage" ) ), -CombatComponent->GetBaseDamage() );
 				ActorInfo->AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetInterface->GetAbilitySystemComponent());
 			}
 		}
@@ -131,12 +139,9 @@ void UNAGA_FireGun::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 		ActorInfo->AbilitySystemComponent->ExecuteGameplayCue( FGameplayTag::RequestGameplayTag( TEXT( "GameplayCue.Gun.Fire" ) ), Parameters );
 	}
 
-	if ( UNAMontageCombatComponent* CombatComponent = ActorInfo->AvatarActor->GetComponentByClass<UNAMontageCombatComponent>() )
+	if ( const TScriptInterface<IAbilitySystemInterface> Interface = ActorInfo->OwnerActor.Get() )
 	{
-		if ( const TScriptInterface<IAbilitySystemInterface> Interface = ActorInfo->OwnerActor.Get() )
-		{
-			Interface->GetAbilitySystemComponent()->PlayMontage( this, ActivationInfo, CombatComponent->GetMontage(), CombatComponent->GetMontagePlayRate() );
-		}
+		Interface->GetAbilitySystemComponent()->PlayMontage( this, ActivationInfo, CombatComponent->GetMontage(), CombatComponent->GetMontagePlayRate() );
 	}
 }
 

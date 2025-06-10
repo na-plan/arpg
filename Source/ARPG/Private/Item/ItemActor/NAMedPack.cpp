@@ -50,10 +50,14 @@ bool ANAMedPack::UseItem(UNAItemData* InItemData, AActor* User) const
 			const FGameplayEffectSpecHandle& SpecHandle = Interface->GetAbilitySystemComponent()->MakeOutgoingSpec
 			(
 				UNAGE_Heal::StaticClass(),
-				RecoveryPackData->RecoveryAmount,
+				1.f, // todo: 메디팩 퀄리티에 따른 힐 증가 수치 배수 설정
 				Handle
 			);
-			
+			SpecHandle.Data->SetSetByCallerMagnitude
+			(
+				FGameplayTag::RequestGameplayTag( TEXT( "Data.Heal" ) ),
+				RecoveryPackData->RecoveryAmount
+			);
 			const FActiveGameplayEffectHandle& EventResult = Interface->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf( *SpecHandle.Data.Get() );
 			return EventResult.WasSuccessfullyApplied(); // 성공 했냐? 안했냐?
 			
