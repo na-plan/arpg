@@ -311,6 +311,8 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		
 		EnhancedInputComponent->BindAction(MedPackShortcutAction, ETriggerEvent::Started, this, &ANACharacter::UseMedPackByShortcut);
 		EnhancedInputComponent->BindAction(StasisPackShortcutAction, ETriggerEvent::Started, this, &ANACharacter::UseStasisPackByShortcut);
+
+		EnhancedInputComponent->BindAction(RightMouseAttackAction, ETriggerEvent::Started, this, &ANACharacter::Zoom);
 	}
 	else
 	{
@@ -523,6 +525,75 @@ void ANACharacter::StopLeftMouseAttack()
 		if ( DefaultCombatComponent->IsAttacking() )
 		{
 			DefaultCombatComponent->StopAttack();	
+		}
+	}
+}
+
+void ANACharacter::Zoom()
+{
+	//UDefaultAnimInstance* PlayerAniminstance = Cast<UDefaultAnimInstance>(GetMesh()->GetAnimInstance());
+
+	//아이템 열었을때 줌 못하도록 하기
+	//Changed Pressed
+	//UpperBody 사용하도록 바꿔야함 + 상체 고정 필요
+	bool boolCheck = false;
+
+	// zoom 여부 가지고 오고
+	if (DefaultCombatComponent->IsZooming())
+	{
+		// zoom 가능한지 가지고 옴 -> 가능하면 줌을 실행하도록 함-> 클라는 서버에 서버는 처리된걸 받아서 클라에게 보내고
+		// 각 animinstance에 해당 zoom값을 보내서 애니메이션을 바꾸도록 해야한다
+		DefaultCombatComponent->IsAbleToZoom();
+	}
+
+
+	//리슨서버 호스트에서 작동
+	if (HasAuthority())
+	{
+		bool ReceiveServer = true;
+
+		// IsZoom 대신 combat component에서 만들어가지고 해당 값을 가지고 오도록 하는게 좋을거 같음
+		//DefaultCombatComponent->IsZooming();
+
+		// zoom 상태
+		if (DefaultCombatComponent->IsZooming())
+		{
+			//Zoom 상태 돌입
+			//GetMesh()->SetOwnerNoSee(true);
+			CameraBoom->AddRelativeLocation(FVector(0, 0, 30));
+			CameraBoom->TargetArmLength = 0;
+			//IsZoom = true;
+			bUseControllerRotationYaw = true;
+		}
+		//Zoom 상태 해제
+		else if (!DefaultCombatComponent->IsZooming())
+		{
+			//GetMesh()->SetOwnerNoSee(false);
+			CameraBoom->AddRelativeLocation(FVector(0, 0, -30));
+			//IsZoom = false;
+			CameraBoom->TargetArmLength = 200;
+			bUseControllerRotationYaw = false;
+		}
+	}
+	// 클라에서 작동
+	else
+	{
+		//ServerZoomIn(); // 클라이언트에서 서버로 요청
+		bool SendToServer = true;
+		if (DefaultCombatComponent->IsZooming())
+		{
+			//Zoom 상태 돌입
+			//GetMesh()->SetOwnerNoSee(true);
+			FollowCamera->AddRelativeLocation(FVector(200, 0, 30));
+			//IsZoom = true;
+			bUseControllerRotationYaw = true;
+		}
+		else if (!DefaultCombatComponent->IsZooming())
+		{
+			//GetMesh()->SetOwnerNoSee(false);
+			FollowCamera->AddRelativeLocation(FVector(-200, 0, -30));
+			//IsZoom = false;
+			bUseControllerRotationYaw = false;
 		}
 	}
 }

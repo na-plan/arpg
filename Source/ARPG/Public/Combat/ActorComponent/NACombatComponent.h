@@ -35,6 +35,10 @@ class ARPG_API UNACombatComponent : public UActorComponent
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_CanAttack, meta=(AllowPrivateAccess="true"))
 	bool bCanGrab = false;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_CanAttack, meta = (AllowPrivateAccess = "true"))
+	bool bIsZoom = false;
+
+
 	// 공격을 시전하는 객체가 부모 객체인가?
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
 	bool bConsiderChildActor = false;
@@ -51,6 +55,9 @@ class ARPG_API UNACombatComponent : public UActorComponent
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
 	TSubclassOf<UGameplayAbility> GrabAbility;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<UGameplayAbility> ZoomAbility;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
 	TSubclassOf<UGameplayEffect> AmmoType;
@@ -78,6 +85,8 @@ public:
 
 	void SetGrabAbility(const TSubclassOf<UGameplayAbility>& InAbility);
 
+	void SetZoomAbility(const TSubclassOf<UGameplayAbility>& InAbility);
+
 	TSubclassOf<UGameplayEffect> GetAmmoType() const;
 	
 
@@ -94,11 +103,20 @@ public:
 	// 공격을 중단
 	UFUNCTION()
 	void StopAttack();
+
+	// Toggle 형태로 
+	UFUNCTION()
+	void ZoomToggle();
 	
 	// 공격이 가능한 상태인지 확인
 	virtual bool IsAbleToAttack();
 
+	// 아이템창을 열고 있으면 불가능 하도록 할 예정
+	virtual bool IsAbleToZoom();
+
 	bool IsAttacking() const { return bAttacking; }
+
+	bool IsZooming() const { return bIsZoom; }
 
 	void SetConsiderChildActor( const bool InConsiderChildActor );
 
@@ -108,6 +126,9 @@ public:
 	
 	UFUNCTION( Server, Reliable )
 	void Server_RequestAttackAbility();
+
+	UFUNCTION(Server, Reliable)
+	void Server_RequestZoom();
 	
 protected:
 	
@@ -123,9 +144,22 @@ protected:
 
 	void UpdateAttackAbilityToASC( bool bOnlyRemove );
 
+	// 서버에 zoom 던저주는 작업
+	void SetZooming(bool NewZoom);
+
 	// 공격 값이 바뀌고 난 후 수행할 작업
 	virtual void PostSetAttack();
 
+	// 줌 상태 클라이언트 -> 서버 상태 업데이트 요청
+	//UFUNCTION(Server, Reliable, WithValidation)
+	//void Server_SetZoom(const bool NewAttack);
+	//Server_SetZoom_Implementation 만들어야함
+
+	// 줌 상태 서버 -> 클라이언트 강제 업데이트
+	//UFUNCTION(Server, Reliable)
+	//void Client_SyncZoom(const bool NewFire);
+	//Client_SyncZoom_Implementation 만들어야함
+	
 	// 공격 상태 클라이언트 -> 서버 상태 업데이트 요청
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SetAttack(const bool NewAttack);

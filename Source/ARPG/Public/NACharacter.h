@@ -56,6 +56,7 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Asset", meta=(AllowPrivateAccess="true"))
 	FName AssetName;
 
+
 	// 상호작용 컴포넌트, RPC 사용을 위해 Replication
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Interaction", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UNAInteractionComponent> InteractionComponent;
@@ -94,6 +95,10 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
 	UInputAction* LeftMouseAttackAction;
+
+	/* Zoom Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* RightMouseAttackAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
 	UInputAction* ReviveAction;
@@ -164,6 +169,10 @@ protected:
 	// 오른 클릭으로 공격을 시작할 경우
 	UFUNCTION()
 	void StopLeftMouseAttack();
+
+	// 무기 Zoom 상태 
+	UFUNCTION()
+	void Zoom();
 
 	// Interaction Input
 	UFUNCTION()
