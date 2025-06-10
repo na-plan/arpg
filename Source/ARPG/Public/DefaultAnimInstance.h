@@ -20,7 +20,6 @@ public:
 
 	void SetAimRotation(const FRotator& NewAimRotation) { AimRotation = NewAimRotation; }
 	const FRotator& GetAimRotation() { return AimRotation; }
-
 protected:
 	UPROPERTY()
 	class UPawnMovementComponent* MovementComponent;
@@ -58,7 +57,7 @@ protected:
 
 	//Playerable Character Var
 	UPROPERTY(BlueprintReadOnly)
-	bool ZoomAnim;
+	bool ZoomAim;
 	
 	
 	

@@ -42,7 +42,7 @@ void UDefaultAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	APawn* Pawn = TryGetPawnOwner();
 	FRotator Rotation = Pawn->GetActorRotation();
-	
+	//
 	Direction = CalculateDirection(MovementComponent->Velocity, Rotation);
 
 	if (const TScriptInterface<INAHandActor>& HandActor = Pawn)
@@ -56,6 +56,7 @@ void UDefaultAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		if ( const ANAPlayerState* PlayerState = Character->GetPlayerState<ANAPlayerState>() )
 		{
 			bShouldCrawl = PlayerState->IsKnockDown();
+			ZoomAim = Character->IsZoom();
 		}
 	}
 

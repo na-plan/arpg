@@ -75,6 +75,9 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Replicated, Category = "Combat", meta=(AllowPrivateAccess="true"))
 	UNAMontageCombatComponent* DefaultCombatComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_Zoom, Category = "AnimInstance", meta = (AllowPrivateAccess = "true"))
+	bool bIsZoom;
+
 	
 // Default MappingContext & Input Actions //////////////////////////////////////////////////////////////////////////////
 	
@@ -141,6 +144,8 @@ public:
 	
 	virtual void OnConstruction(const FTransform& Transform) override;
 
+	bool IsZoom() const { return bIsZoom; }
+
 protected:
 	void SetChildActorOwnership( AActor* Actor );
 	
@@ -170,9 +175,19 @@ protected:
 	UFUNCTION()
 	void StopLeftMouseAttack();
 
+	UFUNCTION()
+	void OnRep_Zoom();
+
 	// 무기 Zoom 상태 
 	UFUNCTION()
 	void Zoom();
+
+	void ZoomImpl(bool bZoom);
+
+	void SetZoom();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerSetZoom(bool bZoom);
 
 	// Interaction Input
 	UFUNCTION()
