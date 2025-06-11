@@ -29,6 +29,11 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 
 	ItemWidgetComponent = CreateDefaultSubobject<UNAItemWidgetComponent>(TEXT("ItemWidgetComponent"));
 	ItemWidgetComponent->SetupAttachment(RootSphere);
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface>
+		ItemWidgetMaterial(TEXT(
+			"/Script/Engine.MaterialInstanceConstant'/Engine/EngineMaterials/Widget3DPassThrough_Translucent.Widget3DPassThrough_Translucent'"));
+	check(ItemWidgetMaterial.Object);
+	ItemWidgetComponent->SetMaterial(0, ItemWidgetMaterial.Object);
 	// @TODO 위젯 컴포넌트 트랜스폼 설정
 	
 	ItemDataID = NAME_None;
@@ -76,7 +81,7 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	
 	if (DirtyFlags != EItemSubobjDirtyFlags::ISDF_None)
 	{
-		EObjectFlags SubobjFlags = GetMaskedFlags(RF_PropagateToSubObjects);
+		EObjectFlags SubobjFlags = GetMaskedFlags(RF_PropagateToSubObjects) | RF_Transient;
 		
 		TArray<UActorComponent*> OldComponents;
 		OldComponents.Reset();

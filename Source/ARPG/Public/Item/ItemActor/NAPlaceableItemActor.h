@@ -10,7 +10,8 @@ class ARPG_API ANAPlaceableItemActor : public ANAItemActor
 
 public:
 	ANAPlaceableItemActor(const FObjectInitializer& ObjectInitializer);
-	
+
+	virtual void PostInitProperties() override;
 	virtual void PostRegisterAllComponents() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void PostInitializeComponents() override;

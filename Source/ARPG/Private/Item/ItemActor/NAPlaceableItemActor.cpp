@@ -1,8 +1,24 @@
 #include "Item/ItemActor/NAPlaceableItemActor.h"
 
 ANAPlaceableItemActor::ANAPlaceableItemActor(const FObjectInitializer& ObjectInitializer)
-	:Super(ObjectInitializer.DoNotCreateDefaultSubobject(TEXT("ItemMesh(Static)")))
+	:Super(ObjectInitializer
+		.DoNotCreateDefaultSubobject(TEXT("ItemMesh(Static)"))
+		)
 {
+}
+
+void ANAPlaceableItemActor::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	for (UActorComponent* It : GetComponents().Array())
+	{
+		if (It->GetName().StartsWith(TEXT("ItemRootShape"))
+			|| It->GetName().StartsWith(TEXT("ItemMesh")))
+		{
+			It->DestroyComponent();
+		}
+	}
 }
 
 void ANAPlaceableItemActor::PostRegisterAllComponents()

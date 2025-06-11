@@ -108,9 +108,9 @@ private:
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Item Actor", meta = (AllowPrivateAccess = "true"))
 	FName ItemDataID;
 
-	//======================================================================================================================
-	// Interactable Interface Implements
-	//======================================================================================================================
+//======================================================================================================================
+// Interactable Interface Implements
+//======================================================================================================================
 public:
 	virtual bool CanInteract_Implementation() const override;
 	//virtual bool CanInteract_Implementation() const override;
