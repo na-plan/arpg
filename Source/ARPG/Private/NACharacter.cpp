@@ -23,7 +23,7 @@
 #include "DefaultAnimInstance.h"
 
 #include "Interaction/NAInteractionComponent.h"
-#include "Inventory/NAInventoryComponent.h"
+#include "Inventory/Component/NAInventoryComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Weapon/PickableItemActor/NAWeaponAmmoBox.h"
 

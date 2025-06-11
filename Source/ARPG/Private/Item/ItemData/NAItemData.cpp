@@ -4,7 +4,7 @@
 #include "Item/ItemActor/NAItemActor.h"
 #include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
 
-#include "Inventory/NAInventoryComponent.h"
+#include "Inventory/Component/NAInventoryComponent.h"
 #include "Item/NAItemUseInterface.h"
 
 // 프로그램 시작 시 0 에서 시작

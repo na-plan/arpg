@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/WidgetComponent.h"
-#include "NAInventoryCommonTypes.h"
+#include "Inventory/NAInventoryCommonTypes.h"
 #include "NAInventoryComponent.generated.h"
 
 

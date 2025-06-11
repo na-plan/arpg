@@ -5,7 +5,7 @@
 
 #include "NACharacter.h"
 #include "Item/ItemActor/NAItemActor.h"
-#include "Inventory/NAInventoryComponent.h"
+#include "Inventory/Component/NAInventoryComponent.h"
 
 
 // Sets default values for this component's properties

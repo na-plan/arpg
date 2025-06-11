@@ -31,7 +31,7 @@ struct FItemTextData
 {
 	GENERATED_BODY()
 
-	// RowName == ItemName
+	// RowName == ItemName(소문자-대문자 사이 공백 추가)
 	UPROPERTY(VisibleAnywhere, Category = "Item Text Data")
 	FText Name = FText::GetEmpty();
 
@@ -75,13 +75,13 @@ struct FNASkeletalMeshItemAssetData
 };
 
 UENUM(BlueprintType)
-enum class EItemRootShapeType : uint8
+enum class EItemCollisionShape : uint8
 {
-	IRT_None		UMETA(Hidden),
+	ICS_None		UMETA(Hidden),
 	
-	IRT_Sphere		UMETA(DisplayName = "Sphere"),
-	IRT_Box			UMETA(DisplayName = "Box"),
-	IRT_Capsule		UMETA(DisplayName = "Capsule"),
+	ICS_Sphere		UMETA(DisplayName = "Sphere"),
+	ICS_Box			UMETA(DisplayName = "Box"),
+	ICS_Capsule		UMETA(DisplayName = "Capsule"),
 };
 
 UENUM(BlueprintType)
@@ -152,25 +152,29 @@ struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, Category = "Item Base Data", meta=(BlueprintBaseOnly, AllowAbstract="false"))
 	TSubclassOf<ANAItemActor> ItemClass = nullptr;
 
-	UPROPERTY(EditAnywhere, Category = "Item Root Shape")
-	EItemRootShapeType RootShapeType = EItemRootShapeType::IRT_Sphere;
-
-	// Scale: 인스턴스 별로 다를 수 있음
-	// Scale Factor: 기본 스케일에 곱연산할 계수
-	UPROPERTY(EditAnywhere, Category = "Item Root Shape")
-	FVector RootShapeScaleFactor = FVector::OneVector;
+	UPROPERTY(EditAnywhere, Category = "Item Root Sphere", meta=(ClampMin=0))
+	float RootSphereRadius = 100.f;
 	
-	UPROPERTY(EditAnywhere, Category = "Item Root Shape",
-		meta=(EditCondition="RootShapeType==EItemRootShapeType::IRT_Sphere", EditConditionHides,ClampMin= "0.0"))
-	float RootSphereRadius = 0.f;
+	UPROPERTY(EditAnywhere, Category = "Item Root Sphere")
+	FVector RootSphereScale = FVector::OneVector;
+	
+	UPROPERTY(EditAnywhere, Category = "Item Collision Shape")
+	EItemCollisionShape CollisionShape = EItemCollisionShape::ICS_Sphere;
+	
+	UPROPERTY(EditAnywhere, Category = "Item Collision Shape",
+		meta=(EditCondition="CollisionShape==EItemCollisionShape::ICS_Sphere", EditConditionHides,ClampMin= "0.0"))
+	float CollisionSphereRadius = 0.f;
 
-	UPROPERTY(EditAnywhere, Category = "Item Root Shape",
-			meta=(EditCondition="RootShapeType==EItemRootShapeType::IRT_Box", EditConditionHides, ClampMin= "0.0"))
-	FVector RootBoxExtent = FVector::ZeroVector;
+	UPROPERTY(EditAnywhere, Category = "Item Collision Shape",
+			meta=(EditCondition="CollisionShape==EItemCollisionShape::ICS_Box", EditConditionHides, ClampMin= "0.0"))
+	FVector CollisionBoxExtent = FVector::ZeroVector;
 
-	UPROPERTY(EditAnywhere, Category = "Item Root Shape",
-			meta=(EditCondition="RootShapeType==EItemRootShapeType::IRT_Capsule", EditConditionHides, ClampMin= "0.0"))
-	FVector2D RootCapsuleSize = FVector2D::ZeroVector;
+	UPROPERTY(EditAnywhere, Category = "Item Collision Shape",
+			meta=(EditCondition="CollisionShape==EItemCollisionShape::ICS_Capsule", EditConditionHides, ClampMin= "0.0"))
+	FVector2D CollisionCapsuleSize = FVector2D::ZeroVector;
+
+	UPROPERTY(EditAnywhere, Category = "Item Collision Shape")
+	FTransform CollisionTransform = FTransform::Identity;
 	
 	/* ANAItemActor의 메쉬 타입*/
 	UPROPERTY(EditAnywhere, Category = "Item Mesh")
@@ -191,12 +195,6 @@ struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 	
 	UPROPERTY(EditAnywhere, Category ="Item Icon")
 	FNAIconAssetData IconAssetData;
-
-	UPROPERTY(EditAnywhere, Category ="Item Icon")
-	FTransform IxButtonTransform = FTransform::Identity;
-
-	UPROPERTY(EditAnywhere, Category ="Item Icon")
-	FTransform IxButtonTextTransform = FTransform::Identity;
 	
 	UPROPERTY(EditAnywhere, Category = "Item Text", meta=(ShowOnlyInnerProperties))
 	FItemTextData TextData;

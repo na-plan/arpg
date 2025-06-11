@@ -45,6 +45,9 @@ struct ARPG_API FNARecoveryPackDataStructs : public FNAItemBaseTableRow
 	UPROPERTY(EditAnywhere, Category = "Recovery", meta = (ClampMin = "0"))
 	float RecoveryAmount = 0.0f;
 
+	UPROPERTY(EditAnywhere, Category = "Recovery", meta = (ClampMin = "0"))
+	float RecoveryFactor = 0.f;
+
 	// 비율 기반 회복인지 여부 (true면 최대치의 %로 회복)
 	UPROPERTY(EditAnywhere, Category = "Recovery")
 	bool bIsPercentRecovery = false;
