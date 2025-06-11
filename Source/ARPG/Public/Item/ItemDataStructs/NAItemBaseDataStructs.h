@@ -77,7 +77,7 @@ struct FNASkeletalMeshItemAssetData
 UENUM(BlueprintType)
 enum class EItemCollisionShape : uint8
 {
-	ICS_None		UMETA(Hidden),
+	ICS_None		UMETA(DisplayName = "None"),
 	
 	ICS_Sphere		UMETA(DisplayName = "Sphere"),
 	ICS_Box			UMETA(DisplayName = "Box"),
@@ -87,7 +87,7 @@ enum class EItemCollisionShape : uint8
 UENUM(BlueprintType)
 enum class EItemMeshType : uint8
 {
-	IMT_None		UMETA(Hidden),
+	IMT_None		UMETA(DisplayName = "None"),
 	
 	IMT_Static		UMETA(DisplayName = "Static"),
 	IMT_Skeletal	UMETA(DisplayName = "Skeletal"),
@@ -152,12 +152,7 @@ struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, Category = "Item Base Data", meta=(BlueprintBaseOnly, AllowAbstract="false"))
 	TSubclassOf<ANAItemActor> ItemClass = nullptr;
 
-	UPROPERTY(EditAnywhere, Category = "Item Root Sphere", meta=(ClampMin=0))
-	float RootSphereRadius = 100.f;
-	
-	UPROPERTY(EditAnywhere, Category = "Item Root Sphere")
-	FVector RootSphereScale = FVector::OneVector;
-	
+	// None: 기본 생성자에서 DoNotCreateSubobject로 ItemCollision 생성 수정한 경우!! 반다시!! 이 플래그 써야함
 	UPROPERTY(EditAnywhere, Category = "Item Collision Shape")
 	EItemCollisionShape CollisionShape = EItemCollisionShape::ICS_Sphere;
 	
@@ -173,10 +168,12 @@ struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 			meta=(EditCondition="CollisionShape==EItemCollisionShape::ICS_Capsule", EditConditionHides, ClampMin= "0.0"))
 	FVector2D CollisionCapsuleSize = FVector2D::ZeroVector;
 
-	UPROPERTY(EditAnywhere, Category = "Item Collision Shape")
+	UPROPERTY(EditAnywhere, Category = "Item Collision Shape",
+		meta=(EditCondition="CollisionShape!=EItemCollisionShape::ICS_None", EditConditionHides))
 	FTransform CollisionTransform = FTransform::Identity;
 	
 	/* ANAItemActor의 메쉬 타입*/
+	// None: 기본 생성자에서 DoNotCreateSubobject로 ItemMesh 생성 수정한 경우!! 반다시!! 이 플래그 써야함
 	UPROPERTY(EditAnywhere, Category = "Item Mesh")
 	EItemMeshType MeshType = EItemMeshType::IMT_Static;
 	
@@ -190,7 +187,8 @@ struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 		meta=(EditCondition="MeshType==EItemMeshType::IMT_Skeletal", EditConditionHides))
 	FNASkeletalMeshItemAssetData SkeletalMeshAssetData;
 	
-	UPROPERTY(EditAnywhere, Category = "Item Mesh")
+	UPROPERTY(EditAnywhere, Category = "Item Mesh",
+		meta=(EditCondition="MeshType!=EItemMeshType::IMT_None", EditConditionHides))
 	FTransform MeshTransform = FTransform::Identity;
 	
 	UPROPERTY(EditAnywhere, Category ="Item Icon")

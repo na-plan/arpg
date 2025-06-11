@@ -2,9 +2,9 @@
 
 ANAPlaceableItemActor::ANAPlaceableItemActor(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer
-		.DoNotCreateDefaultSubobject(TEXT("ItemMesh(Static)"))
-		)
+		.DoNotCreateDefaultSubobject(TEXT("ItemMesh(Static)")))
 {
+	bUseItemMesh = false;
 }
 
 void ANAPlaceableItemActor::PostInitProperties()

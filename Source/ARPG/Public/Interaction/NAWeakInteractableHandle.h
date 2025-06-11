@@ -26,10 +26,15 @@ public:
 	
 	// TScriptInterface<INAInteractableInterface> 생성자
 	FWeakInteractableHandle(const TScriptInterface<INAInteractableInterface>& InInterface)
-		: ObjectPtr(Cast<UObject>(InInterface.GetObject()))
 	{
+		INAInteractableInterface* InRawInterface = InInterface.GetInterface();
+		UObject* Obj = InRawInterface ? InRawInterface->_getUObject() : nullptr;
+		ObjectPtr = Obj;
 		// 런타임에 인터페이스 구현 여부를 검증
-		check(ObjectPtr.IsValid() && ObjectPtr->Implements<UNAInteractableInterface>());
+		if (ObjectPtr != nullptr)
+		{
+			check(ObjectPtr.IsValid() && ObjectPtr->Implements<UNAInteractableInterface>());
+		}
 	}
 
 	// INAInteractableInterface* 생성자 
@@ -37,7 +42,10 @@ public:
 	{
 		UObject* Obj = InRawInterface ? InRawInterface->_getUObject() : nullptr;
 		ObjectPtr = Obj;
-		check(ObjectPtr.IsValid() && ObjectPtr->Implements<UNAInteractableInterface>());
+		if (ObjectPtr != nullptr)
+		{
+			check(ObjectPtr.IsValid() && ObjectPtr->Implements<UNAInteractableInterface>());
+		}
 	}
 
 	FWeakInteractableHandle(AActor* InActor)

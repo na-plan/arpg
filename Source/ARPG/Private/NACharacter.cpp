@@ -72,7 +72,7 @@ ANACharacter::ANACharacter()
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
-	GetCapsuleComponent()->SetCollisionObjectType( ECC_Pawn );
+	GetCapsuleComponent()->SetCollisionObjectType( ECC_Pawn); 
 		
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
@@ -589,13 +589,27 @@ void ANACharacter::TryInteract()
 {
 	if (ensure(InteractionComponent != nullptr))
 	{
-		if ( !HasAuthority() )
+		if (!InteractionComponent->HasPendingUseItem())
 		{
-			Server_BeginInteraction();
+			if ( !HasAuthority() )
+			{
+				Server_BeginInteraction();
+			}
+			else
+			{
+				InteractionComponent->StartInteraction();	
+			}
 		}
 		else
 		{
-			InteractionComponent->StartInteraction();	
+			if ( !HasAuthority() )
+			{
+				//Server_EndInteraction();
+			}
+			else
+			{
+				InteractionComponent->StopInteraction();	
+			}
 		}
 	}
 }

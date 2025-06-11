@@ -17,8 +17,6 @@ enum class EItemSubobjDirtyFlags : uint8
 	
 	ISDF_CollisionShape		= (1<<0),
 	ISDF_MeshType				= (1<<1),
-	//MF_IxButtonSprite	= (1<<4),
-	//MF_IxButtonText		= (1<<5)
 };
 ENUM_CLASS_FLAGS(EItemSubobjDirtyFlags)
 
@@ -42,6 +40,8 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	virtual void Tick(float DeltaTime) override;
+	
 	UFUNCTION(BlueprintCallable, Category = "Item Actor")
 	UNAItemData* GetItemData() const;
 
@@ -86,12 +86,16 @@ private:
 	void VerifyInteractableData();
 
 protected:
-	UPROPERTY(Instanced, VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Root Sphere")
-	TObjectPtr<class USphereComponent> RootSphere;
-	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Trigger Sphere")
+	TObjectPtr<class USphereComponent> TriggerSphere;
+
+	// Optional Subobject
+	uint8 bUseItemCollision :1 = false;
 	UPROPERTY(Instanced, VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Collision Shape")
 	TObjectPtr<UShapeComponent> ItemCollision;
-	
+
+	// Optional Subobject
+	uint8 bUseItemMesh :1 = false;
 	UPROPERTY(Instanced, VisibleAnywhere, Category = "Item Actor | Mesh")
 	TObjectPtr<UMeshComponent> ItemMesh;
 
@@ -123,7 +127,7 @@ public:
 
 	virtual bool IsOnInteract_Implementation() const override;
 	
-	virtual void DisableOverlapDuringInteraction() override;
+	virtual void DisableOverlapDuringInteraction(AActor* Interactor) override;
 
 protected:
 	/** 자기 자신(this)이 구현한 인터페이스를 보관 */

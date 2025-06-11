@@ -7,28 +7,38 @@
 #include "Interaction/NAInteractionComponent.h"
 #include "GeometryCollection/GeometryCollectionObject.h"
 #include "Item/ItemWidget/NAItemWidgetComponent.h"
+#include "Physics/PhysicsFiltering.h"
 
 
 ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	RootSphere = CreateDefaultSubobject<USphereComponent>("RootSphere");
-	SetRootComponent(RootSphere);
-	RootSphere->SetSphereRadius(100.0f);
+	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
+	
+	TriggerSphere = CreateDefaultSubobject<USphereComponent>("TriggerSphere");
+	TriggerSphere->SetupAttachment(RootComponent);
+	TriggerSphere->SetSphereRadius(100.0f);
+	TriggerSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	TriggerSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
+	TriggerSphere->CanCharacterStepUpOn = ECB_No;
+	TriggerSphere->SetCollisionResponseToChannel(ECC_Pawn, ECollisionResponse::ECR_Overlap); 
 	
 	ItemCollision = CreateOptionalDefaultSubobject<USphereComponent>(TEXT("ItemCollision(Sphere)"));
+	ItemMesh = CreateOptionalDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh(Static)"));
 	if (ItemCollision)
 	{
-		ItemCollision->SetupAttachment(RootSphere);
+		bUseItemCollision = true;
+		ItemCollision->SetupAttachment(RootComponent);
 	}
-	ItemMesh = CreateOptionalDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh(Static)"));
 	if (ItemMesh)
 	{
-		ItemMesh->SetupAttachment(RootSphere);
+		bUseItemMesh = true;
+		ItemMesh->SetupAttachment(ItemCollision);
 	}
-
+	
 	ItemWidgetComponent = CreateDefaultSubobject<UNAItemWidgetComponent>(TEXT("ItemWidgetComponent"));
-	ItemWidgetComponent->SetupAttachment(RootSphere);
+	ItemWidgetComponent->SetupAttachment(ItemCollision);
+	
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface>
 		ItemWidgetMaterial(TEXT(
 			"/Script/Engine.MaterialInstanceConstant'/Engine/EngineMaterials/Widget3DPassThrough_Translucent.Widget3DPassThrough_Translucent'"));
@@ -73,15 +83,19 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		InitItemData();
 	}
 
+	if (TriggerSphere->GetAttachParent() != GetRootComponent())
+	{
+		TriggerSphere->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	}
+	
 	const FNAItemBaseTableRow* MetaData = UNAItemEngineSubsystem::Get()->GetItemMetaDataByClass(GetClass());
 	if (!MetaData) { return; }
 	
 	EItemSubobjDirtyFlags DirtyFlags = CheckDirtySubobjectFlags(MetaData);
-	FTransform CachedRootWorldTransform = GetRootComponent()->GetComponentTransform();
 	
 	if (DirtyFlags != EItemSubobjDirtyFlags::ISDF_None)
 	{
-		EObjectFlags SubobjFlags = GetMaskedFlags(RF_PropagateToSubObjects) | RF_Transient;
+		EObjectFlags SubobjFlags = GetMaskedFlags(RF_PropagateToSubObjects);
 		
 		TArray<UActorComponent*> OldComponents;
 		OldComponents.Reset();
@@ -150,10 +164,22 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			OldComponents.Empty();
 		}
 	}
-	
-	ItemCollision->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-	ItemMesh->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-	ItemWidgetComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+
+	check(ItemCollision);
+	check(ItemWidgetComponent);
+	// 어태치먼트
+	if (ItemCollision->GetAttachParent() != GetRootComponent())
+	{
+		ItemCollision->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	}
+	if (ItemMesh->GetAttachParent() != ItemCollision)
+	{
+		ItemMesh->AttachToComponent(ItemCollision, FAttachmentTransformRules::KeepRelativeTransform);
+	}
+	if (ItemWidgetComponent->GetAttachParent() != ItemCollision)
+	{
+		ItemWidgetComponent->AttachToComponent(ItemCollision, FAttachmentTransformRules::KeepRelativeTransform);
+	}
 
 	// 부모, 자식에서 Property로 설정된 컴포넌트들을 조회
 	TSet<UActorComponent*> SubObjsActorComponents;
@@ -200,39 +226,44 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			}
 		}
 	}
-	
-	if (USphereComponent* SphereCollision = Cast<USphereComponent>(ItemCollision))
+
+	if (MetaData->CollisionShape != EItemCollisionShape::ICS_None)
 	{
-		SphereCollision->SetSphereRadius(MetaData->CollisionSphereRadius);
+		if (USphereComponent* SphereCollision = Cast<USphereComponent>(ItemCollision))
+		{
+			SphereCollision->SetSphereRadius(MetaData->CollisionSphereRadius);
+		}
+		else if (UBoxComponent* BoxCollision = Cast<UBoxComponent>(ItemCollision))
+		{
+			BoxCollision->SetBoxExtent(MetaData->CollisionBoxExtent);
+		}
+		else if (UCapsuleComponent* CapsuleCollision = Cast<UCapsuleComponent>(ItemCollision))
+		{
+			CapsuleCollision->SetCapsuleSize(MetaData->CollisionCapsuleSize.X, MetaData->CollisionCapsuleSize.Y);
+		}
+
+		ItemCollision->SetRelativeTransform(MetaData->CollisionTransform);
 	}
-	else if (UBoxComponent* BoxCollision = Cast<UBoxComponent>(ItemCollision))
+
+	if (MetaData->MeshType != EItemMeshType::IMT_None)
 	{
-		BoxCollision->SetBoxExtent(MetaData->CollisionBoxExtent);
-	}
-	else if (UCapsuleComponent* CapsuleCollision = Cast<UCapsuleComponent>(ItemCollision))
-	{
-		CapsuleCollision->SetCapsuleSize(MetaData->CollisionCapsuleSize.X, MetaData->CollisionCapsuleSize.Y);
-	}
-	
-	if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(ItemMesh))
-	{
-		StaticMeshComp->SetStaticMesh(MetaData->StaticMeshAssetData.StaticMesh);
-		ItemFractureCollection = MetaData->StaticMeshAssetData.FractureCollection;
-		ItemFractureCache =  MetaData->StaticMeshAssetData.FractureCache;
-	}
-	else if (USkeletalMeshComponent* SkeletalMeshComp = Cast<USkeletalMeshComponent>(ItemMesh))
-	{
-		SkeletalMeshComp->SetSkeletalMesh(MetaData->SkeletalMeshAssetData.SkeletalMesh);
-		SkeletalMeshComp->SetAnimClass(MetaData->SkeletalMeshAssetData.AnimClass);
+		if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(ItemMesh))
+		{
+			StaticMeshComp->SetStaticMesh(MetaData->StaticMeshAssetData.StaticMesh);
+			ItemFractureCollection = MetaData->StaticMeshAssetData.FractureCollection;
+			ItemFractureCache =  MetaData->StaticMeshAssetData.FractureCache;
+		}
+		else if (USkeletalMeshComponent* SkeletalMeshComp = Cast<USkeletalMeshComponent>(ItemMesh))
+		{
+			SkeletalMeshComp->SetSkeletalMesh(MetaData->SkeletalMeshAssetData.SkeletalMesh);
+			SkeletalMeshComp->SetAnimClass(MetaData->SkeletalMeshAssetData.AnimClass);
+		}
+
+		ItemMesh->SetRelativeTransform(MetaData->MeshTransform);
 	}
 
 	// 트랜스폼 및 콜리전, 피직스 등등 설정 여기에
-	RootSphere->SetSphereRadius(MetaData->RootSphereRadius);
-	RootSphere->SetWorldTransform(CachedRootWorldTransform);
-	//RootSphere->SetWorldScale3D(MetaData->RootSphereScale);
-	ItemCollision->SetRelativeTransform(MetaData->CollisionTransform);
-	ItemMesh->SetRelativeTransform(MetaData->MeshTransform);
-	ItemWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, MetaData->RootSphereRadius * 1.5f));
+	ItemWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, TriggerSphere->GetScaledSphereRadius() * 1.5f));
 }
 
 void ANAItemActor::PostLoad()
@@ -283,94 +314,75 @@ EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTa
 		return DirtyFlags;
 	}
 	
-	if (!IsValid(ItemCollision))
+	if (MetaData->CollisionShape != EItemCollisionShape::ICS_None && bUseItemCollision)
 	{
-		EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
-	}
-	else
-	{
-		switch (MetaData->CollisionShape)
+		if (!ItemCollision)
 		{
-		case EItemCollisionShape::ICS_Sphere:
-			if (!ItemCollision->IsA<USphereComponent>()
-				|| ItemCollision->GetName() != FString(TEXT("ItemCollision(Sphere)")))
+			EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
+		}
+		else
+		{
+			switch (MetaData->CollisionShape)
 			{
-				EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
-			}
-			break;
+			case EItemCollisionShape::ICS_Sphere:
+				if (!ItemCollision->IsA<USphereComponent>())
+				{
+					EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
+				}
+				break;
 		
-		case EItemCollisionShape::ICS_Box:
-			if (!ItemCollision->IsA<UBoxComponent>()
-				|| ItemCollision->GetName() != FString(TEXT("ItemCollision(Box)")))
-			{
-				EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
-			}
-			break;
+			case EItemCollisionShape::ICS_Box:
+				if (!ItemCollision->IsA<UBoxComponent>())
+				{
+					EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
+				}
+				break;
 		
-		case EItemCollisionShape::ICS_Capsule:
-			if (!ItemCollision->IsA<UCapsuleComponent>()
-				|| ItemCollision->GetName() != FString(TEXT("ItemCollision(Capsule)")))
-			{
-				EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
-			}
-			break;
+			case EItemCollisionShape::ICS_Capsule:
+				if (!ItemCollision->IsA<UCapsuleComponent>())
+				{
+					EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
+				}
+				break;
 		
-		default:
-			ensure(false);
-			break;
+			default:
+				ensure(false);
+				break;
+			}
 		}
 	}
 	
-	if (!IsValid(ItemMesh))
+	if (MetaData->MeshType != EItemMeshType::IMT_None && bUseItemMesh)
 	{
-		EnumAddFlags(DirtyFlags,
-			EItemSubobjDirtyFlags::ISDF_MeshType);
-	}
-	else
-	{
-		switch (MetaData->MeshType)
+		if (!ItemMesh)
 		{
-		case EItemMeshType::IMT_Static:
-			if (!ItemMesh->IsA<UStaticMeshComponent>())
+			EnumAddFlags(DirtyFlags,EItemSubobjDirtyFlags::ISDF_MeshType);
+		}
+		else
+		{
+			switch (MetaData->MeshType)
 			{
-				EnumAddFlags(DirtyFlags,
-					EItemSubobjDirtyFlags::ISDF_MeshType);
-			}
-			break;
+			case EItemMeshType::IMT_Static:
+				if (!ItemMesh->IsA<UStaticMeshComponent>())
+				{
+					EnumAddFlags(DirtyFlags,EItemSubobjDirtyFlags::ISDF_MeshType);
+				}
+				break;
 		
-		case EItemMeshType::IMT_Skeletal:
-			if (!ItemMesh->IsA<USkeletalMeshComponent>())
-			{
-				EnumAddFlags(DirtyFlags,
-					EItemSubobjDirtyFlags::ISDF_MeshType);
-			}
-			break;
+			case EItemMeshType::IMT_Skeletal:
+				if (!ItemMesh->IsA<USkeletalMeshComponent>())
+				{
+					EnumAddFlags(DirtyFlags,EItemSubobjDirtyFlags::ISDF_MeshType);
+				}
+				break;
 		
-		default:
-			ensure(false);
-			break;
+			default:
+				ensure(false);
+				break;
+			}
 		}
 	}
 
-	// if (!ensure(IsValid(ItemInteractionButton)))
-	// {
-	// 	return DirtyFlags;
-	// }
-	// if (MetaData->IconAssetData.IxButtonIcon != ItemInteractionButton->Sprite)
-	// {
-	// 	EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_IxButtonSprite);
-	// }
-	//
-	// if (!ensure(IsValid(ItemInteractionButtonText)))
-	// {
-	// 	return DirtyFlags;
-	// }
-	//
-	// if (MetaData->InteractableData.InteractionName.ToString() != ItemInteractionButtonText->Text.ToString())
-	// {
-	// 	EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::MF_IxButtonText);
-	// }
-	
 	return DirtyFlags;
 }
 
@@ -414,6 +426,7 @@ void ANAItemActor::BeginPlay()
 
 	if (GetItemData())
 	{
+		// 임시: 수량 랜덤
 		if (GetItemData()->IsStackableItem())
 		{
 			int32 RandomNumber = FMath::RandRange(1, GetItemData()->GetItemMaxSlotStackSize());
@@ -424,6 +437,17 @@ void ANAItemActor::BeginPlay()
 			GetItemData()->SetQuantity(1);
 		}
 	}
+
+	if (ItemWidgetComponent)
+	{
+		ItemWidgetComponent->SetVisibility(false);
+	}
+}
+
+void ANAItemActor::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
 }
 
 UNAItemData* ANAItemActor::GetItemData() const
@@ -442,7 +466,7 @@ bool ANAItemActor::HasValidItemID() const
 
 bool ANAItemActor::CanInteract_Implementation() const
 {
-	return IsValid(ItemCollision) && InteractableInterfaceRef != nullptr;
+	return IsValid(TriggerSphere) && InteractableInterfaceRef != nullptr;
 }
 
 // bool ANAItemActor::CanInteract_Implementation() const
@@ -494,6 +518,7 @@ void ANAItemActor::EndInteract_Implementation(AActor* InteractorActor)
 	{
 		bIsOnInteract = false;
 		InteractionComp->OnInteractionEnded(InteractableInterfaceRef);
+		InteractionComp->befajfl = false;
 		// @TODO: 상호작용 종료 시 필요한 로직이 있으면 여기에 추가, 상호작용 종료를 알리는 이벤트라고 생각하면 됨
 	}
 }
@@ -515,10 +540,13 @@ bool ANAItemActor::IsOnInteract_Implementation() const
 	return bIsOnInteract;
 }
 
-void ANAItemActor::DisableOverlapDuringInteraction()
+void ANAItemActor::DisableOverlapDuringInteraction(AActor* Interactor)
 {
 	if (Execute_IsOnInteract(this))
 	{
-		ItemCollision->SetGenerateOverlapEvents(false);
+		if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(Interactor))
+		{
+			TriggerSphere->SetGenerateOverlapEvents(false);
+		}
 	}
 }

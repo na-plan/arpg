@@ -14,7 +14,8 @@ class ARPG_API UNAItemWidgetComponent : public UWidgetComponent
 
 public:
 	// Sets default values for this component's properties
-	UNAItemWidgetComponent();
+	UNAItemWidgetComponent(const FObjectInitializer& ObjectInitializer);
+	virtual void PostInitProperties() override;
 
 protected:
 	// Called when the game starts
@@ -25,6 +26,8 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 
+
 protected:
-	uint8 bFacingCamera : 1 = false;
+	uint8 bFaceCamera : 1 = false;
+	void FaceCamera();
 };
