@@ -589,28 +589,28 @@ void ANACharacter::TryInteract()
 {
 	if (ensure(InteractionComponent != nullptr))
 	{
-		if (!InteractionComponent->HasPendingUseItem())
-		{
-			if ( !HasAuthority() )
-			{
-				Server_BeginInteraction();
-			}
-			else
-			{
-				InteractionComponent->StartInteraction();	
-			}
-		}
-		else
-		{
-			if ( !HasAuthority() )
-			{
-				//Server_EndInteraction();
-			}
-			else
-			{
-				InteractionComponent->StopInteraction();	
-			}
-		}
+		// if (!InteractionComponent->HasPendingUseItem())
+		// {
+		 	if ( !HasAuthority() )
+		 	{
+		 		Server_BeginInteraction();
+		 	}
+		 	else
+		 	{
+		 		InteractionComponent->StartInteraction();	
+		 	}
+		// }
+		// else
+		// {
+		// 	if ( !HasAuthority() )
+		// 	{
+		// 		//Server_EndInteraction();
+		// 	}
+		// 	else
+		// 	{
+		// 		InteractionComponent->StopInteraction();	
+		// 	}
+		// }
 	}
 }
 

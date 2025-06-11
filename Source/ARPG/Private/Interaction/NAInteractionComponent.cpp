@@ -366,7 +366,7 @@ void UNAInteractionComponent::SetPendingUseItem(TScriptInterface<INAInteractable
 {
 	if (InteractableActor)
 	{
-		bHasPendingUseItem = true;
+		//bHasPendingUseItem = true;
 		ActiveInteractable = InteractableActor;
 	}
 }
