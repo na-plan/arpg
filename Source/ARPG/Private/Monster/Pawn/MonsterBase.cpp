@@ -16,6 +16,7 @@
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 
 #include "HP/GameplayEffect/NAGE_Damage.h"
+#include "Monster/DataTable/MonsterOwnTableRow.h"
 
 //DEFINE_LOG_CATEGORY(LogTemplateMonster);
 
@@ -61,6 +62,12 @@ AMonsterBase::AMonsterBase()
 	AIPerceptionComponent->ConfigureSense(*AISenseConfig_Sight);
 	
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent->SetIsReplicated(true);
+	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
+
+	
+
+
 	//DefaultCombatComponent = CreateDefaultSubobject<UNAMontageCombatComponent>(TEXT("DefaultCombatComponent"));
 
 	AutoPossessAI = EAutoPossessAI::Spawned;
@@ -87,7 +94,13 @@ void AMonsterBase::PossessedBy(AController* NewController)
 		}
 
 		SetOwner(NewController);
+
+		SetAttributeData(OwnStatData);
 	}
+
+
+
+
 }
 
 // Called when the game starts or when spawned
@@ -105,6 +118,29 @@ void AMonsterBase::BeginPlay()
 		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_UseSkill::StaticClass(), 1, 0));
 
 	}
+
+}
+
+void AMonsterBase::SetAttributeData(const FDataTableRowHandle& InDataTableRowHandle)
+{		
+	
+	if (FMonsterOwnTable* Data = InDataTableRowHandle.GetRow<FMonsterOwnTable>(TEXT("MonsterStatData")))
+	{
+		const UAttributeSet* MonsterAttribute = AbilitySystemComponent->GetAttributeSet(UNAAttributeSet::StaticClass());
+
+		AbilitySystemComponent->SetNumericAttributeBase(UNAAttributeSet::GetMaxHealthAttribute(), Data->MaxHealth);
+		AbilitySystemComponent->SetNumericAttributeBase(UNAAttributeSet::GetHealthAttribute(), Data->Health);
+		AbilitySystemComponent->SetNumericAttributeBase(UNAAttributeSet::GetMovementSpeedAttribute(), Data->MovementSpeed);
+		MovementComponent->MaxSpeed = Data->MovementSpeed;
+	}
+	// Failed
+	else
+	{
+		//DataTable을 만들어 주세요
+		Data = nullptr;
+
+	}
+
 
 }
 
@@ -169,10 +205,48 @@ void AMonsterBase::OnDie()
 
 }
 
+void AMonsterBase::initializeAttribute(const FOnAttributeChangeData& Data)
+{
+	// 처음으로 체력이 0 이하가 될때
+	if (Data.NewValue <= 0.f && Data.OldValue > 0.f)
+	{
+		OnHealthDepleted();
+	}
+	float m_fHealth = Cast<UNAAttributeSet>(AbilitySystemComponent->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();
+	float m_fMaxHealth = Cast<UNAAttributeSet>(AbilitySystemComponent->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetMaxHealth();
+	float HealthRatio = m_fHealth / m_fMaxHealth;
+	// 보스몹은 일정 체력 이하일때만 suplex 사용 가능하도록 처리
+	if (m_fHealth<=100)
+	{
+		//suplex 가능하도록 여기에 추가
+	}
+
+
+
+}
+
+void AMonsterBase::OnHealthDepleted()
+{
+	// 서버에서 작업
+	if (HasAuthority())
+	{
+		// 사망 처리
+		OnDie();
+	}
+}
+
 // Called every frame
 void AMonsterBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	
+	if (AbilitySystemComponent)
+	{
+		float m_fHealth = Cast<UNAAttributeSet>(AbilitySystemComponent->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();
+		
+	}
+
+
 }
 
 
