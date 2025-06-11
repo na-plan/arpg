@@ -72,7 +72,7 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
 	void NotifyInteractableFocusEnd(AActor* InteractableActor, AActor* InteractorActor);
 
-	virtual void DisableOverlapDuringInteraction() {};
+	virtual void DisableOverlapDuringInteraction(AActor* Interactor) {};
 	
 protected:
 	/** If overriding this function in a base class, **you must manually call INAInteractableInterface::BeginInteract_Implementation()**

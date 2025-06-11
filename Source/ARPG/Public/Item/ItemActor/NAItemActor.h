@@ -89,10 +89,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Trigger Sphere")
 	TObjectPtr<class USphereComponent> TriggerSphere;
 
+	// Optional Subobject
 	uint8 bUseItemCollision :1 = false;
 	UPROPERTY(Instanced, VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Collision Shape")
 	TObjectPtr<UShapeComponent> ItemCollision;
 
+	// Optional Subobject
 	uint8 bUseItemMesh :1 = false;
 	UPROPERTY(Instanced, VisibleAnywhere, Category = "Item Actor | Mesh")
 	TObjectPtr<UMeshComponent> ItemMesh;
@@ -125,7 +127,7 @@ public:
 
 	virtual bool IsOnInteract_Implementation() const override;
 	
-	virtual void DisableOverlapDuringInteraction() override;
+	virtual void DisableOverlapDuringInteraction(AActor* Interactor) override;
 
 protected:
 	/** 자기 자신(this)이 구현한 인터페이스를 보관 */

@@ -117,6 +117,7 @@ private:
 
 	// 사용 대기 중인 아이템이 있는 경우 true(ChlildActor가 생성된 경우)
 	uint8 bHasPendingUseItem : 1 = false;
+	void SetPendingUseItem(TScriptInterface<INAInteractableInterface> InteractableActor);
 
 public:
 	//==================================================================================================
@@ -131,17 +132,21 @@ public:
 
 	// 캐릭터에서 상호작용 시작 이니시
 	void StartInteraction(/*INAInteractableInterface* InteractableActor*/);
+	uint8 befajfl :1 = false;
 	// 캐릭터에서 상호작용 중단 이니시
 	void StopInteraction(/*TScriptInterface<INAInteractableInterface> InteractableActor*/);
-
+	
 	// Interactable에서 상호작용 실행을 실패/중단/완료한 경우에 호출됨
 	void OnInteractionEnded(TScriptInterface<INAInteractableInterface> InteractableActor);
 
 	bool HasPendingUseItem() const
 	{
-		return bHasPendingUseItem
-				&&  ActiveInteractable.IsValid()
-				&& ActiveInteractable.ToRawInterface()->Execute_IsOnInteract(ActiveInteractable.GetRawObject());
+		bHasPendingUseItem;
+		const bool b1 = ActiveInteractable.IsValid();
+		const bool b2 = ActiveInteractable.ToScriptInterface() ?
+		ActiveInteractable.ToScriptInterface()->Execute_IsOnInteract(ActiveInteractable.GetRawObject())
+			: false;
+		return bHasPendingUseItem && b1 && b2;
 	}
 
 	TScriptInterface<INAInteractableInterface> GetCurrentActiveInteractable() const

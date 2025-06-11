@@ -13,34 +13,27 @@
 ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("DefaultSceneRoot"));
+	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	
 	TriggerSphere = CreateDefaultSubobject<USphereComponent>("TriggerSphere");
-	TriggerSphere->SetupAttachment(GetRootComponent());
+	TriggerSphere->SetupAttachment(RootComponent);
 	TriggerSphere->SetSphereRadius(100.0f);
 	TriggerSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	TriggerSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	TriggerSphere->CanCharacterStepUpOn = ECB_No;
-	TriggerSphere->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECollisionResponse::ECR_Overlap); // ECC_GameTraceChannel1: NACharacter
+	TriggerSphere->SetCollisionResponseToChannel(ECC_Pawn, ECollisionResponse::ECR_Overlap); 
 	
 	ItemCollision = CreateOptionalDefaultSubobject<USphereComponent>(TEXT("ItemCollision(Sphere)"));
 	ItemMesh = CreateOptionalDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh(Static)"));
 	if (ItemCollision)
 	{
 		bUseItemCollision = true;
-		ItemCollision->SetupAttachment(GetRootComponent());
+		ItemCollision->SetupAttachment(RootComponent);
 	}
 	if (ItemMesh)
 	{
 		bUseItemMesh = true;
-		if (ItemCollision)
-		{
-			ItemMesh->SetupAttachment(ItemCollision);
-		}
-		else
-		{
-			ItemMesh->SetupAttachment(GetRootComponent());
-		}
+		ItemMesh->SetupAttachment(ItemCollision);
 	}
 	
 	ItemWidgetComponent = CreateDefaultSubobject<UNAItemWidgetComponent>(TEXT("ItemWidgetComponent"));
@@ -172,30 +165,20 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		}
 	}
 
+	check(ItemCollision);
+	check(ItemWidgetComponent);
 	// 어태치먼트
-	if (ItemCollision)
+	if (ItemCollision->GetAttachParent() != GetRootComponent())
 	{
 		ItemCollision->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 	}
-	if (ItemMesh)
+	if (ItemMesh->GetAttachParent() != ItemCollision)
 	{
-		if (ItemCollision)
-		{
-			ItemMesh->AttachToComponent(ItemCollision, FAttachmentTransformRules::KeepRelativeTransform);
-		}
-		else
-		{
-			ItemMesh->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-		}
+		ItemMesh->AttachToComponent(ItemCollision, FAttachmentTransformRules::KeepRelativeTransform);
 	}
-	check(ItemWidgetComponent);
-	if (ItemCollision)
+	if (ItemWidgetComponent->GetAttachParent() != ItemCollision)
 	{
 		ItemWidgetComponent->AttachToComponent(ItemCollision, FAttachmentTransformRules::KeepRelativeTransform);
-	}
-	else
-	{
-		ItemWidgetComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 	}
 
 	// 부모, 자식에서 Property로 설정된 컴포넌트들을 조회
@@ -243,45 +226,44 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			}
 		}
 	}
-	
-	if (USphereComponent* SphereCollision = Cast<USphereComponent>(ItemCollision))
+
+	if (MetaData->CollisionShape != EItemCollisionShape::ICS_None)
 	{
-		SphereCollision->SetSphereRadius(MetaData->CollisionSphereRadius);
+		if (USphereComponent* SphereCollision = Cast<USphereComponent>(ItemCollision))
+		{
+			SphereCollision->SetSphereRadius(MetaData->CollisionSphereRadius);
+		}
+		else if (UBoxComponent* BoxCollision = Cast<UBoxComponent>(ItemCollision))
+		{
+			BoxCollision->SetBoxExtent(MetaData->CollisionBoxExtent);
+		}
+		else if (UCapsuleComponent* CapsuleCollision = Cast<UCapsuleComponent>(ItemCollision))
+		{
+			CapsuleCollision->SetCapsuleSize(MetaData->CollisionCapsuleSize.X, MetaData->CollisionCapsuleSize.Y);
+		}
+
+		ItemCollision->SetRelativeTransform(MetaData->CollisionTransform);
 	}
-	else if (UBoxComponent* BoxCollision = Cast<UBoxComponent>(ItemCollision))
+
+	if (MetaData->MeshType != EItemMeshType::IMT_None)
 	{
-		BoxCollision->SetBoxExtent(MetaData->CollisionBoxExtent);
-	}
-	else if (UCapsuleComponent* CapsuleCollision = Cast<UCapsuleComponent>(ItemCollision))
-	{
-		CapsuleCollision->SetCapsuleSize(MetaData->CollisionCapsuleSize.X, MetaData->CollisionCapsuleSize.Y);
-	}
-	
-	if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(ItemMesh))
-	{
-		StaticMeshComp->SetStaticMesh(MetaData->StaticMeshAssetData.StaticMesh);
-		ItemFractureCollection = MetaData->StaticMeshAssetData.FractureCollection;
-		ItemFractureCache =  MetaData->StaticMeshAssetData.FractureCache;
-	}
-	else if (USkeletalMeshComponent* SkeletalMeshComp = Cast<USkeletalMeshComponent>(ItemMesh))
-	{
-		SkeletalMeshComp->SetSkeletalMesh(MetaData->SkeletalMeshAssetData.SkeletalMesh);
-		SkeletalMeshComp->SetAnimClass(MetaData->SkeletalMeshAssetData.AnimClass);
+		if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(ItemMesh))
+		{
+			StaticMeshComp->SetStaticMesh(MetaData->StaticMeshAssetData.StaticMesh);
+			ItemFractureCollection = MetaData->StaticMeshAssetData.FractureCollection;
+			ItemFractureCache =  MetaData->StaticMeshAssetData.FractureCache;
+		}
+		else if (USkeletalMeshComponent* SkeletalMeshComp = Cast<USkeletalMeshComponent>(ItemMesh))
+		{
+			SkeletalMeshComp->SetSkeletalMesh(MetaData->SkeletalMeshAssetData.SkeletalMesh);
+			SkeletalMeshComp->SetAnimClass(MetaData->SkeletalMeshAssetData.AnimClass);
+		}
+
+		ItemMesh->SetRelativeTransform(MetaData->MeshTransform);
 	}
 
 	// 트랜스폼 및 콜리전, 피직스 등등 설정 여기에
-	TriggerSphere->SetSphereRadius(MetaData->TriggerSphereRadius);
-	TriggerSphere->SetRelativeTransform(MetaData->TriggerSphereTransform);
-	if (ItemCollision)
-	{
-		ItemCollision->SetRelativeTransform(MetaData->CollisionTransform);
-	}
-	if (ItemMesh)
-	{
-		ItemMesh->SetRelativeTransform(MetaData->MeshTransform);
-	}
-	check(ItemWidgetComponent);
-	ItemWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, MetaData->TriggerSphereRadius * 1.5f));
+	ItemWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, TriggerSphere->GetScaledSphereRadius() * 1.5f));
 }
 
 void ANAItemActor::PostLoad()
@@ -332,7 +314,7 @@ EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTa
 		return DirtyFlags;
 	}
 	
-	if (bUseItemCollision)
+	if (MetaData->CollisionShape != EItemCollisionShape::ICS_None && bUseItemCollision)
 	{
 		if (!ItemCollision)
 		{
@@ -370,12 +352,11 @@ EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTa
 		}
 	}
 	
-	if (bUseItemMesh)
+	if (MetaData->MeshType != EItemMeshType::IMT_None && bUseItemMesh)
 	{
 		if (!ItemMesh)
 		{
-			EnumAddFlags(DirtyFlags,
-					EItemSubobjDirtyFlags::ISDF_MeshType);
+			EnumAddFlags(DirtyFlags,EItemSubobjDirtyFlags::ISDF_MeshType);
 		}
 		else
 		{
@@ -384,16 +365,14 @@ EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTa
 			case EItemMeshType::IMT_Static:
 				if (!ItemMesh->IsA<UStaticMeshComponent>())
 				{
-					EnumAddFlags(DirtyFlags,
-						EItemSubobjDirtyFlags::ISDF_MeshType);
+					EnumAddFlags(DirtyFlags,EItemSubobjDirtyFlags::ISDF_MeshType);
 				}
 				break;
 		
 			case EItemMeshType::IMT_Skeletal:
 				if (!ItemMesh->IsA<USkeletalMeshComponent>())
 				{
-					EnumAddFlags(DirtyFlags,
-						EItemSubobjDirtyFlags::ISDF_MeshType);
+					EnumAddFlags(DirtyFlags,EItemSubobjDirtyFlags::ISDF_MeshType);
 				}
 				break;
 		
@@ -447,6 +426,7 @@ void ANAItemActor::BeginPlay()
 
 	if (GetItemData())
 	{
+		// 임시: 수량 랜덤
 		if (GetItemData()->IsStackableItem())
 		{
 			int32 RandomNumber = FMath::RandRange(1, GetItemData()->GetItemMaxSlotStackSize());
@@ -456,6 +436,11 @@ void ANAItemActor::BeginPlay()
 		{
 			GetItemData()->SetQuantity(1);
 		}
+	}
+
+	if (ItemWidgetComponent)
+	{
+		ItemWidgetComponent->SetVisibility(false);
 	}
 }
 
@@ -481,7 +466,7 @@ bool ANAItemActor::HasValidItemID() const
 
 bool ANAItemActor::CanInteract_Implementation() const
 {
-	return IsValid(ItemCollision) && InteractableInterfaceRef != nullptr;
+	return IsValid(TriggerSphere) && InteractableInterfaceRef != nullptr;
 }
 
 // bool ANAItemActor::CanInteract_Implementation() const
@@ -533,6 +518,7 @@ void ANAItemActor::EndInteract_Implementation(AActor* InteractorActor)
 	{
 		bIsOnInteract = false;
 		InteractionComp->OnInteractionEnded(InteractableInterfaceRef);
+		InteractionComp->befajfl = false;
 		// @TODO: 상호작용 종료 시 필요한 로직이 있으면 여기에 추가, 상호작용 종료를 알리는 이벤트라고 생각하면 됨
 	}
 }
@@ -554,10 +540,13 @@ bool ANAItemActor::IsOnInteract_Implementation() const
 	return bIsOnInteract;
 }
 
-void ANAItemActor::DisableOverlapDuringInteraction()
+void ANAItemActor::DisableOverlapDuringInteraction(AActor* Interactor)
 {
 	if (Execute_IsOnInteract(this))
 	{
-		ItemCollision->SetGenerateOverlapEvents(false);
+		if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(Interactor))
+		{
+			TriggerSphere->SetGenerateOverlapEvents(false);
+		}
 	}
 }
