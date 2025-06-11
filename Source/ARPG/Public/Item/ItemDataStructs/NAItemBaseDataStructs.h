@@ -152,11 +152,11 @@ struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, Category = "Item Base Data", meta=(BlueprintBaseOnly, AllowAbstract="false"))
 	TSubclassOf<ANAItemActor> ItemClass = nullptr;
 
-	UPROPERTY(EditAnywhere, Category = "Item Root Sphere", meta=(ClampMin=0))
-	float RootSphereRadius = 100.f;
+	UPROPERTY(EditAnywhere, Category = "Item Trigger Sphere", meta=(ClampMin=0))
+	float TriggerSphereRadius = 100.f;
 	
-	UPROPERTY(EditAnywhere, Category = "Item Root Sphere")
-	FVector RootSphereScale = FVector::OneVector;
+	UPROPERTY(EditAnywhere, Category = "Item Trigger Sphere")
+	FTransform TriggerSphereTransform = FTransform::Identity;
 	
 	UPROPERTY(EditAnywhere, Category = "Item Collision Shape")
 	EItemCollisionShape CollisionShape = EItemCollisionShape::ICS_Sphere;

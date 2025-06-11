@@ -3,17 +3,29 @@
 
 #include "Item/PlaceableItem/Door/NAPlaceableItemActor_Door.h"
 #include "Algo/Find.h"
-
+#include "Components/BoxComponent.h"
+#include "Components/SphereComponent.h"
+#include "Item/ItemWidget/NAItemWidgetComponent.h"
 
 
 // Sets default values
 ANAPlaceableItemActor_Door::ANAPlaceableItemActor_Door(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+	: Super(ObjectInitializer
+		.DoNotCreateDefaultSubobject(TEXT("ItemCollision(Sphere)")))
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	
+	ItemCollision = CreateOptionalDefaultSubobject<UBoxComponent>(TEXT("ItemCollision(Box)"));
+	if (ItemCollision)
+	{
+		bUseItemCollision = true;
+		ItemCollision->SetupAttachment(RootComponent);
+		if (ItemWidgetComponent)
+		{
+			ItemWidgetComponent->SetupAttachment(ItemCollision);
+		}
+	}
 }
 
 void ANAPlaceableItemActor_Door::PostRegisterAllComponents()
