@@ -36,6 +36,7 @@ enum class MonsterRate : uint8
 class UAbilitySystemComponent;
 class UAbilityTask_PlayMontageAndWait;
 class UNAMontageCombatComponent;
+class UNAAttributeSet;
 
 UCLASS()
 class ARPG_API AMonsterBase : public APawn, public IAbilitySystemInterface
@@ -53,6 +54,9 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	//Attribute Setting from other data
+	virtual void SetAttributeData(const FDataTableRowHandle& InDataTableRowHandle);
+
 	/* Gas 전환중 */
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -64,6 +68,9 @@ protected:
 
 	UFUNCTION()
 	virtual void OnDie();
+
+	virtual void initializeAttribute(const FOnAttributeChangeData& Data);
+	virtual void OnHealthDepleted();
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -88,9 +95,6 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = Gameplay, meta = (AllowPrivateAccess = "true"))
 	UAbilitySystemComponent* AbilitySystemComponent;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Combat", meta = (AllowPrivateAccess = "true"))
-	UNAMontageCombatComponent* DefaultCombatComponent;
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<USceneComponent> DefaultSceneRoot;
@@ -131,5 +135,6 @@ public:
 	UPROPERTY(EditAnywhere, meta = (RowType = "/Script/ARPG.OwnSkillTable"))
 	FDataTableRowHandle OwnSkills;
 
-
+	UPROPERTY(EditAnywhere, meta = (RowType = "/Script/ARPG.MonsterOwnTable"))
+	FDataTableRowHandle OwnStatData;
 };
