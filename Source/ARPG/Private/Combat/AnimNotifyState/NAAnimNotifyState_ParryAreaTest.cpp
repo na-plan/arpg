@@ -131,85 +131,117 @@ void UNAAnimNotifyState_ParryAreaTest::NotifyEnd(USkeletalMeshComponent* MeshCom
 void UNAAnimNotifyState_ParryAreaTest::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime, const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyTick(MeshComp, Animation, FrameDeltaTime, EventReference);
-
-
-	// 충돌 처리는 서버의 책임
-	if (MeshComp->GetOwner()->HasAuthority())
+	// 에디터에서 서버도 같이 찾아가지고 gameworld 먼저 확인
+	if (MeshComp->GetWorld()->IsGameWorld())
 	{
-		// 충돌 확인 지연	-> 어차피 텀은 적은데 그냥 tick에서 돌리는게 맞지 않을까? 
-		OverlapElapsed += FrameDeltaTime;
-		//interval time 넘어가면 충돌 확인 계속 하도록 하는거
-		if (OverlapElapsed >= OverlapInterval)
+		// 충돌 처리는 서버의 책임
+		if (MeshComp->GetOwner()->HasAuthority())
 		{
-			const FVector SocketLocation = MeshComp->GetSocketLocation(SocketName);
-			TArray<FOverlapResult> OverlapResults;
-			FCollisionQueryParams QueryParams;
-			QueryParams.AddIgnoredActor(MeshComp->GetOwner()); // 시전자 제외
-			const bool bOverlap = MeshComp->GetWorld()->OverlapMultiByChannel
-			(
-				OverlapResults,
-				SocketLocation,
-				FQuat::Identity,
-				ECC_Pawn,
-				FCollisionShape::MakeSphere(SphereRadius),
-				QueryParams
-			);
-
-#if WITH_EDITOR || UE_BUILD_DEBUG
-			DrawDebugSphere
-			(
-				MeshComp->GetWorld(),
-				SocketLocation,
-				SphereRadius,
-				8,
-				bOverlap || !OverlapResults.IsEmpty() ? FColor::Green : FColor::Red
-			);
-#endif
-			//충돌된게 게임월드일 경우
-			if (!OverlapResults.IsEmpty() && MeshComp->GetWorld()->IsGameWorld())
+			// 충돌 확인 지연	-> 어차피 텀은 적은데 그냥 tick에서 돌리는게 맞지 않을까? 
+			OverlapElapsed += FrameDeltaTime;
+			//interval time 넘어가면 충돌 확인 계속 하도록 하는거
+			if (OverlapElapsed >= OverlapInterval)
 			{
-				const TScriptInterface<IAbilitySystemInterface>& SourceInterface = MeshComp->GetOwner();
+				const FVector SocketLocation = MeshComp->GetSocketLocation(SocketName);
+				TArray<FOverlapResult> OverlapResults;
+				FCollisionQueryParams QueryParams;
+				QueryParams.AddIgnoredActor(MeshComp->GetOwner()); // 시전자 제외
+				const bool bOverlap = MeshComp->GetWorld()->OverlapMultiByChannel
+				(
+					OverlapResults,
+					SocketLocation,
+					FQuat::Identity,
+					ECC_Pawn,
+					FCollisionShape::MakeSphere(SphereRadius),
+					QueryParams
+				);
 
-				if (!SourceInterface)
+	#if WITH_EDITOR || UE_BUILD_DEBUG
+				DrawDebugSphere
+				(
+					MeshComp->GetWorld(),
+					SocketLocation,
+					SphereRadius,
+					8,
+					bOverlap || !OverlapResults.IsEmpty() ? FColor::Green : FColor::Red
+				);
+	#endif
+				//충돌된게 게임월드일 경우
+				if (!OverlapResults.IsEmpty() && MeshComp->GetWorld()->IsGameWorld())
 				{
-					// GAS가 없는 객체로부터 시도됨
-					check(false);
-					return;
-				}
-				//AppliedActors 에 새로운 대상이 추가되면 검사 목록에 추가
-				for (const FOverlapResult& OverlapResult : OverlapResults)
-				{
-					if (const TScriptInterface<IAbilitySystemInterface>& TargetInterface = OverlapResult.GetActor())
+					const TScriptInterface<IAbilitySystemInterface>& SourceInterface = MeshComp->GetOwner();
+
+					if (!SourceInterface)
 					{
-						if (!AppliedActors.Contains(OverlapResult.GetActor()))
+						// GAS가 없는 객체로부터 시도됨
+						check(false);
+						return;
+					}
+					//AppliedActors 에 새로운 대상이 추가되면 검사 목록에 추가
+					for (const FOverlapResult& OverlapResult : OverlapResults)
+					{
+						if (const TScriptInterface<IAbilitySystemInterface>& TargetInterface = OverlapResult.GetActor())
 						{
-							UE_LOG(LogTemp, Log, TEXT("[%hs]: Found target %s"), __FUNCTION__, *OverlapResult.GetActor()->GetName());
-							//AppiedActor
-							AppliedActors.Add(OverlapResult.GetActor());
+							if (!AppliedActors.Contains(OverlapResult.GetActor()))
+							{
+								UE_LOG(LogTemp, Log, TEXT("[%hs]: Found target %s"), __FUNCTION__, *OverlapResult.GetActor()->GetName());
+								//AppiedActor
+								AppliedActors.Add(OverlapResult.GetActor());
+							}
 						}
 					}
-				}
-				//검사 목록에서 NACharacter 검출 -> 이후 근접 공격 어빌리티 사용을 하는지 확인후 
-				for (AActor* CheckActor : AppliedActors)
-				{
-					//Player Cast로 Playcheck 
-					if (ANACharacter* Player = Cast<ANACharacter>(CheckActor))
+					//검사 목록에서 NACharacter 검출 -> 이후 근접 공격 어빌리티 사용을 하는지 확인후 
+					for (AActor* CheckActor : AppliedActors)
 					{
-						UAbilitySystemComponent* PlayerASC =  Player->GetAbilitySystemComponent();
-						// 공격을 하는게 combatcomponent네? 얘를 가지고 와서 해야하나?
-						UNAMontageCombatComponent* PlayerCombatComponent = Player->FindComponentByClass<UNAMontageCombatComponent>();
-						float ParryAngle = FVector::DotProduct(Player->GetActorForwardVector(), MeshComp->GetOwner()->GetActorForwardVector());
+						//Player Cast로 Playcheck 
+						if (ANACharacter* Player = Cast<ANACharacter>(CheckActor))
+						{
+							UAbilitySystemComponent* PlayerASC =  Player->GetAbilitySystemComponent();
+							// 공격을 하는게 combatcomponent네? 얘를 가지고 와서 해야하나?
+							UNAMontageCombatComponent* PlayerCombatComponent = Player->FindComponentByClass<UNAMontageCombatComponent>();
+							float ParryAngle = FVector::DotProduct(Player->GetActorForwardVector(), MeshComp->GetOwner()->GetActorForwardVector());
 
-						//	상대 공격에 맞지 않아도 공격한 상태면 패링이 되는 문제가 있음 -> 이건 어떻게 해야할까?...
-						//	생대 mesh와 owner mesh의 각도를 구해서 가져온뒤에 일정 각도 이하로 설정 ㄱ
-						// 30도 이하 + 공격중
-						if (PlayerCombatComponent->IsAttacking() && ParryAngle < -0.85) { SuccessParry = true; }
-						else{ SuccessParry = false; }
+							//	상대 공격에 맞지 않아도 공격한 상태면 패링이 되는 문제가 있음 -> 이건 어떻게 해야할까?...
+							//	생대 mesh와 owner mesh의 각도를 구해서 가져온뒤에 일정 각도 이하로 설정 ㄱ
+							// 30도 이하 + 공격중
+							if (PlayerCombatComponent->IsAttacking() && ParryAngle < -0.85) { SuccessParry = true; }
+							else{ SuccessParry = false; }
 
-					}					
-				}			
+						}					
+					}			
+				}
+				OverlapElapsed = 0.f;
 			}
-			OverlapElapsed = 0.f;
 		}
+
 	}
+	else 
+	{
+#if WITH_EDITOR || UE_BUILD_DEBUG
+		const FVector SocketLocation = MeshComp->GetSocketLocation(SocketName);
+		TArray<FOverlapResult> OverlapResults;
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(MeshComp->GetOwner()); // 시전자 제외
+		const bool bOverlap = MeshComp->GetWorld()->OverlapMultiByChannel
+		(
+			OverlapResults,
+			SocketLocation,
+			FQuat::Identity,
+			ECC_Pawn,
+			FCollisionShape::MakeSphere(SphereRadius),
+			QueryParams
+		);
+		DrawDebugSphere
+		(
+			MeshComp->GetWorld(),
+			SocketLocation,
+			SphereRadius,
+			8,
+			bOverlap || !OverlapResults.IsEmpty() ? FColor::Green : FColor::Red
+		);
+#endif
+
+	}
+
+
 }

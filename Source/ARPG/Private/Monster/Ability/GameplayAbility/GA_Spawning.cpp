@@ -37,6 +37,13 @@ void UGA_Spawning::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 
 				EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 			}
+			// spawn Montage 가 없을 경우 바로 ai작동
+			else
+			{
+				AMonsterAIController* MonsterAIController = CastChecked<AMonsterAIController>(MonsterBase->GetController());
+				MonsterAIController->GetBlackboardComponent()->SetValueAsBool(TEXT("Spawning"), false);
+				EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+			}
 		}
 	}
 }
