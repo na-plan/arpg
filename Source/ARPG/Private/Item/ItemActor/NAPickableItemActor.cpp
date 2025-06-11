@@ -186,32 +186,32 @@ void ANAPickableItemActor::EndInteract_Implementation(AActor* Interactor)
 	
 	// 아이템 드랍?
 	// 아이템이 부착이 되어 있는 경우
-	// if ( GetParentActor() == Interactor )
-	// {
-	// 	FActorSpawnParameters SpawnParams;
-	// 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	// 	SpawnParams.Owner = nullptr;
-	// 	SpawnParams.Template = this;
-	// 	SpawnParams.bNoFail = true;
-	//
-	// 	const FVector SpawnLocation = GetActorLocation();
-	// 	const FRotator SpawnRotation = FRotator::ZeroRotator;
-	// 	const AActor* Spawned = GetWorld()->SpawnActor( GetClass(), &SpawnLocation, &SpawnRotation, SpawnParams );
-	// 	check( Spawned );
-	//
-	// 	// ChildActorComponent에 의해 만들어진 액터인 경우
-	// 	// 부착되어 있던 아이템을 파괴 ( = 자신을 파괴 )
-	// 	if ( UChildActorComponent* ChildActorComponent = Cast<UChildActorComponent>( GetParentComponent() ) )
-	// 	{
-	// 		ChildActorComponent->DestroyChildActor();
-	// 		ChildActorComponent->SetChildActorClass( nullptr );
-	// 	}
-	// 	else
-	// 	{
-	// 		// 아니면 새로 스폰된 아이템에게 유산을 넘겨줌
-	// 		Destroy();
-	// 	}
-	// }
+	if ( GetParentActor() == Interactor )
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		SpawnParams.Owner = nullptr;
+		SpawnParams.Template = this;
+		SpawnParams.bNoFail = true;
+	
+		const FVector SpawnLocation = GetActorLocation();
+		const FRotator SpawnRotation = FRotator::ZeroRotator;
+		const AActor* Spawned = GetWorld()->SpawnActor( GetClass(), &SpawnLocation, &SpawnRotation, SpawnParams );
+		check( Spawned );
+	
+		// ChildActorComponent에 의해 만들어진 액터인 경우
+		// 부착되어 있던 아이템을 파괴 ( = 자신을 파괴 )
+		if ( UChildActorComponent* ChildActorComponent = Cast<UChildActorComponent>( GetParentComponent() ) )
+		{
+			ChildActorComponent->DestroyChildActor();
+			ChildActorComponent->SetChildActorClass( nullptr );
+		}
+		else
+		{
+			// 아니면 새로 스폰된 아이템에게 유산을 넘겨줌
+			Destroy();
+		}
+	}
 
 	if (!IsPendingKillPending())
 	{
