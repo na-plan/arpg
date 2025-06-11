@@ -89,70 +89,103 @@ void UNAAnimNotifyState_SphereOverlapTest::NotifyTick( USkeletalMeshComponent* M
 {
 	Super::NotifyTick( MeshComp, Animation, FrameDeltaTime, EventReference );
 
-	// 충돌 처리는 서버의 책임
-	if ( MeshComp->GetOwner()->HasAuthority() && MeshComp->GetWorld()->IsGameWorld() )
+	// 에디터에서 서버도 같이 찾아가지고 gameworld 먼저 확인
+	if (MeshComp->GetWorld()->IsGameWorld())
 	{
-		// 충돌 확인 지연
-		OverlapElapsed += FrameDeltaTime;
-
-		if (OverlapElapsed >= OverlapInterval)
+		// 충돌 처리는 서버의 책임
+		if (MeshComp->GetOwner()->HasAuthority())
 		{
-			const FVector SocketLocation = MeshComp->GetSocketLocation( SocketName );
-			TArray<FOverlapResult> OverlapResults;
-			FCollisionQueryParams QueryParams;
-			QueryParams.AddIgnoredActor( MeshComp->GetOwner() ); // 시전자 제외
-			const bool bOverlap = MeshComp->GetWorld()->OverlapMultiByChannel
-			(
-				OverlapResults,
-				SocketLocation,
-				FQuat::Identity,
-				ECC_Pawn,
-				FCollisionShape::MakeSphere( SphereRadius ),
-				QueryParams
-			);
+			// 충돌 확인 지연
+			OverlapElapsed += FrameDeltaTime;
+
+			if (OverlapElapsed >= OverlapInterval)
+			{
+				const FVector SocketLocation = MeshComp->GetSocketLocation(SocketName);
+				TArray<FOverlapResult> OverlapResults;
+				FCollisionQueryParams QueryParams;
+				QueryParams.AddIgnoredActor(MeshComp->GetOwner()); // 시전자 제외
+				const bool bOverlap = MeshComp->GetWorld()->OverlapMultiByChannel
+				(
+					OverlapResults,
+					SocketLocation,
+					FQuat::Identity,
+					ECC_Pawn,
+					FCollisionShape::MakeSphere(SphereRadius),
+					QueryParams
+				);
 
 #if WITH_EDITOR || UE_BUILD_DEBUG
-			DrawDebugSphere
-			(
-				MeshComp->GetWorld(),
-				SocketLocation,
-				SphereRadius,
-				8,
-				bOverlap || !OverlapResults.IsEmpty() ? FColor::Green : FColor::Red
-			);
+				DrawDebugSphere
+				(
+					MeshComp->GetWorld(),
+					SocketLocation,
+					SphereRadius,
+					8,
+					bOverlap || !OverlapResults.IsEmpty() ? FColor::Green : FColor::Red
+				);
 #endif
 
-			if ( !OverlapResults.IsEmpty() && MeshComp->GetWorld()->IsGameWorld() )
-			{
-				const TScriptInterface<IAbilitySystemInterface>& SourceInterface = MeshComp->GetOwner();
+				if (!OverlapResults.IsEmpty() && MeshComp->GetWorld()->IsGameWorld())
+				{
+					const TScriptInterface<IAbilitySystemInterface>& SourceInterface = MeshComp->GetOwner();
 
-				if ( !SourceInterface )
-				{
-					// GAS가 없는 객체로부터 시도됨
-					check( false );
-					return;
-				}
-			
-				for (const FOverlapResult& OverlapResult : OverlapResults)
-				{
-					if ( const TScriptInterface<IAbilitySystemInterface>& TargetInterface = OverlapResult.GetActor() )
+					if (!SourceInterface)
 					{
-						if ( !AppliedActors.Contains( OverlapResult.GetActor() ) )
-						{
-							UE_LOG(LogTemp, Log, TEXT( "[%hs]: Found target %s" ), __FUNCTION__, *OverlapResult.GetActor()->GetName() );
-							SourceInterface->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget
-							(
-								*SpecHandle.Data.Get(),
-								TargetInterface->GetAbilitySystemComponent()
-							);
-						
-							AppliedActors.Add( OverlapResult.GetActor() );
-						}
-					}	
-				}
-			}		
+						// GAS가 없는 객체로부터 시도됨
+						check(false);
+						return;
+					}
 
-			OverlapElapsed = 0.f;
+					for (const FOverlapResult& OverlapResult : OverlapResults)
+					{
+						if (const TScriptInterface<IAbilitySystemInterface>& TargetInterface = OverlapResult.GetActor())
+						{
+							if (!AppliedActors.Contains(OverlapResult.GetActor()))
+							{
+								UE_LOG(LogTemp, Log, TEXT("[%hs]: Found target %s"), __FUNCTION__, *OverlapResult.GetActor()->GetName());
+								SourceInterface->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget
+								(
+									*SpecHandle.Data.Get(),
+									TargetInterface->GetAbilitySystemComponent()
+								);
+
+								AppliedActors.Add(OverlapResult.GetActor());
+							}
+						}
+					}
+				}
+
+				OverlapElapsed = 0.f;
+			}
 		}
+
 	}
+	else
+	{
+		
+#if WITH_EDITOR || UE_BUILD_DEBUG
+		const FVector SocketLocation = MeshComp->GetSocketLocation(SocketName);
+		TArray<FOverlapResult> OverlapResults;
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(MeshComp->GetOwner()); // 시전자 제외
+		const bool bOverlap = MeshComp->GetWorld()->OverlapMultiByChannel
+		(
+			OverlapResults,
+			SocketLocation,
+			FQuat::Identity,
+			ECC_Pawn,
+			FCollisionShape::MakeSphere(SphereRadius),
+			QueryParams
+		);
+		DrawDebugSphere
+		(
+			MeshComp->GetWorld(),
+			SocketLocation,
+			SphereRadius,
+			8,
+			bOverlap || !OverlapResults.IsEmpty() ? FColor::Green : FColor::Red
+		);
+#endif
+	}
+	
 }
