@@ -37,7 +37,8 @@ public:
 // Item Use Interface Implements
 //======================================================================================================================
 public:
-	virtual bool UseItem(UNAItemData* InItemData, AActor* User) const override;
+	virtual bool CanUseItem(UNAItemData* InItemData, AActor* User) const override;
+	virtual bool UseItem(UNAItemData* InItemData, AActor* User, int32& UsedAmount) const override;
 
 	EMedPackGrade GetMedPackGrade() const;
 };

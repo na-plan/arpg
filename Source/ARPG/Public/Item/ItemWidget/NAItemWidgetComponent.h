@@ -26,7 +26,15 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 
+	virtual void InitWidget() override;
 
+	class UNAItemData* GetItemDataFromOwner() const;
+	
+	void ReleaseItemWidgetPopup();
+	void CollapseItemWidgetPopup();
+
+	class UNAItemWidget* GetItemWidget() const;
+	
 protected:
 	uint8 bFaceCamera : 1 = false;
 	void FaceCamera();

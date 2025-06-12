@@ -31,6 +31,7 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 	virtual void PostLoad() override;
+	virtual void Destroyed() override;
 	
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -70,9 +71,8 @@ public:
 	
 protected:
 	// OnItemDataInitialized: BP 확장 가능
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
-	void OnItemDataInitialized();
-	virtual void OnItemDataInitialized_Implementation();
+	UFUNCTION(BlueprintCallable)
+	virtual void OnItemDataInitialized();
 	
 	virtual EItemSubobjDirtyFlags CheckDirtySubobjectFlags(const FNAItemBaseTableRow* MetaData) const;
 

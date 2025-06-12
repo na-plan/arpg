@@ -8,6 +8,8 @@
 #include "HP/GameplayEffect/NAGE_Damage.h"
 #include "HP/GameplayEffect/NAGE_Heal.h"
 #include "Item/ItemDataStructs/NARecoveryPackDataStructs.h"
+#include "NACharacter.h"
+#include "NAPlayerState.h"
 
 
 // Sets default values
@@ -32,9 +34,22 @@ void ANAMedPack::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-bool ANAMedPack::UseItem(UNAItemData* InItemData, AActor* User) const
+bool ANAMedPack::CanUseItem(UNAItemData* InItemData, AActor* User) const
 {
-	Super::UseItem(InItemData, User);
+	ANACharacter* Character = Cast<ANACharacter>(User);
+	if (!Character) return false;
+	const ANAPlayerState* PlayerState = Character->GetPlayerState<ANAPlayerState>();
+	if (!PlayerState) return false;
+
+	int32 MaxHealth = PlayerState->GetMaxHealth();
+	float CurrentHealth = PlayerState->GetHealth();
+	
+	return !FMath::IsNearlyEqual(CurrentHealth, MaxHealth);
+}
+
+bool ANAMedPack::UseItem(UNAItemData* InItemData, AActor* User, int32& UsedAmount) const
+{
+	Super::UseItem(InItemData, User,UsedAmount);
 
 	if (!InItemData || !User) return false;
 	if (InItemData->GetItemActorClass() != GetClass()) return false;
@@ -64,6 +79,7 @@ bool ANAMedPack::UseItem(UNAItemData* InItemData, AActor* User) const
 				RecoveryPackData->RecoveryAmount
 			);
 			const FActiveGameplayEffectHandle& EventResult = Interface->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf( *SpecHandle.Data.Get() );
+			EventResult.WasSuccessfullyApplied() ? UsedAmount = 1 : UsedAmount = 0;
 			return EventResult.WasSuccessfullyApplied(); // 성공 했냐? 안했냐?
 			
 			// 데미지 효과를 제거해서 힐을 하는 방법이 이거고

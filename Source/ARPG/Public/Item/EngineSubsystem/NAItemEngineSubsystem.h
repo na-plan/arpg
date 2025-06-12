@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/EngineSubsystem.h"
 #include "Item/ItemData/NAItemData.h"
+#include "EngineUtils.h"
 #include "NAItemEngineSubsystem.generated.h"
 
 UCLASS(BlueprintType)
@@ -143,8 +144,37 @@ public:
 	// Inventory 관련
 	UNAItemData* CreateItemDataBySlot( UWorld* InWorld, const FNAInventorySlot& InInventorySlot );
 
-	bool DestroyRuntimeItemData(const FName& InItemID);
-	bool DestroyRuntimeItemData(UNAItemData* InItemData);
+	/**
+	 * 
+	 * @param InItemID 
+	 * @param bDestroyItemActor : 해당 아이템 데이터를 참조하는(ID값으로 검색) 아이템 액터를 찾아서 파괴할지 여부
+	 * @return 
+	 */
+	bool DestroyRuntimeItemData(const FName& InItemID, const bool bDestroyItemActor = false);
+	/**
+	 * 
+	 * @param InItemID 
+	 * @param bDestroyItemActor : 해당 아이템 데이터를 참조하는(ID값으로 검색) 아이템 액터를 찾아서 파괴할지 여부.
+	 *							  아이템 액터의 생명주기를 명시적으로 조절해야하는 경우 이 플래그를 쓰면 안됨
+	 * @return 
+	 */
+	bool DestroyRuntimeItemData(UNAItemData* InItemData, const bool bDestroyItemActor = false);
+
+	template <typename ItemActorT, typename Func>
+		requires TIsDerivedFrom<ItemActorT, ANAItemActor>::IsDerived
+	void ForEachItemActorOfClass(UWorld* World, Func&& Predicate)
+	{
+		if (!World) return;
+
+		for (TActorIterator<ItemActorT> It(World); It; ++It)
+		{
+			ItemActorT* ItemActor = *It;
+			if (IsValid(ItemActor))
+			{
+				Predicate(ItemActor);
+			}
+		}
+	}
 		
 private:
 	// 실제 사용할 DataTable 포인터 보관
