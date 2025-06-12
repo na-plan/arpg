@@ -23,5 +23,12 @@ class ARPG_API INAItemUseInterface
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
 	virtual bool CanUseItem(UNAItemData* InItemData, AActor* User) const { return false; }
-	virtual bool UseItem(UNAItemData* InItemData, AActor* User) const { return false; }
+	/**
+	 * 
+	 * @param InItemData 
+	 * @param User 
+	 * @param UsedAmount : 사용된 수량. 사용에 실패하면 0을 반환
+	 * @return 
+	 */
+	virtual bool UseItem(UNAItemData* InItemData, AActor* User, int32& UsedAmount) const { return false; }
 };

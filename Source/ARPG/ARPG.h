@@ -4,6 +4,67 @@
 
 #include "CoreMinimal.h"
 
+struct ObjectClassFinderHelper
+{
+	template <typename T, typename U>
+	static void DoCommonRouteObject(T& Variable, U& TempVar)
+	{
+		if (TempVar.Succeeded())
+		{
+			Variable = TempVar.Object;
+		}
+	}
+
+	template <typename T, typename U>
+	static void DoCommonRouteClass(T& Variable, U& TempVar)
+	{
+		if (TempVar.Succeeded())
+		{
+			Variable = TempVar.Class;
+		}
+	}
+};
+
+template <typename T, typename KeyT>
+void DoFindObject( T& Variable, const TCHAR* Path )
+{
+	// 다른 클래스와 함수가 겹치지 않도록 정적 영역을 확보
+	using Placeholder = KeyT;
+	if constexpr ( TIsTSubclassOf<T>::Value )
+	{
+		static ConstructorHelpers::FObjectFinder<typename T::ElementType> TempVar( Path );
+		ObjectClassFinderHelper::DoCommonRouteObject( Variable, TempVar );
+	}
+	else
+	{
+		static ConstructorHelpers::FObjectFinder<std::remove_pointer_t<T>> TempVar( Path );
+		ObjectClassFinderHelper::DoCommonRouteObject( Variable, TempVar );
+	}
+}
+
+template <typename T, typename KeyT>
+void DoFindClass( T& Variable, const TCHAR* Path )
+{
+	// 다른 클래스와 함수가 겹치지 않도록 정적 영역을 확보
+	using Placeholder = KeyT;
+	if constexpr ( TIsTSubclassOf<T>::Value )
+	{
+		static ConstructorHelpers::FClassFinder<typename T::ElementType> TempVar( Path );
+		ObjectClassFinderHelper::DoCommonRouteClass( Variable, TempVar );
+	}
+	else
+	{
+		static ConstructorHelpers::FClassFinder<std::remove_pointer_t<T>> TempVar( Path );
+		ObjectClassFinderHelper::DoCommonRouteClass( Variable, TempVar );
+	}
+}
+
+#define FIND_OBJECT(VariableName, Path) \
+DoFindObject<decltype(VariableName), std::remove_reference_t<decltype(*this)>>( VariableName, TEXT(Path) )
+
+#define FIND_CLASS(VariableName, Path) \
+DoFindClass<decltype(VariableName), std::remove_reference_t<decltype(*this)>>( VariableName, TEXT(Path) )
+
 #define ATTRIBUTE_ACCESSORS(ClassName, PropertyName) \
 GAMEPLAYATTRIBUTE_PROPERTY_GETTER(ClassName, PropertyName) \
 GAMEPLAYATTRIBUTE_VALUE_GETTER(PropertyName) \

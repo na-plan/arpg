@@ -8,11 +8,7 @@
 
 UNAGE_Heal::UNAGE_Heal()
 {
-	DurationPolicy = EGameplayEffectDurationType::Infinite;
-	
-	FGameplayModifierInfo DamageModifier;
-	DamageModifier.Attribute = UNAAttributeSet::GetHealthAttribute();
-	DamageModifier.ModifierOp = EGameplayModOp::Additive;
+	DurationPolicy = EGameplayEffectDurationType::Instant;
 	
 	AssetTagsComponent = CreateDefaultSubobject<UAssetTagsGameplayEffectComponent>("TargetTagsGameplayEffectComponent");
 	GEComponents.AddUnique( AssetTagsComponent );
@@ -20,6 +16,11 @@ UNAGE_Heal::UNAGE_Heal()
 	FInheritedTagContainer Container;
 	Container.AddTag( FGameplayTag::RequestGameplayTag( TEXT( "Data.Health") ) );
 	AssetTagsComponent->SetAndApplyAssetTagChanges( Container );
+
+	
+	FGameplayModifierInfo DamageModifier;
+	DamageModifier.Attribute = UNAAttributeSet::GetHealthAttribute();
+	DamageModifier.ModifierOp = EGameplayModOp::Additive;
 	
 	FSetByCallerFloat CallerValue;
 	CallerValue.DataTag = FGameplayTag::RequestGameplayTag( TEXT( "Data.Heal" ) );

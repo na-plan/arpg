@@ -4,6 +4,7 @@
 #include "Item/ItemWidget/NAItemWidgetComponent.h"
 
 #include "Item/ItemActor/NAPickableItemActor.h"
+#include "Item/ItemActor/NAPlaceableItemActor.h"
 #include "Item/ItemWidget/NAItemWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -31,6 +32,7 @@ UNAItemWidgetComponent::UNAItemWidgetComponent(const FObjectInitializer& ObjectI
 	SetGeometryMode(EWidgetGeometryMode::Plane);
 	OpacityFromTexture = 1.f;
 	SetBlendMode(EWidgetBlendMode::Masked);
+	SetWindowFocusable(false);
 }
 
 void UNAItemWidgetComponent::PostInitProperties()
@@ -43,32 +45,33 @@ void UNAItemWidgetComponent::PostInitProperties()
 		bool bIsPlaceableItem = false;
 		if (GetOwner()->GetClass()->IsChildOf<ANAPickableItemActor>())
 		{
-			UClass* LoadedClass = LoadClass<UNAItemWidget>(nullptr, TEXT("/Game/00_ProjectNA/ItemTest/ItemWidget/BP_NAItemWidget.BP_NAItemWidget_C"));
+			UClass* LoadedClass = LoadClass<UNAItemWidget>(nullptr, TEXT("/Game/00_ProjectNA/ItemTest/ItemWidget/BP_NAPickableItemWidget.BP_NAPickableItemWidget_C"));
 			if (LoadedClass)
 			{
 				SetWidgetClass(LoadedClass);
 				bIsPickableItem = true;
 			}
 		}
-		else if (GetOwner()->GetClass()->IsChildOf<ANAPickableItemActor>())
+		else if (GetOwner()->GetClass()->IsChildOf<ANAPlaceableItemActor>())
 		{
-			// @TODO: PlacableItemActor 전용 위젯 클래스 만들기
-			// UClass* LoadedClass = LoadClass<UNAItemWidget>(nullptr, TEXT("/Game/00_ProjectNA/ItemTest/ItemWidget/BP_NAItemWidget.BP_NAItemWidget_C"));
-			// if (LoadedClass)
-			// {
-			// 	SetWidgetClass(LoadedClass);
-			// 	bIsPlaceableItem = true;
-			// }
+			UClass* LoadedClass = LoadClass<UNAItemWidget>(nullptr, TEXT("/Game/00_ProjectNA/ItemTest/ItemWidget/BP_NAPlaceableItemWidget.BP_NAPlaceableItemWidget_C"));
+			if (LoadedClass)
+			{
+				SetWidgetClass(LoadedClass);
+				bIsPlaceableItem = true;
+			}
 		}
 		
 		if (bIsPickableItem)
 		{
-			SetDrawSize(FVector2D(280, 350));
+			SetRelativeRotation(FRotator(0.0f, 0.0f, 180.0f));
+			SetDrawSize(FVector2D(340, 410));
+			SetRelativeScale3D(FVector(0.4f));
 		}
 		else if (bIsPlaceableItem)
 		{
-			// @TODO: Placeable Item 전용 위젯 드로 사이즈 구하기
-			SetDrawSize(FVector2D(680, 470));
+			SetRelativeRotation(FRotator(0.0f, 0.0f, 180.0f));
+			SetDrawSize(FVector2D(260, 50));
 		}
 	}
 }
@@ -78,8 +81,8 @@ void UNAItemWidgetComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// ...
-	
+	SetVisibility(false);
+	Deactivate();
 }
 
 
@@ -93,6 +96,58 @@ void UNAItemWidgetComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	{
 		FaceCamera();
 	}
+}
+
+void UNAItemWidgetComponent::InitWidget()
+{
+	Super::InitWidget();
+	
+	if (GetWorld()->IsPreviewWorld()) return;
+	if (!GetItemDataFromOwner()) return;
+	
+	if (GetItemWidget())
+	{
+		GetItemWidget()->InitItemWidget(this, GetItemDataFromOwner());
+	}
+}
+
+UNAItemData* UNAItemWidgetComponent::GetItemDataFromOwner() const
+{
+	if (ANAItemActor* ItemActor = Cast<ANAItemActor>(GetOwner()))
+	{
+		return ItemActor->GetItemData();
+	}
+	return nullptr;
+}
+
+void UNAItemWidgetComponent::ReleaseItemWidgetPopup()
+{
+	if (GetWorld()->IsPreviewWorld()) return;
+	if (!GetItemDataFromOwner()) return;
+
+	if (GetOwner()->GetClass()->IsChildOf<ANAPickableItemActor>())
+	{
+		bFaceCamera = true;
+		FaceCamera();
+	}
+	GetItemWidget()->ReleaseItemWidget();
+}
+
+void UNAItemWidgetComponent::CollapseItemWidgetPopup()
+{
+	if (GetWorld()->IsPreviewWorld()) return;
+	if (!GetItemDataFromOwner()) return;
+
+	if (GetOwner()->GetClass()->IsChildOf<ANAPickableItemActor>())
+	{
+		bFaceCamera = false;
+	}
+	GetItemWidget()->CollapseItemWidget();
+}
+
+class UNAItemWidget* UNAItemWidgetComponent::GetItemWidget() const
+{
+	return Cast<UNAItemWidget>(GetWidget());
 }
 
 void UNAItemWidgetComponent::FaceCamera()

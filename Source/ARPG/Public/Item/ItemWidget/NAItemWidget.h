@@ -20,12 +20,38 @@ protected:
 	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	
+	UFUNCTION(BlueprintCallable, Category = "Item Widget")
+	void OnItemWidgetReleased();
+	UFUNCTION(BlueprintCallable, Category = "Item Widget")
+	void OnItemWidgetCollapsed();
+	UPROPERTY(Transient, BlueprintReadOnly)
+	uint8 bReleaseItemWidget : 1 = false;
+	
+	UPROPERTY(Transient, BlueprintReadOnly)
+	TWeakObjectPtr<UNAItemWidgetComponent> OwningItemWidgetComponent;
 
+	uint8 bIsToggleAction : 1 = false;
+	FString ToggleActionText;
+	void SwapToggleActionText(FString& ToggleActionStr) const;
+	
 public:
+	void InitItemWidget(UNAItemWidgetComponent* OwningComp, class UNAItemData* ItemData);
+	
+	
 	void ReleaseItemWidget();
 	void CollapseItemWidget();
 	
 protected:
+// Widget Animations ////////////////////////////////////////////////////////////////////////////////////////////////
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (BindWidgetAnimOptional), Category = "Widget Animation")
+	TObjectPtr<UWidgetAnimation> Widget_Appear;
+
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (BindWidgetAnimOptional), Category = "Widget Animation")
+	TObjectPtr<UWidgetAnimation> Widget_VisibleLoop;
+	
+	
+// Widget Bindings ////////////////////////////////////////////////////////////////////////////////////////////////	
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Item Widget")
 	TObjectPtr<class UTextBlock> Item_Name;
 

@@ -12,6 +12,7 @@
 #include "Monster/Ability/GameplayAbility/GA_MonsterAttack.h"
 #include "Monster/Ability/GameplayAbility/GA_Spawning.h"
 #include "Monster/Ability/GameplayAbility/GA_UseSkill.h"
+#include "GameplayEffectExtension.h"
 
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 
@@ -235,6 +236,33 @@ void AMonsterBase::OnHealthDepleted()
 	}
 }
 
+//ASC에서 GameplayEffect를 적용받을 때 호출
+void AMonsterBase::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
+{
+	// 충돌을 할때마다 hpcheck를 해
+	// hp가 떨어졌으면 player 를 찾아 
+
+
+	AbilitySystemComponent->GetAttributeSet(UNAAttributeSet::StaticClass());
+	Cast<UNAAttributeSet>(AbilitySystemComponent->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();
+	auto a=0;
+
+	const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>(AbilitySystemComponent->GetAttributeSet(UNAAttributeSet::StaticClass()));
+	if (AttributeSet)
+	{
+		FGameplayAttribute HealthAttribute = UNAAttributeSet::GetHealthAttribute();
+
+		if (Data.EvaluatedData.Attribute == HealthAttribute)
+		{
+			const FGameplayEffectContextHandle& EffectContext = Data.EffectSpec.GetContext();
+			AActor* InstigatorActor = EffectContext.GetInstigator();
+
+		}
+	}
+	
+
+}
+
 // Called every frame
 void AMonsterBase::Tick(float DeltaTime)
 {
@@ -243,7 +271,7 @@ void AMonsterBase::Tick(float DeltaTime)
 	if (AbilitySystemComponent)
 	{
 		float m_fHealth = Cast<UNAAttributeSet>(AbilitySystemComponent->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();
-		
+		bool check = false;
 	}
 
 

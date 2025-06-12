@@ -222,7 +222,7 @@ UNAItemData* UNAItemEngineSubsystem::CreateItemDataBySlot(UWorld* InWorld, const
 	return nullptr;
 }
 
-bool UNAItemEngineSubsystem::DestroyRuntimeItemData(const FName& InItemID)
+bool UNAItemEngineSubsystem::DestroyRuntimeItemData(const FName& InItemID, const bool bDestroyItemActor)
 {
 	bool bResult = RuntimeItemDataMap.Contains(InItemID);
 	if (bResult)
@@ -237,11 +237,21 @@ bool UNAItemEngineSubsystem::DestroyRuntimeItemData(const FName& InItemID)
 			int32 bSucceed = RuntimeItemDataMap.Remove(InItemID);
 			bResult = bSucceed == 1;
 		}
+		if (GetWorld() && bDestroyItemActor)
+		{
+			ForEachItemActorOfClass<ANAItemActor>(GetWorld(), [InItemID](ANAItemActor* ItemActor)
+			{
+				if (ItemActor->GetItemData()->GetItemID() == InItemID)
+				{
+					ItemActor->Destroy();
+				}
+			});
+		}
 	}
 	return bResult;
 }
 
-bool UNAItemEngineSubsystem::DestroyRuntimeItemData(UNAItemData* InItemData)
+bool UNAItemEngineSubsystem::DestroyRuntimeItemData(UNAItemData* InItemData, const bool bDestroyItemActor)
 {
-	return DestroyRuntimeItemData(InItemData->ID);
+	return DestroyRuntimeItemData(InItemData->ID, bDestroyItemActor);
 }

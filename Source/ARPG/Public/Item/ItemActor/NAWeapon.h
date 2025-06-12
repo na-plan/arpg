@@ -6,8 +6,10 @@
 #include "AbilitySystemInterface.h"
 #include "NAPickableItemActor.h"
 #include "GameFramework/Actor.h"
+#include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "NAWeapon.generated.h"
 
+class UNAAmmoIndicatorComponent;
 class UGameplayEffect;
 class UNiagaraComponent;
 class UNAMontageCombatComponent;
@@ -28,7 +30,10 @@ class ARPG_API ANAWeapon : public ANAPickableItemActor, public IAbilitySystemInt
 
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category="FX", meta=(AllowPrivateAccess="true"))
 	UNiagaraComponent* MuzzleFlashComponent;
-	
+
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category="Widget", meta=(AllowPrivateAccess="true"))
+	UNAAmmoIndicatorComponent* AmmoIndicatorComponent;
+
 public:
 	// Sets default values for this actor's properties
 	ANAWeapon();
@@ -40,6 +45,8 @@ protected:
 	virtual void BeginPlay() override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	virtual void OnConstruction(const FTransform& Transform) override;
 
 public:
 	// Called every frame

@@ -30,6 +30,7 @@ protected:
 
 	//Player 찾는 기능
 	void FindPlayerByPerception();
+	void FindDamageInstigator(AActor* DamageInstigatorTarget);
 
 	void IsPlayingMontage();
 
@@ -38,8 +39,12 @@ protected:
 
 	void OnAttack();
 
+	bool LookOnTarget = false;
+
 public:
 	void UseSkill();
+
+	void LookTarget();
 	
 	//Ability system 완성후에 만들어야 할거 같음
 	//UFUNCTION()

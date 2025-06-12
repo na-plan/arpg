@@ -173,18 +173,32 @@ bool UNAItemData::TryUseItem(AActor* User)
 	bool bSucceed = false;
 	if (INAItemUseInterface* ItemUseInterface = Cast<INAItemUseInterface>(CDO))
 	{
-		bSucceed = ItemUseInterface->UseItem(this, User);
-		if (bSucceed)
+		if (!ItemUseInterface->CanUseItem(this, User)) return false;
+		
+		int32 UsedAmount = 0;
+		bSucceed = ItemUseInterface->UseItem(this, User, UsedAmount);
+		if (bSucceed && UsedAmount > 0)
 		{
-			if (Quantity <= 0)
-			{
-				// @TODO: 이 아이템 데이터 파괴 및 후속처리(RuntimeItemDataMap에서 제거 등)
-			}
+			int32 PredictedQuantity = Quantity - UsedAmount;
 		
 			if (OwningInventory.IsValid())
 			{
-				// @TODO: 인벤토리 위젯에 리드로우 해야하는 상황(아이템 수량 및 상태 변경 등)이면 인벤토리 컴포넌트에 위젯 리드로우 요청
-				
+				// 인벤토리 위젯에 리드로우 해야하는 상황(아이템 수량 및 상태 변경 등)이면 인벤토리 컴포넌트에 위젯 리드로우 요청
+				// 수량이 0이하면 인벤토리 컴포넌트에서 아이템 데이터 제거까지 수행
+				return OwningInventory->TryRemoveItem(ID, UsedAmount);
+			}
+			
+			if (PredictedQuantity <= 0)
+			{
+				// 인벤토리에 보관된 아이템이 아닌 경우, 아이템 엔진 서브시스템에 직접 아이템 데이터 & 아이템 액터까지 제거 요청
+				if (UNAItemEngineSubsystem::Get())
+				{
+					return UNAItemEngineSubsystem::Get()->DestroyRuntimeItemData(ID, true);
+				}
+			}
+			else
+			{
+				SetQuantity(PredictedQuantity);
 			}
 		}
 	}
@@ -198,6 +212,7 @@ bool UNAItemData::GetInteractableData(FNAInteractableData& OutData) const
 		if (const FNAItemBaseTableRow* ItemMetaData = GetItemMetaDataStruct())
 		{
 			OutData = ItemMetaData->InteractableData;
+			return true;
 		}
 	}
 	return false;
