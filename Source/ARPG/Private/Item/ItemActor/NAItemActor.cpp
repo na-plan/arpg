@@ -16,7 +16,7 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	
 	TriggerSphere = CreateDefaultSubobject<USphereComponent>("TriggerSphere");
 	TriggerSphere->SetupAttachment(RootComponent);
-	TriggerSphere->SetSphereRadius(100.0f);
+	TriggerSphere->SetSphereRadius(180.0f);
 	TriggerSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	TriggerSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	TriggerSphere->CanCharacterStepUpOn = ECB_No;
@@ -27,26 +27,22 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	if (ItemCollision)
 	{
 		bUseItemCollision = true;
-		ItemCollision->SetupAttachment(RootComponent);
 	}
 	if (ItemMesh)
 	{
 		bUseItemMesh = true;
-		ItemMesh->SetupAttachment(ItemCollision);
 	}
 	
 	ItemWidgetComponent = CreateDefaultSubobject<UNAItemWidgetComponent>(TEXT("ItemWidgetComponent"));
-	ItemWidgetComponent->SetupAttachment(ItemCollision);
-	
+	ItemWidgetComponent->SetupAttachment(RootComponent);
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface>
 		ItemWidgetMaterial(TEXT(
 			"/Script/Engine.MaterialInstanceConstant'/Engine/EngineMaterials/Widget3DPassThrough_Translucent.Widget3DPassThrough_Translucent'"));
 	check(ItemWidgetMaterial.Object);
 	ItemWidgetComponent->SetMaterial(0, ItemWidgetMaterial.Object);
-	// @TODO 위젯 컴포넌트 트랜스폼 설정
 	
 	ItemDataID = NAME_None;
-
+	
 	bReplicates = true;
 	AActor::SetReplicateMovement( true );
 	bAlwaysRelevant = true;
@@ -82,11 +78,6 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		InitItemData();
 	}
 
-	if (TriggerSphere->GetAttachParent() != GetRootComponent())
-	{
-		TriggerSphere->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-	}
-	
 	const FNAItemBaseTableRow* MetaData = UNAItemEngineSubsystem::Get()->GetItemMetaDataByClass(GetClass());
 	if (!MetaData) { return; }
 	
@@ -162,58 +153,61 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			}
 			OldComponents.Empty();
 		}
-
-		// 부모, 자식에서 Property로 설정된 컴포넌트들을 조회
-		TSet<UActorComponent*> SubObjsActorComponents;
-		for ( TFieldIterator<FObjectProperty> It ( GetClass() ); It; ++It )
-		{
-			if ( It->PropertyClass->IsChildOf( UActorComponent::StaticClass() ) )
-			{
-				if ( UActorComponent* Component = Cast<UActorComponent>( It->GetObjectPropertyValue_InContainer( this ) ) )
-				{
-					SubObjsActorComponents.Add( Component );
-				}
-			}
-		}
+	}
 	
-		for (UActorComponent* OwnedComponent : GetComponents().Array())
+	// 부모, 자식에서 Property로 설정된 컴포넌트들을 조회
+	TSet<UActorComponent*> SubObjsActorComponents;
+	for ( TFieldIterator<FObjectProperty> It ( GetClass() ); It; ++It )
+	{
+		if ( It->PropertyClass->IsChildOf( UActorComponent::StaticClass() ) )
 		{
-			if (USceneComponent* OwnedSceneComp = Cast<USceneComponent>(OwnedComponent))
+			if ( UActorComponent* Component = Cast<UActorComponent>( It->GetObjectPropertyValue_InContainer( this ) ) )
 			{
-				if ( SubObjsActorComponents.Contains( OwnedComponent ) )
-				{
-					OwnedSceneComp->RegisterComponent();
-					AddInstanceComponent(OwnedSceneComp);
-					continue;
-				}
-
-				// AttachChildren 복사본 사용 (Detach 중 배열 변화 방지)
-				TArray<USceneComponent*> AttachedChildren = OwnedSceneComp->GetAttachChildren();
-				for (USceneComponent* Child : AttachedChildren)
-				{
-					if (IsValid(Child))
-					{
-						Child->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-					}
-				}
-				AttachedChildren.Empty();
-
-				OwnedSceneComp->ClearFlags(RF_Standalone | RF_Public);
-				OwnedSceneComp->DestroyComponent();
-
-				// Actor의 Components 배열에서도 제거
-				if (AActor* MyOwner = OwnedSceneComp->GetOwner())
-				{
-					MyOwner->RemoveInstanceComponent(OwnedSceneComp);
-				}
+				SubObjsActorComponents.Add( Component );
 			}
 		}
 	}
 	
-	check(ItemCollision);
-	check(ItemWidgetComponent);
+	for (UActorComponent* OwnedComponent : GetComponents().Array())
+	{
+		if (USceneComponent* OwnedSceneComp = Cast<USceneComponent>(OwnedComponent))
+		{
+			if ( SubObjsActorComponents.Contains( OwnedComponent ) )
+			{
+				if (!OwnedSceneComp->IsRegistered())
+				{
+					OwnedSceneComp->RegisterComponent();
+				}
+				continue;
+			}
+
+			TArray<USceneComponent*> AttachedChildren = OwnedSceneComp->GetAttachChildren();
+			for (USceneComponent* Child : AttachedChildren)
+			{
+				if (IsValid(Child))
+				{
+					Child->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+				}
+			}
+			AttachedChildren.Empty();
+
+			OwnedSceneComp->ClearFlags(RF_Standalone | RF_Public);
+			OwnedSceneComp->DestroyComponent();
+
+			// Actor의 Components 배열에서도 제거
+			if (AActor* MyOwner = OwnedSceneComp->GetOwner())
+			{
+				MyOwner->RemoveInstanceComponent(OwnedSceneComp);
+			}
+		}
+	}
+	
 	// 어태치먼트
-	if (ItemCollision->GetAttachParent() != GetRootComponent())
+	if (TriggerSphere && TriggerSphere->GetAttachParent() != GetRootComponent())
+	{
+		TriggerSphere->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	}
+	if (ItemCollision && ItemCollision->GetAttachParent() != GetRootComponent())
 	{
 		ItemCollision->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 	}
@@ -221,7 +215,7 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	{
 		ItemMesh->AttachToComponent(ItemCollision, FAttachmentTransformRules::KeepRelativeTransform);
 	}
-	if (ItemWidgetComponent->GetAttachParent() != ItemCollision)
+	if (ItemWidgetComponent && ItemWidgetComponent->GetAttachParent() != ItemCollision)
 	{
 		ItemWidgetComponent->AttachToComponent(ItemCollision, FAttachmentTransformRules::KeepRelativeTransform);
 	}
@@ -244,7 +238,7 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		ItemCollision->SetRelativeTransform(MetaData->CollisionTransform);
 	}
 
-	if (bUseItemMesh && MetaData->MeshType != EItemMeshType::IMT_None)
+	if (MetaData->MeshType != EItemMeshType::IMT_None)
 	{
 		if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(ItemMesh))
 		{
@@ -265,6 +259,15 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	}
 
 	// 트랜스폼 및 콜리전, 피직스 등등 설정 여기에
+	if (ItemCollision)
+	{
+		ItemCollision->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		ItemCollision->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+	}
+	if (ItemMesh)
+	{
+		ItemMesh->SetCollisionProfileName(TEXT("CharacterMesh"));
+	}
 }
 
 void ANAItemActor::PostLoad()
