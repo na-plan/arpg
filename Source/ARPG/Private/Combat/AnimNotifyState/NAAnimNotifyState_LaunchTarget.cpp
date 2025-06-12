@@ -169,6 +169,7 @@ void UNAAnimNotifyState_LaunchTarget::NotifyEnd(USkeletalMeshComponent* MeshComp
 
 
 
+
 			SpecHandle.Clear();
 			ContextHandle.Clear();
 			AppliedActors.Empty();
