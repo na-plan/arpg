@@ -171,18 +171,18 @@ void UNAInteractionComponent::UpdateInteractionData()
 	float MinDistance = TNumericLimits<float>::Max();
 	TWeakInterfacePtr<INAInteractableInterface> BestInteractable;
 
-	for (auto& It : FocusedInteractableMap)
+	for ( auto It = FocusedInteractableMap.CreateIterator(); It; ++It )
 	{
-		if (!It.Key.IsValid())
+		if (!It->Key.IsValid())
 		{
 			continue;
 		}
-		if (It.Key.GetRawObject() != It.Value.FocusedInteractable.Get())
+		if (It->Key.GetRawObject() != It->Value.FocusedInteractable.Get())
 		{
 			continue;
 		}
 
-		It.Value.LastInteractionCheckTime = GetWorld()->GetTimeSeconds();
+		It->Value.LastInteractionCheckTime = GetWorld()->GetTimeSeconds();
 		FVector OwnerLoc;
 		if (APawn* OwningPawn = Cast<APawn>(GetOwner()))
 		{
@@ -200,15 +200,21 @@ void UNAInteractionComponent::UpdateInteractionData()
 				return;
 			}
 		}
-		
-		FVector InteractableLoc = It.Value.FocusedInteractable->GetActorLocation();
-		It.Value.DistanceToActiveInteractable = FVector::Dist(OwnerLoc, InteractableLoc);
 
-		// 최소 거리 인터랙터블 검사
-		if (It.Value.DistanceToActiveInteractable < MinDistance)
+		if ( It->Value.FocusedInteractable->GetAttachParentActor() )
 		{
-			MinDistance       = It.Value.DistanceToActiveInteractable;
-			BestInteractable  = It.Key.ToWeakInterface();
+			It.RemoveCurrent();
+			continue;
+		}
+		
+		FVector InteractableLoc = It->Value.FocusedInteractable->GetActorLocation();
+		It->Value.DistanceToActiveInteractable = FVector::Dist(OwnerLoc, InteractableLoc);
+		
+		// 최소 거리 인터랙터블 검사
+		if (It->Value.DistanceToActiveInteractable < MinDistance)
+		{
+			MinDistance       = It->Value.DistanceToActiveInteractable;
+			BestInteractable  = It->Key.ToWeakInterface();
 		}
 	}
 
@@ -269,6 +275,12 @@ bool UNAInteractionComponent::OnInteractableFound(TScriptInterface<INAInteractab
 		FNAInteractionData NewInteractionData;
 		NewInteractionData.FocusedInteractable = InteractableItem;
 
+		if ( InteractableItem->GetAttachParentActor() )
+		{
+			// UE_LOG( LogTemp, Log, TEXT("%hs: %s 아이템 주인이 이미 있음"), __FUNCTION__, *GetNameSafe( InteractableItem ) )
+			return false;
+		}
+
 		FocusedInteractableMap.Emplace(InteractableActor, NewInteractionData);
 
 		if (!IsComponentTickEnabled())
@@ -297,7 +309,7 @@ bool UNAInteractionComponent::OnInteractableLost(TScriptInterface<INAInteractabl
 	
 	if (FocusedInteractableMap.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[UNAInteractionComponent::OnInteractableLost]  FocusedInteractableMap이 비어있었는데??"));
+		//UE_LOG(LogTemp, Warning, TEXT("[UNAInteractionComponent::OnInteractableLost]  FocusedInteractableMap이 비어있었는데??"));
 		return false;
 	}
 
