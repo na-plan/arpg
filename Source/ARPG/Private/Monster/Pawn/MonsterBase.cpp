@@ -126,8 +126,8 @@ void AMonsterBase::SetAttributeData(const FDataTableRowHandle& InDataTableRowHan
 	
 	if (FMonsterOwnTable* Data = InDataTableRowHandle.GetRow<FMonsterOwnTable>(TEXT("MonsterStatData")))
 	{
-		const UAttributeSet* MonsterAttribute = AbilitySystemComponent->GetAttributeSet(UNAAttributeSet::StaticClass());
-
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UNAAttributeSet::GetHealthAttribute()).AddUObject(this, &AMonsterBase::initializeAttribute);
+		
 		AbilitySystemComponent->SetNumericAttributeBase(UNAAttributeSet::GetMaxHealthAttribute(), Data->MaxHealth);
 		AbilitySystemComponent->SetNumericAttributeBase(UNAAttributeSet::GetHealthAttribute(), Data->Health);
 		AbilitySystemComponent->SetNumericAttributeBase(UNAAttributeSet::GetMovementSpeedAttribute(), Data->MovementSpeed);

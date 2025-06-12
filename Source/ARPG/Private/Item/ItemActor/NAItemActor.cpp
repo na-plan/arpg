@@ -172,7 +172,7 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	{
 		ItemCollision->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 	}
-	if (ItemMesh->GetAttachParent() != ItemCollision)
+	if (ItemMesh && (ItemMesh->GetAttachParent() != ItemCollision))
 	{
 		ItemMesh->AttachToComponent(ItemCollision, FAttachmentTransformRules::KeepRelativeTransform);
 	}
@@ -245,7 +245,7 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		ItemCollision->SetRelativeTransform(MetaData->CollisionTransform);
 	}
 
-	if (MetaData->MeshType != EItemMeshType::IMT_None)
+	if (MetaData->MeshType != EItemMeshType::IMT_None && ItemMesh)
 	{
 		if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(ItemMesh))
 		{
@@ -258,7 +258,7 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			SkeletalMeshComp->SetSkeletalMesh(MetaData->SkeletalMeshAssetData.SkeletalMesh);
 			SkeletalMeshComp->SetAnimClass(MetaData->SkeletalMeshAssetData.AnimClass);
 		}
-
+		
 		ItemMesh->SetRelativeTransform(MetaData->MeshTransform);
 	}
 

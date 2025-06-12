@@ -6,6 +6,8 @@
 #include "Item/ItemActor/NAPlaceableItemActor.h"
 #include "NAPlaceableItem_NumPad.generated.h"
 
+class UNANumpadWidget;
+
 UCLASS()
 class ARPG_API ANAPlaceableItem_NumPad : public ANAPlaceableItemActor
 {
@@ -13,8 +15,22 @@ class ARPG_API ANAPlaceableItem_NumPad : public ANAPlaceableItemActor
 
 public:
 	// Sets default values for this actor's properties
-	ANAPlaceableItem_NumPad();
+	ANAPlaceableItem_NumPad(const FObjectInitializer& ObjectInitializer);
 
+	virtual void PostInitProperties() override;
+	virtual void PostRegisterAllComponents() override;
+	virtual void OnConstruction(const FTransform& Transform) override;
+	virtual void PostInitializeComponents() override;
+
+	//======================================================================================================================
+	// Interactable Interface Implements
+	//======================================================================================================================
+public:
+	virtual void BeginInteract_Implementation(AActor* Interactor) override;
+	virtual void EndInteract_Implementation(AActor* Interactor) override;
+	virtual bool ExecuteInteract_Implementation(AActor* Interactor) override;
+
+	void SelectActorInEditor(AActor* InActor);
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -22,4 +38,11 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+protected:
+	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = true, AllowAnyActor))
+	TSubclassOf<UUserWidget> NumpadWidget;
+	
+	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = true, AllowAnyActor))
+	ANAPlaceableItemActor* TargetActor;
 };

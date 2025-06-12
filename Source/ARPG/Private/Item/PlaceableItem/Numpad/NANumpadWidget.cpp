@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Item/PlaceableItem/NANumpadWidget.h"
+#include "Item/PlaceableItem/Numpad//NANumpadWidget.h"
 
 #include "Components/Image.h"
 
@@ -44,6 +44,8 @@ void UNANumpadWidget::NativeConstruct()
 	
 	if (Button_InputConfirm)
 		Button_InputConfirm->OnClicked.AddDynamic(this, &ThisClass::OnClick_ConfirmButton);
+
+	CurrentController = GetWorld()->GetFirstPlayerController();
 }
 
 void UNANumpadWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -51,7 +53,17 @@ void UNANumpadWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	Super::NativeTick(MyGeometry, InDeltaTime);
 
 	if (bIsComplete) return;
+	
+	bool bIsVisible = GetVisibility() == ESlateVisibility::Visible;
+	if (!bIsVisible)
+	{
+		CurrentController->SetInputMode(FInputModeGameAndUI());
+		return;
+	}
 
+	CurrentController->SetInputMode(FInputModeUIOnly());
+	CurrentController->bShowMouseCursor = bIsVisible;
+	
 	DetectHoveredButton();
 }
 
@@ -130,4 +142,7 @@ void UNANumpadWidget::ConfirmNumber()
 	}
 
 	bIsComplete = true;
+	SetVisibility(ESlateVisibility::Hidden);
+	CurrentController->SetInputMode(FInputModeGameAndUI());
+	CurrentController->bShowMouseCursor = true;
 }

@@ -25,7 +25,7 @@ public:
 	virtual void NativeConstruct() override;
 	
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
-	
+
 public:
 	UFUNCTION()
 	void OnClick_NumButton();
@@ -46,6 +46,10 @@ private:
 	void ClearNumber();
 
 	void DetectHoveredButton();
+
+public:
+	bool IsComplete() const { return bIsComplete; }
+	
 protected:
 	UPROPERTY(EditAnywhere, meta = (bindwidget))
 	UButton* Button_Input00;
@@ -110,4 +114,7 @@ private:
 
 	UPROPERTY()
 	bool bIsComplete = false;
+
+	UPROPERTY()
+	APlayerController* CurrentController;
 };
