@@ -71,6 +71,9 @@ protected:
 
 	virtual void initializeAttribute(const FOnAttributeChangeData& Data);
 	virtual void OnHealthDepleted();
+
+	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data);
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
