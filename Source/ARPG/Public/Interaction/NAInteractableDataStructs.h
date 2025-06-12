@@ -10,8 +10,6 @@ enum class ENAInteractableType : uint8
 
 	Pickup					UMETA(DisplayName = "Pickup"),				// 줍기
 	Toggle					UMETA(DisplayName = "Toggle"),				// 켜기/끄기
-	Open					UMETA(DisplayName = "Open"),				// 열기 (문, 상자 등)
-	Close					UMETA(DisplayName = "Close"),				// 닫기
 	Inspect					UMETA(DisplayName = "Inspect"),				// 살펴보기 (정보 확인용)
 
 	Equip					UMETA(DisplayName = "Equip"),				// 장착

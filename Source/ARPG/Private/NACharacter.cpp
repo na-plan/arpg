@@ -117,7 +117,7 @@ ANACharacter::ANACharacter()
 
 	InventoryAngleBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("InventoryAngleBoom"));
 	InventoryAngleBoom->SetupAttachment(RootComponent);
-	InventoryAngleBoom->SetRelativeLocation(FVector(0.f, 58.f, 12.f));
+	InventoryAngleBoom->SetRelativeLocation(FVector(0.f, 73.f, 27.f));
 	InventoryAngleBoom->SetRelativeRotation(FRotator(-8.f, 13.f, 0.f));
 	InventoryAngleBoom->TargetArmLength = 176.f;
 	InventoryAngleBoom-> bUsePawnControlRotation = false;
@@ -128,7 +128,7 @@ ANACharacter::ANACharacter()
 	
 	InventoryWidgetBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("InventorySpringArm"));
 	InventoryWidgetBoom->SetupAttachment(RootComponent);
-	InventoryWidgetBoom->SetRelativeLocation(FVector(0.f, 67.f, -25.f));
+	InventoryWidgetBoom->SetRelativeLocation(FVector(0.f, 85.f, -10.f));
 	InventoryWidgetBoom->SetRelativeRotation(FRotator::ZeroRotator);
 	InventoryWidgetBoom->TargetArmLength = 160.f;
 	InventoryWidgetBoom-> bUsePawnControlRotation = false;
@@ -143,7 +143,7 @@ ANACharacter::ANACharacter()
 	InventoryComponent->SetupAttachment(InventoryWidgetBoom, USpringArmComponent::SocketName);
 	InventoryComponent->SetRelativeLocation(FVector(0.f, -28.f, 31.f));
 	InventoryComponent->SetRelativeRotation(FRotator(9.f, 0.f, 0.f));
-	InventoryComponent->SetRelativeScale3D(FVector(0.37f));
+	InventoryComponent->SetRelativeScale3D(FVector(0.42f));
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface>
 		InventoryWidgetMaterial(TEXT(
 			"/Script/Engine.MaterialInstanceConstant'/Engine/EngineMaterials/Widget3DPassThrough_Translucent.Widget3DPassThrough_Translucent'"));
@@ -541,6 +541,8 @@ void ANACharacter::OnRep_Zoom()
 
 void ANACharacter::Zoom()
 {
+	if (InventoryComponent->IsVisible()) return;
+	
 	SetZoom();
 }
 
@@ -621,6 +623,8 @@ bool ANACharacter::CanToggleInventoryWidget() const
 
 void ANACharacter::ToggleInventoryWidget()
 {
+	if (bIsZoom) return;
+	
 	if (ensure(InventoryComponent != nullptr))
 	{
 		if (CanToggleInventoryWidget())

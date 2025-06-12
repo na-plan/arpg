@@ -47,6 +47,10 @@ void ANAPlaceableItemActor_Door::BeginInteract_Implementation(AActor* Interactor
 {
 	Super::BeginInteract_Implementation(Interactor);
 
+	if (ItemWidgetComponent && ItemWidgetComponent->IsVisible())
+	{
+		ItemWidgetComponent->CollapseItemWidgetPopup();
+	}
 	InitInteraction(Interactor);
 	TickInteraction.BindUObject(this, &ThisClass::ExecuteInteract_Implementation);
 }
