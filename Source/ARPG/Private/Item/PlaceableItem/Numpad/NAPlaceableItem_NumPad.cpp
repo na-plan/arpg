@@ -15,9 +15,9 @@ ANAPlaceableItem_NumPad::ANAPlaceableItem_NumPad(const FObjectInitializer& Objec
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	static ConstructorHelpers::FClassFinder<UUserWidget> foundWidget(TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/00_ProjectNA/01_Blueprint/01_Widget/InGame/BP_NANumPad.BP_NANumPad_C'"));
-	if (foundWidget.Succeeded())
-		NumpadWidget = foundWidget.Class;
+	// static ConstructorHelpers::FClassFinder<UUserWidget> foundWidget(TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/00_ProjectNA/01_Blueprint/01_Widget/InGame/BP_NANumPad.BP_NANumPad_C'"));
+	// if (foundWidget.Succeeded())
+	// 	NumpadWidget = foundWidget.Class;
 }
 
 void ANAPlaceableItem_NumPad::PostInitProperties()
@@ -75,6 +75,7 @@ void ANAPlaceableItem_NumPad::BeginPlay()
 	Super::BeginPlay();
 	
 	 UUserWidget* instance = CreateWidget<UUserWidget>(GetWorld(), NumpadWidget);
+	if (instance)
 	instance->AddToViewport();
 	//Widget->SetVisibility(ESlateVisibility::Hidden);
 }
