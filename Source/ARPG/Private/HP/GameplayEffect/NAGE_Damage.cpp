@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "HP/GameplayEffect/NAGE_Damage.h"
@@ -8,8 +8,11 @@
 
 UNAGE_Damage::UNAGE_Damage()
 {
-	DurationPolicy = EGameplayEffectDurationType::Infinite;
+	DurationPolicy = EGameplayEffectDurationType::Instant;
 	
+	FGameplayEffectExecutionDefinition f;
+	f.CalculationClass;
+	Executions;
 	FGameplayModifierInfo DamageModifier;
 	DamageModifier.Attribute = UNAAttributeSet::GetHealthAttribute();
 	DamageModifier.ModifierOp = EGameplayModOp::Additive;

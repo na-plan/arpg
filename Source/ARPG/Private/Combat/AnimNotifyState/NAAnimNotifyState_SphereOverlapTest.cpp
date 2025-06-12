@@ -10,6 +10,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
 
+#include "Perception/AISenseConfig_Damage.h"
+
 void UNAAnimNotifyState_SphereOverlapTest::NotifyBegin( USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                                                         float TotalDuration, const FAnimNotifyEventReference& EventReference )
 {
@@ -40,6 +42,7 @@ void UNAAnimNotifyState_SphereOverlapTest::NotifyBegin( USkeletalMeshComponent* 
 			if ( const UNAMontageCombatComponent* CombatComponent = MeshComp->GetOwner()->GetComponentByClass<UNAMontageCombatComponent>() )
 			{
 				SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( "Data.Damage" ), -CombatComponent->GetBaseDamage() );	
+				BaseDamage = CombatComponent->GetBaseDamage();
 			}
 		}
 
@@ -148,6 +151,10 @@ void UNAAnimNotifyState_SphereOverlapTest::NotifyTick( USkeletalMeshComponent* M
 									*SpecHandle.Data.Get(),
 									TargetInterface->GetAbilitySystemComponent()
 								);
+																
+								// Damage 이벤트 보고 및 UAISense_Damage로 callback 함수 등록: 여기서 TargetActor는 피해를 입은 액터
+								AActor* TargetActor = OverlapResult.GetActor();
+								UAISense_Damage::ReportDamageEvent(GetWorld(), TargetActor, MeshComp->GetOwner(),BaseDamage, TargetActor->GetActorLocation(), MeshComp->GetOwner()->GetActorLocation());
 
 								AppliedActors.Add(OverlapResult.GetActor());
 							}

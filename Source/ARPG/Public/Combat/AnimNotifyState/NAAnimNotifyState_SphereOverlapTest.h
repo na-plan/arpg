@@ -32,6 +32,8 @@ class ARPG_API UNAAnimNotifyState_SphereOverlapTest : public UAnimNotifyState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlap", meta=(AllowPrivateAccess = "true"))
 	float SphereRadius = 20.f;
 
+	float BaseDamage = 0;
+
 	UPROPERTY()
 	TSet<AActor*> AppliedActors;
 	

@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
+#include "Perception/AISenseConfig_Damage.h"
 
 #include "Monster/Pawn/MonsterBase.h"
 #include "Ability/GameplayAbility/AttackGameplayAbility.h"
@@ -55,7 +56,7 @@ void AMonsterAIController::OnPossess(APawn* InPawn)
 void AMonsterAIController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
+	LookTarget();
 	
 	//Montage play중이면 이동 멈추는거
 	IsPlayingMontage();
@@ -154,13 +155,15 @@ void AMonsterAIController::FindPlayerByPerception()
 
 		if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(GetPawn()))
 		{			
-			float m_fHealth = Cast<UNAAttributeSet>(OwnerMonster->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();
-			float m_fMaxHealth = Cast<UNAAttributeSet>(OwnerMonster->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetMaxHealth();
+			UAbilitySystemComponent* MonsterASC = OwnerMonster->GetAbilitySystemComponent();
+			float m_fHealth = Cast<UNAAttributeSet>(MonsterASC->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();			
+			float m_fMaxHealth = Cast<UNAAttributeSet>(MonsterASC->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetMaxHealth();
+
+			MonsterASC->GetAttributeSet(UNAAttributeSet::StaticClass());
 
 			if (m_fHealth < m_fMaxHealth)
 			{
 				m_bTakeDamage = true;
-
 
 				//Blackboard->SetValueAsObject(TEXT("DetectPlayer"), Cast<UObject>(DetectedPlayer));
 			}
@@ -173,6 +176,13 @@ void AMonsterAIController::FindPlayerByPerception()
 			Blackboard->ClearValue(TEXT("DetectPlayer"));
 		}
 	}
+
+}
+
+void AMonsterAIController::FindDamageInstigator(AActor* DamageInstigatorTarget)
+{
+
+
 
 }
 
@@ -250,7 +260,7 @@ void AMonsterAIController::UseSkill()
 		float PlayerDistance = Blackboard->GetValueAsFloat(TEXT("PlayerDistance"));
 		
 		//skill 사거리 내에 들어왔을때 사용
-		if (PlayerDistance < SkillDistance)
+		if (PlayerDistance < SkillDistance && LookOnTarget)
 		{
 			Blackboard->SetValueAsBool(TEXT("CanUseSkill"), true);
 
@@ -291,6 +301,44 @@ void AMonsterAIController::UseSkill()
 	//	Blackboard->SetValueAsBool(TEXT("CanUseSkill"), false);
 	//}
 	//선택된 몽타주 전달
+}
+
+void AMonsterAIController::LookTarget()
+{
+	UObject* DetectedPlayer = Blackboard->GetValueAsObject(TEXT("DetectPlayer"));
+
+	if (DetectedPlayer != nullptr)
+	{
+		if (AActor* DetectedPlayerActor = Cast<AActor>(DetectedPlayer))
+		{
+			FVector PlayerLoc = DetectedPlayerActor->GetActorLocation();
+			FVector OwnerLoc = GetPawn()->GetActorLocation();
+			FVector LookVector = (PlayerLoc - OwnerLoc).GetSafeNormal();
+			FVector CurrentForward = GetPawn()->GetActorForwardVector();
+			float LookAngle = FVector::DotProduct(CurrentForward, LookVector);
+			
+			//몽타주 재생중이 아니면
+			if (!Blackboard->GetValueAsBool(TEXT("MontagePlaying")))
+			{
+				// 대상을 바라보고 있지 않으면
+				if (LookAngle < 0.9)
+				{
+					SetFocus(DetectedPlayerActor);	
+					LookOnTarget = false;
+				}
+				else
+				{		
+					LookOnTarget = true;
+				}
+			}
+			else
+			{
+				SetFocus(nullptr);
+				LookOnTarget = true;
+			}
+		}
+	}
+
 }
 
 void AMonsterAIController::OnAttack()
