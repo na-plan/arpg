@@ -8,6 +8,7 @@
 #include "Abilities/GameplayAbility.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Weapon/WidgetComponent/NAAmmoIndicatorComponent.h"
 
 // Sets default values
 ANAWeapon::ANAWeapon() : ANAPickableItemActor(FObjectInitializer::Get())
@@ -23,6 +24,12 @@ ANAWeapon::ANAWeapon() : ANAPickableItemActor(FObjectInitializer::Get())
 	MuzzleFlashComponent = CreateDefaultSubobject<UNiagaraComponent>( TEXT( "MuzzleFlashComponent") );
 	MuzzleFlashComponent->SetAutoActivate( false );
 
+	AmmoIndicatorComponent = CreateDefaultSubobject<UNAAmmoIndicatorComponent>( TEXT("AmmoIndicatorComponent") );
+
+	// 플레이어를 바라보도록
+	AmmoIndicatorComponent->SetRelativeRotation( {0.f, -90.f, 0.f} );
+	AmmoIndicatorComponent->SetRelativeLocation( {0.f, 0.f, 300.f} );
+	
 	PickupMode = EPickupMode::PM_Holdable | EPickupMode::PM_Inventory;
 }
 
@@ -60,6 +67,13 @@ void ANAWeapon::GetLifetimeReplicatedProps( TArray<FLifetimeProperty>& OutLifeti
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 	DOREPLIFETIME( ANAWeapon, CombatComponent );
 	DOREPLIFETIME( ANAWeapon, AbilitySystemComponent );
+}
+
+void ANAWeapon::OnConstruction( const FTransform& Transform )
+{
+	Super::OnConstruction( Transform );
+
+	AmmoIndicatorComponent->AttachToComponent( ItemMesh, FAttachmentTransformRules::KeepRelativeTransform, TEXT("Indicator") );
 }
 
 // Called every frame

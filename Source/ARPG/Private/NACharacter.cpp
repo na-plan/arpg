@@ -711,7 +711,7 @@ void ANACharacter::ToggleInventoryCameraView(const bool bEnable, USpringArmCompo
 	}
 	// 인벤토리 연출 순서: 인벤 위젯 회전 -> 카메라 앵글 변경(한 프레임 뒤에서)
 	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda(
-		[this, InNewBoom, Overtime, CallbackFunc]()
+		[bEnable, this, InNewBoom, Overtime, CallbackFunc]()
 		{
 			// 1) 목표 위치/회전 계산 (NewBoom의 월드 위치/회전 등)
 			FollowCamera->AttachToComponent(InNewBoom, FAttachmentTransformRules::KeepWorldTransform,

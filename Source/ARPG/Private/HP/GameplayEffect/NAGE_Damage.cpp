@@ -8,11 +8,20 @@
 
 UNAGE_Damage::UNAGE_Damage()
 {
-	DurationPolicy = EGameplayEffectDurationType::Infinite;
-	
-	FGameplayModifierInfo DamageModifier;
-	DamageModifier.Attribute = UNAAttributeSet::GetHealthAttribute();
-	DamageModifier.ModifierOp = EGameplayModOp::Additive;
+	DurationPolicy = EGameplayEffectDurationType::Instant;
+
+	/* 모디파이어가 적용되기 전에 수행할 작업
+	FGameplayEffectExecutionDefinition ExecutionDefinition;
+	ExecutionDefinition.CalculationClass = UNAHealthExecutionCalculation::StaticClass();
+
+	FGameplayEffectExecutionScopedModifierInfo ScopedModifer;
+	FGameplayEffectAttributeCaptureDefinition AttributeCapture;
+	AttributeCapture.AttributeSource = EGameplayEffectAttributeCaptureSource::Target;
+	AttributeCapture.AttributeToCapture = UNAAttributeSet::GetHealthAttribute();
+	ScopedModifer.CapturedAttribute = AttributeCapture;
+	ExecutionDefinition.CalculationModifiers.Add( ScopedModifer );
+	Executions.Add( ExecutionDefinition );
+	*/
 
 	AssetTagsComponent = CreateDefaultSubobject<UAssetTagsGameplayEffectComponent>("TargetTagsGameplayEffectComponent");
 	GEComponents.AddUnique( AssetTagsComponent );
@@ -20,9 +29,14 @@ UNAGE_Damage::UNAGE_Damage()
 	FInheritedTagContainer Container;
 	Container.AddTag( FGameplayTag::RequestGameplayTag( TEXT( "Data.Health") ) );
 	AssetTagsComponent->SetAndApplyAssetTagChanges( Container );
+
+	FGameplayModifierInfo Modifier;
+	Modifier.ModifierOp = EGameplayModOp::Additive;
+	Modifier.Attribute = UNAAttributeSet::GetHealthAttribute();
 	
 	FSetByCallerFloat CallerValue;
 	CallerValue.DataTag = FGameplayTag::RequestGameplayTag( TEXT( "Data.Damage" ) );
-	DamageModifier.ModifierMagnitude = CallerValue;
-	Modifiers.Add(DamageModifier);
+	Modifier.ModifierMagnitude = CallerValue;
+
+	Modifiers.Add( Modifier );
 }
