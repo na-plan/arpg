@@ -13,14 +13,6 @@
 
 DEFINE_LOG_CATEGORY( LogVitalComponent );
 
-#define FIND_MATERIAL(T, VariableName, Path) \
-	static ConstructorHelpers::FObjectFinder<T> Mat_##VariableName(TEXT(Path)); \
-	if (Mat_##VariableName.Succeeded()) \
-	{ \
-		VariableName = Mat_##VariableName.Object; \
-	}
-
-
 // Sets default values for this component's properties
 UNAVitalCheckComponent::UNAVitalCheckComponent()
 {
@@ -29,10 +21,10 @@ UNAVitalCheckComponent::UNAVitalCheckComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 
 	// 기본 머테리얼 저장
-	FIND_MATERIAL( UMaterialInstance, GreenMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_green.MI_health_green'" )
-	FIND_MATERIAL( UMaterialInstance, YellowMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_yellow.MI_health_yellow'" )
-	FIND_MATERIAL( UMaterialInstance, RedMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_red.MI_health_red'" )
-	FIND_MATERIAL( UMaterial, BlankMaterial, "/Script/Engine.Material'/Game/00_ProjectNA/05_Resource/01_Material/Issac/BlankMaterial.BlankMaterial'" )
+	FIND_OBJECT( GreenMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_green.MI_health_green'" );
+	FIND_OBJECT( YellowMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_yellow.MI_health_yellow'" );
+	FIND_OBJECT( RedMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_red.MI_health_red'" );
+	FIND_OBJECT( BlankMaterial, "/Script/Engine.Material'/Game/00_ProjectNA/05_Resource/01_Material/Issac/BlankMaterial.BlankMaterial'" );
 }
 
 ECharacterStatus UNAVitalCheckComponent::GetCharacterStatus() const

@@ -7,6 +7,7 @@
 #include "Interaction/NAInteractionComponent.h"
 #include "GeometryCollection/GeometryCollectionObject.h"
 #include "Item/ItemWidget/NAItemWidgetComponent.h"
+#include "Physics/PhysicsFiltering.h"
 
 
 ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
@@ -162,68 +163,68 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			}
 			OldComponents.Empty();
 		}
-
-		// 부모, 자식에서 Property로 설정된 컴포넌트들을 조회
-		TSet<UActorComponent*> SubObjsActorComponents;
-		for ( TFieldIterator<FObjectProperty> It ( GetClass() ); It; ++It )
-		{
-			if ( It->PropertyClass->IsChildOf( UActorComponent::StaticClass() ) )
-			{
-				if ( UActorComponent* Component = Cast<UActorComponent>( It->GetObjectPropertyValue_InContainer( this ) ) )
-				{
-					SubObjsActorComponents.Add( Component );
-				}
-			}
-		}
-	
-		for (UActorComponent* OwnedComponent : GetComponents().Array())
-		{
-			if (USceneComponent* OwnedSceneComp = Cast<USceneComponent>(OwnedComponent))
-			{
-				if ( SubObjsActorComponents.Contains( OwnedComponent ) )
-				{
-					OwnedSceneComp->RegisterComponent();
-					AddInstanceComponent(OwnedSceneComp);
-					continue;
-				}
-
-				// AttachChildren 복사본 사용 (Detach 중 배열 변화 방지)
-				TArray<USceneComponent*> AttachedChildren = OwnedSceneComp->GetAttachChildren();
-				for (USceneComponent* Child : AttachedChildren)
-				{
-					if (IsValid(Child))
-					{
-						Child->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-					}
-				}
-				AttachedChildren.Empty();
-
-				OwnedSceneComp->ClearFlags(RF_Standalone | RF_Public);
-				OwnedSceneComp->DestroyComponent();
-
-				// Actor의 Components 배열에서도 제거
-				if (AActor* MyOwner = OwnedSceneComp->GetOwner())
-				{
-					MyOwner->RemoveInstanceComponent(OwnedSceneComp);
-				}
-			}
-		}
 	}
-	
+
 	check(ItemCollision);
 	check(ItemWidgetComponent);
 	// 어태치먼트
-	if (ItemCollision->GetAttachParent() != GetRootComponent())
+	if (bUseItemCollision && ItemCollision && ItemCollision->GetAttachParent() != GetRootComponent())
 	{
 		ItemCollision->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 	}
-	if (ItemMesh && ItemMesh->GetAttachParent() != ItemCollision)
+	if (bUseItemMesh && ItemMesh && ItemMesh->GetAttachParent() != ItemCollision)
 	{
 		ItemMesh->AttachToComponent(ItemCollision, FAttachmentTransformRules::KeepRelativeTransform);
 	}
-	if (ItemWidgetComponent->GetAttachParent() != ItemCollision)
+	if (ItemWidgetComponent && ItemWidgetComponent->GetAttachParent() != ItemCollision)
 	{
 		ItemWidgetComponent->AttachToComponent(ItemCollision, FAttachmentTransformRules::KeepRelativeTransform);
+	}
+
+	// 부모, 자식에서 Property로 설정된 컴포넌트들을 조회
+	TSet<UActorComponent*> SubObjsActorComponents;
+	for ( TFieldIterator<FObjectProperty> It ( GetClass() ); It; ++It )
+	{
+		if ( It->PropertyClass->IsChildOf( UActorComponent::StaticClass() ) )
+		{
+			if ( UActorComponent* Component = Cast<UActorComponent>( It->GetObjectPropertyValue_InContainer( this ) ) )
+			{
+				SubObjsActorComponents.Add( Component );
+			}
+		}
+	}
+	
+	for (UActorComponent* OwnedComponent : GetComponents().Array())
+	{
+		if (USceneComponent* OwnedSceneComp = Cast<USceneComponent>(OwnedComponent))
+		{
+			if ( SubObjsActorComponents.Contains( OwnedComponent ) )
+			{
+				OwnedSceneComp->RegisterComponent();
+				AddInstanceComponent(OwnedSceneComp);
+				continue;
+			}
+
+			// AttachChildren 복사본 사용 (Detach 중 배열 변화 방지)
+			TArray<USceneComponent*> AttachedChildren = OwnedSceneComp->GetAttachChildren();
+			for (USceneComponent* Child : AttachedChildren)
+			{
+				if (IsValid(Child))
+				{
+					Child->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+				}
+			}
+			AttachedChildren.Empty();
+
+			OwnedSceneComp->ClearFlags(RF_Standalone | RF_Public);
+			OwnedSceneComp->DestroyComponent();
+
+			// Actor의 Components 배열에서도 제거
+			if (AActor* MyOwner = OwnedSceneComp->GetOwner())
+			{
+				MyOwner->RemoveInstanceComponent(OwnedSceneComp);
+			}
+		}
 	}
 
 	if (MetaData->CollisionShape != EItemCollisionShape::ICS_None)
@@ -244,7 +245,7 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		ItemCollision->SetRelativeTransform(MetaData->CollisionTransform);
 	}
 
-	if (MetaData->MeshType != EItemMeshType::IMT_None)
+	if (bUseItemMesh && MetaData->MeshType != EItemMeshType::IMT_None)
 	{
 		if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(ItemMesh))
 		{
@@ -258,13 +259,11 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			SkeletalMeshComp->SetAnimClass(MetaData->SkeletalMeshAssetData.AnimClass);
 		}
 
-		if (ItemMesh)
-		{
-			ItemMesh->SetRelativeTransform(MetaData->MeshTransform);
-		}
+		ItemMesh->SetRelativeTransform(MetaData->MeshTransform);
 	}
 
 	// 트랜스폼 및 콜리전, 피직스 등등 설정 여기에
+	ItemWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, TriggerSphere->GetScaledSphereRadius() * 1.5f));
 }
 
 void ANAItemActor::PostLoad()
@@ -277,17 +276,6 @@ void ANAItemActor::PostLoad()
 		{
 			InitItemData();
 		}
-	}
-}
-
-void ANAItemActor::Destroyed()
-{
-	Super::Destroyed();
-
-	if (!HasActorBegunPlay()) return;
-	if (ItemWidgetComponent && ItemWidgetComponent->IsVisible())
-	{
-		ItemWidgetComponent->CollapseItemWidgetPopup();
 	}
 }
 
@@ -305,7 +293,7 @@ void ANAItemActor::InitItemData()
 	}
 }
 
-void ANAItemActor::OnItemDataInitialized()
+void ANAItemActor::OnItemDataInitialized_Implementation()
 {
 	VerifyInteractableData();
 }
@@ -449,6 +437,11 @@ void ANAItemActor::BeginPlay()
 			GetItemData()->SetQuantity(1);
 		}
 	}
+
+	if (ItemWidgetComponent)
+	{
+		ItemWidgetComponent->SetVisibility(false);
+	}
 }
 
 void ANAItemActor::Tick(float DeltaTime)
@@ -491,10 +484,6 @@ void ANAItemActor::NotifyInteractableFocusBegin_Implementation(AActor* Interacta
 		{
 			const bool bSucceed = InteractionComp->OnInteractableFound(this);
 			// @TODO: ANAItemActor 쪽에서 '상호작용 버튼 위젯' release?
-			if (bSucceed && ItemWidgetComponent && !ItemWidgetComponent->IsVisible())
-			{
-				ItemWidgetComponent->ReleaseItemWidgetPopup();
-			}
 		}
 	}
 }
@@ -509,11 +498,6 @@ void ANAItemActor::NotifyInteractableFocusEnd_Implementation(AActor* Interactabl
 		{
 			const bool bSucceed = InteractionComp->OnInteractableLost(this);
 			// @TODO: ANAItemActor 쪽에서 '상호작용 버튼 위젯' collapse?
-			if (bSucceed && !IsPendingKillPending()
-				&& ItemWidgetComponent && ItemWidgetComponent->IsVisible())
-			{
-				ItemWidgetComponent->CollapseItemWidgetPopup();
-			}
 		}
 	}
 }
@@ -566,4 +550,3 @@ void ANAItemActor::DisableOverlapDuringInteraction(AActor* Interactor)
 		}
 	}
 }
-
