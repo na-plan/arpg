@@ -8,6 +8,7 @@
 #include "Monster/Pawn/MonsterBase.h"
 #include "Ability/GameplayAbility/AttackGameplayAbility.h"
 #include "Skill/DataTable/SkillTableRow.h"
+#include "Ability/AttributeSet/NAAttributeSet.h"
 
 
 void AMonsterAIController::BeginPlay()
@@ -148,7 +149,26 @@ void AMonsterAIController::FindPlayerByPerception()
 				break;
 			}
 		}
-		if (!bFound)
+
+		bool m_bTakeDamage;
+
+		if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(GetPawn()))
+		{			
+			float m_fHealth = Cast<UNAAttributeSet>(OwnerMonster->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();
+			float m_fMaxHealth = Cast<UNAAttributeSet>(OwnerMonster->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetMaxHealth();
+
+			if (m_fHealth < m_fMaxHealth)
+			{
+				m_bTakeDamage = true;
+
+
+				//Blackboard->SetValueAsObject(TEXT("DetectPlayer"), Cast<UObject>(DetectedPlayer));
+			}
+
+
+		}
+
+		if (!bFound&& !m_bTakeDamage)
 		{
 			Blackboard->ClearValue(TEXT("DetectPlayer"));
 		}
