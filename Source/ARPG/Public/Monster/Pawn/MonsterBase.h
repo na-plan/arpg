@@ -19,6 +19,8 @@
 //DECLARE_LOG_CATEGORY_EXTERN(LogTemplateMonster, Log, All);
 
 
+struct FGameplayEffectModCallbackData;
+struct FOnAttributeChangeData;
 
 UENUM(BlueprintType)
 enum class MonsterRate : uint8

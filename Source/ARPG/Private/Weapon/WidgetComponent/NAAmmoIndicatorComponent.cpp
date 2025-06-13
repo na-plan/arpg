@@ -24,9 +24,9 @@ UNAAmmoIndicatorComponent::UNAAmmoIndicatorComponent()
 
 	// ...
 
-	FIND_CLASS( WidgetClass, "/Script/UMGEditor.WidgetBlueprint'/Game/00_ProjectNA/01_Blueprint/01_Widget/InGame/BP_NAAmmoWidget.BP_NAAmmoWidget_C'" );
-	FIND_OBJECT( FrameMaterial,  "/Script/Engine.Material'/Game/00_ProjectNA/05_Resource/01_Material/Widgets/M_AmmoIndicator.M_AmmoIndicator'");
-	FIND_OBJECT( BackgroundMaterial, "/Script/Engine.Material'/Game/00_ProjectNA/05_Resource/01_Material/Widgets/M_AmmoIndicator_Background.M_AmmoIndicator_Background'");
+	FIND_CLASS( WidgetClass, "/Script/UMGEditor.WidgetBlueprint'/Game/00_ProjectNA/01_Blueprint/01_Widget/InGame/BP_NAAmmoWidget.BP_NAAmmoWidget_C'", 0 );
+	FIND_OBJECT( FrameMaterial,  "/Script/Engine.Material'/Game/00_ProjectNA/05_Resource/01_Material/Widgets/M_AmmoIndicator.M_AmmoIndicator'", 1 );
+	FIND_OBJECT( BackgroundMaterial, "/Script/Engine.Material'/Game/00_ProjectNA/05_Resource/01_Material/Widgets/M_AmmoIndicator_Background.M_AmmoIndicator_Background'", 2 );
 
 	SetWidgetSpace( EWidgetSpace::World );
 }
