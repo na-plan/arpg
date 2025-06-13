@@ -60,6 +60,11 @@ void ANAGameStateBase::CheckAndHandleFailed()
 	ShowFailedWidget();
 }
 
+bool ANAGameStateBase::HasAnyoneDead() const
+{
+	return AlivePlayer != PlayerArray.Num();
+}
+
 ANAGameStateBase::ANAGameStateBase()
 {
 	FailedWidgetComponent = CreateDefaultSubobject<UWidgetComponent>( TEXT("FailedWidgetComponent") );

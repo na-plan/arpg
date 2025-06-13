@@ -4,6 +4,8 @@
 #include "NASpectatorPawn.h"
 
 #include "NAPlayerState.h"
+#include "Camera/CameraComponent.h"
+#include "Components/SphereComponent.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -14,21 +16,37 @@ ANASpectatorPawn::ANASpectatorPawn()
 {
 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	bUseControllerRotationYaw = true;
-	bUseControllerRotationPitch = true;
+	bUseControllerRotationYaw = false;
+	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
+
+	GetCollisionComponent()->SetSimulatePhysics( false );
+
+	// Create a camera boom (pulls in towards the player if there is a collision)
+	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
+	CameraBoom->SetupAttachment(RootComponent);
+	CameraBoom->TargetArmLength = 200.0f; // The camera follows at this distance behind the character
+	CameraBoom->SocketOffset = FVector(0.f, 60.f, 80.f);
+	CameraBoom->bUsePawnControlRotation = true; // Rotate the arm based on the controller
+	CameraBoom->bDoCollisionTest = false;
+
+	// Create a follow camera
+	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
+	FollowCamera->SetupAttachment( CameraBoom, USpringArmComponent::SocketName ); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
+	FollowCamera->SetRelativeRotation(FRotator(-20.0f, 0.0f, 0.0f));
+	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 }
 
-void ANASpectatorPawn::AttachToOtherPlayerImpl( const APawn* Other )
+void ANASpectatorPawn::AttachToOtherPlayerImpl( APawn* Other )
 {
-	if ( const ANACharacter* OtherCharacter = Cast<ANACharacter>( Other ) )
+	if ( ANACharacter* OtherCharacter = Cast<ANACharacter>( Other ) )
 	{
-		AttachToComponent
+		RootComponent->AttachToComponent
 		(
-			OtherCharacter->GetCameraBoom(),
-			FAttachmentTransformRules::SnapToTargetIncludingScale,
-			USpringArmComponent::SocketName
+			OtherCharacter->GetRootComponent(),
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale
 		);
+		RootComponent->SetRelativeLocation( { 0.f, 0.f, 50.f } );
 
 		TargetPawn = OtherCharacter;
 		SetActorTickEnabled( true );
@@ -40,6 +58,11 @@ void ANASpectatorPawn::BeginPlay()
 {
 	Super::BeginPlay();
 	GetMovementComponent()->Deactivate();
+
+	if ( APlayerController* PC = Cast<APlayerController>( GetController() ) )
+	{
+		PC->SetViewTarget( this );
+	}
 
 	if ( HasAuthority() )
 	{
@@ -84,7 +107,7 @@ void ANASpectatorPawn::UnPossessed()
 	Super::UnPossessed();
 }
 
-void ANASpectatorPawn::Client_AttachToOtherPlayer_Implementation( const APawn* OtherCharacter )
+void ANASpectatorPawn::Client_AttachToOtherPlayer_Implementation( APawn* OtherCharacter )
 {
 	AttachToOtherPlayerImpl( OtherCharacter );
 }
@@ -102,14 +125,24 @@ void ANASpectatorPawn::Tick( float DeltaTime )
 
 	if ( IsLocallyControlled() )
 	{
-		FVector MyLocation = GetActorLocation();
-		FVector TargetLocation = TargetPawn->GetActorLocation();
+		FRotator ControllerDesiredRot = TargetPawn->GetReplicatedControlRotation();
+		FRotator ControllerCurrentRot = Controller->GetControlRotation();
+		FRotator ControllerSmoothedRot = FMath::RInterpTo(ControllerCurrentRot, ControllerDesiredRot, DeltaTime, 10.0f);
 
-		FRotator DesiredRot = (TargetLocation - MyLocation).Rotation();
-		FRotator CurrentRot = Controller->GetControlRotation();
+		if ( !ControllerSmoothedRot.Equals( ControllerCurrentRot, 0.1f ) )
+		{
+			Controller->SetControlRotation(ControllerSmoothedRot);
+		}
+
+		FVector Normal = (TargetPawn->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+		FRotator DesiredRot = Normal.Rotation();
+		FRotator SmoothRot = FMath::RInterpTo(ControllerCurrentRot, ControllerDesiredRot, DeltaTime, 10.0f);
+
+		if ( !SmoothRot.Equals( GetActorRotation(), 0.1f ) )
+		{
+			SetActorRotation( DesiredRot );
+		}
 		
-		FRotator SmoothedRot = FMath::RInterpTo(CurrentRot, DesiredRot, DeltaTime, 10.0f);
-		Controller->SetControlRotation(SmoothedRot);
 	}
 }
 

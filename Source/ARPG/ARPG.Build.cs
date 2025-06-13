@@ -21,7 +21,8 @@ public class ARPG : ModuleRules
 			"GameplayTasks",
 			"AIModule",
 			"GeometryCollectionEngine",
-			"Niagara"
+			"Niagara",
+			"NetCore"
 		});
 		
 		PrivateDependencyModuleNames.AddRange(new string[]

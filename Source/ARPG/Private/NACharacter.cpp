@@ -12,6 +12,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "InputMappingContext.h"
+#include "NAGameStateBase.h"
 #include "NAPlayerState.h"
 #include "ARPG/ARPG.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
@@ -224,6 +225,33 @@ void ANACharacter::BeginPlay()
 void ANACharacter::PostNetInit()
 {
 	Super::PostNetInit();
+}
+
+void ANACharacter::PreReplication( IRepChangedPropertyTracker& ChangedPropertyTracker )
+{
+	Super::PreReplication( ChangedPropertyTracker );
+	DOREPLIFETIME_ACTIVE_OVERRIDE_FAST( ANACharacter, ReplicatedControlRotation, PredicateControlRotationReplication() );
+}
+
+bool ANACharacter::PredicateControlRotationReplication() const
+{
+	bool bShouldReplicate = true;
+	const ANAPlayerState* ThisPlayerState = GetPlayerState<ANAPlayerState>();
+	bShouldReplicate &= ThisPlayerState != nullptr;
+	if ( ThisPlayerState )
+	{
+		bShouldReplicate &= ThisPlayerState->IsAlive();
+	}
+
+	const ANAGameStateBase* CastedGameState = GetWorld()->GetGameState<ANAGameStateBase>();
+	bShouldReplicate &= CastedGameState != nullptr;
+	
+	if ( CastedGameState )
+	{
+		bShouldReplicate &= CastedGameState->HasAnyoneDead();
+	}
+
+	return bShouldReplicate;
 }
 
 void ANACharacter::PossessedBy(AController* NewController)
@@ -460,6 +488,11 @@ void ANACharacter::OnConstruction( const FTransform& Transform )
 		ApplyAttachments();	
 	}
 #endif
+}
+
+FRotator ANACharacter::GetReplicatedControlRotation() const
+{
+	return ReplicatedControlRotation.Rotation();
 }
 
 void ANACharacter::SetChildActorOwnership( AActor* Actor )
@@ -838,6 +871,7 @@ void ANACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME( ANACharacter, RightHandChildActor );
 	DOREPLIFETIME( ANACharacter, bIsZoom);
 	DOREPLIFETIME_CONDITION( ANACharacter, InteractionComponent, COND_OwnerOnly )
+	DOREPLIFETIME_CONDITION( ANACharacter, ReplicatedControlRotation, COND_Custom )
 }
 
 void ANACharacter::SyncAmmoConsumptionWithInventory( const FActiveGameplayEffect& ActiveGameplayEffect )
@@ -876,5 +910,15 @@ void ANACharacter::SyncAmmoConsumptionWithInventory( const FActiveGameplayEffect
 	if ( ensureAlways( DesignatedAmmo ) ) // 총알이 변했는데 변한 총알을 찾을 수 없는 경우..
 	{
 		check( InventoryComponent->TryRemoveItem( InventoryComponent->FindSlotIDForItem( DesignatedAmmo ), 1 ) );
+	}
+}
+
+void ANACharacter::Tick( float DeltaSeconds )
+{
+	Super::Tick( DeltaSeconds );
+
+	if ( Controller && HasAuthority() )
+	{
+		ReplicatedControlRotation = Controller->GetControlRotation().Vector();
 	}
 }
