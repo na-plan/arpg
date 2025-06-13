@@ -16,7 +16,7 @@ ANASpectatorPawn::ANASpectatorPawn()
 	PrimaryActorTick.bCanEverTick = true;
 	bUseControllerRotationYaw = true;
 	bUseControllerRotationPitch = true;
-	bUseControllerRotationRoll = true;
+	bUseControllerRotationRoll = false;
 }
 
 void ANASpectatorPawn::AttachToOtherPlayerImpl( const APawn* Other )
@@ -26,7 +26,7 @@ void ANASpectatorPawn::AttachToOtherPlayerImpl( const APawn* Other )
 		AttachToComponent
 		(
 			OtherCharacter->GetCameraBoom(),
-			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+			FAttachmentTransformRules::SnapToTargetIncludingScale,
 			USpringArmComponent::SocketName
 		);
 
@@ -97,20 +97,19 @@ void ANASpectatorPawn::Tick( float DeltaTime )
 	if ( !TargetPawn.IsValid() )
 	{
 		SetActorTickEnabled( false );
+		return;
 	}
 
 	if ( IsLocallyControlled() )
 	{
-		if ( const ANACharacter* Character = TargetPawn.Get() )
-		{
-			const FVector Location = Character->GetActorLocation();
-			const FRotator Rotation = (Location - GetActorLocation()).GetSafeNormal().Rotation();
-			const FRotator Lerp = FMath::RInterpConstantTo( GetActorRotation(), Rotation, DeltaTime, 50.f);
-			if ( APlayerController* PC = Cast<APlayerController>( GetController() ) )
-			{
-				PC->SetControlRotation(Lerp);
-			}
-		}
+		FVector MyLocation = GetActorLocation();
+		FVector TargetLocation = TargetPawn->GetActorLocation();
+
+		FRotator DesiredRot = (TargetLocation - MyLocation).Rotation();
+		FRotator CurrentRot = Controller->GetControlRotation();
+		
+		FRotator SmoothedRot = FMath::RInterpTo(CurrentRot, DesiredRot, DeltaTime, 10.0f);
+		Controller->SetControlRotation(SmoothedRot);
 	}
 }
 

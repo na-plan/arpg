@@ -17,16 +17,13 @@
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "HP/GameplayAbility/NAGA_Revive.h"
-#include "HP/GameplayEffect/NAGE_Damage.h"
 #include "HP/WidgetComponent/NAReviveWidgetComponent.h"
 #include "Net/UnrealNetwork.h"
-#include "DefaultAnimInstance.h"
 
 #include "Interaction/NAInteractionComponent.h"
 #include "Inventory/Component/NAInventoryComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Weapon/PickableItemActor/NAWeaponAmmoBox.h"
-
 
 DEFINE_LOG_CATEGORY( LogTemplateCharacter );
 
