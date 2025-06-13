@@ -33,7 +33,7 @@ UNAInventoryComponent::UNAInventoryComponent()
 	BodyInstance.bUpdateMassWhenScaleChanges = false;
 	
 	SetWidgetSpace(EWidgetSpace::World);
-	SetDrawSize(FVector2D(680, 470));
+	SetDrawSize(FVector2D(720, 560));
 	SetGeometryMode(EWidgetGeometryMode::Cylinder);
 	SetCylinderArcAngle(15.f);
 	OpacityFromTexture = 1.f;

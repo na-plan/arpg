@@ -157,6 +157,14 @@ protected:
 	UPROPERTY(Transient, BlueprintReadOnly, meta = (BindWidgetAnim), Category = "Widget Animation")
 	TObjectPtr<UWidgetAnimation> Above_Button_Title_Focused;
 	
+	UPROPERTY(Transient, BlueprintReadOnly, meta = (BindWidgetAnim), Category = "Widget Animation")
+	TObjectPtr<UWidgetAnimation> Item_Desc_Popup;
+	UPROPERTY(Transient)
+	uint8 bReleaseItemDesc : 1 = false;
+
+	UFUNCTION(BlueprintCallable)
+	void OnItemDescCollapsed();
+	
 // Slot Buttons //////////////////////////////////////////////////////////////////////////////////////
 // 변수명: 슬롯 ID와 일치시켜야 함
 	
