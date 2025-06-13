@@ -25,11 +25,12 @@ struct ObjectClassFinderHelper
 	}
 };
 
-template <typename T, typename KeyT>
+template <typename T, typename KeyT, size_t Unique>
 void DoFindObject( T& Variable, const TCHAR* Path )
 {
 	// 다른 클래스와 함수가 겹치지 않도록 정적 영역을 확보
 	using Placeholder = KeyT;
+	size_t UniqueIndex = Unique;
 	if constexpr ( TIsTSubclassOf<T>::Value )
 	{
 		static ConstructorHelpers::FObjectFinder<typename T::ElementType> TempVar( Path );
@@ -42,11 +43,12 @@ void DoFindObject( T& Variable, const TCHAR* Path )
 	}
 }
 
-template <typename T, typename KeyT>
+template <typename T, typename KeyT, size_t Unique>
 void DoFindClass( T& Variable, const TCHAR* Path )
 {
 	// 다른 클래스와 함수가 겹치지 않도록 정적 영역을 확보
 	using Placeholder = KeyT;
+	size_t UniqueIndex = Unique;
 	if constexpr ( TIsTSubclassOf<T>::Value )
 	{
 		static ConstructorHelpers::FClassFinder<typename T::ElementType> TempVar( Path );
@@ -59,11 +61,11 @@ void DoFindClass( T& Variable, const TCHAR* Path )
 	}
 }
 
-#define FIND_OBJECT(VariableName, Path) \
-DoFindObject<decltype(VariableName), std::remove_reference_t<decltype(*this)>>( VariableName, TEXT(Path) )
+#define FIND_OBJECT(VariableName, Path, Index) \
+DoFindObject<decltype(VariableName), std::remove_reference_t<decltype(*this)>, Index>( VariableName, TEXT(Path) )
 
-#define FIND_CLASS(VariableName, Path) \
-DoFindClass<decltype(VariableName), std::remove_reference_t<decltype(*this)>>( VariableName, TEXT(Path) )
+#define FIND_CLASS(VariableName, Path, Index) \
+DoFindClass<decltype(VariableName), std::remove_reference_t<decltype(*this)>, Index>( VariableName, TEXT(Path) )
 
 #define ATTRIBUTE_ACCESSORS(ClassName, PropertyName) \
 GAMEPLAYATTRIBUTE_PROPERTY_GETTER(ClassName, PropertyName) \
