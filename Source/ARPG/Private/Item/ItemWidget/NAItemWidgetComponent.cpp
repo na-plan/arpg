@@ -64,7 +64,8 @@ void UNAItemWidgetComponent::PostInitProperties()
 		
 		if (bIsPickableItem)
 		{
-			SetRelativeRotation(FRotator(0.0f, 180.0f,0.0f ));
+			SetRelativeLocation(FVector(0.f, 80.0f,170.0f ));
+			SetRelativeRotation(FRotator(10.f, 180.0f,0.0f ));
 			SetDrawSize(FVector2D(340, 410));
 			SetRelativeScale3D(FVector(0.4f));
 		}
