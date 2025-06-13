@@ -21,10 +21,10 @@ UNAVitalCheckComponent::UNAVitalCheckComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 
 	// 기본 머테리얼 저장
-	FIND_OBJECT( GreenMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_green.MI_health_green'" );
-	FIND_OBJECT( YellowMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_yellow.MI_health_yellow'" );
-	FIND_OBJECT( RedMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_red.MI_health_red'" );
-	FIND_OBJECT( BlankMaterial, "/Script/Engine.Material'/Game/00_ProjectNA/05_Resource/01_Material/Issac/BlankMaterial.BlankMaterial'" );
+	FIND_OBJECT( GreenMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_green.MI_health_green'", 0 );
+	FIND_OBJECT( YellowMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_yellow.MI_health_yellow'", 1 );
+	FIND_OBJECT( RedMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_red.MI_health_red'", 2 );
+	FIND_OBJECT( BlankMaterial, "/Script/Engine.Material'/Game/00_ProjectNA/05_Resource/01_Material/Issac/BlankMaterial.BlankMaterial'", 3 );
 }
 
 ECharacterStatus UNAVitalCheckComponent::GetCharacterStatus() const
@@ -34,14 +34,39 @@ ECharacterStatus UNAVitalCheckComponent::GetCharacterStatus() const
 
 void UNAVitalCheckComponent::OnMovementSpeedChanged( const FOnAttributeChangeData& OnAttributeChangeData )
 {
+	OnMovementSpeedChanged( OnAttributeChangeData.OldValue, OnAttributeChangeData.NewValue );
+}
+
+void UNAVitalCheckComponent::OnHealthChanged( const float Old, const float New )
+{
+	if ( const ANACharacter* Character = Cast<ANACharacter>( GetCharacter() ) )
+	{
+		// 클라이언트 + 서버 동기화 (클라이언트가 요청해도 서버쪽에서 컴포넌트가 꺼져있기 때문에 공격 불가 판정)
+		HandleDead( Character, New );
+		HandleKnockDown( Character, New );
+		HandleAlive( Character, New );
+		
+		if ( const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>( Character->GetAbilitySystemComponent()->GetAttributeSet( UNAAttributeSet::StaticClass() ) ) )
+		{
+			ChangeHealthMesh
+			(
+				New,
+				AttributeSet->GetMaxHealth()
+			);
+		}
+	}
+}
+
+void UNAVitalCheckComponent::OnMovementSpeedChanged( const float Old, const float New )
+{
 	if ( ANACharacter* Character = GetCharacter() )
 	{
-		Cast<UCharacterMovementComponent>( Character->GetMovementComponent() )->MaxWalkSpeed = OnAttributeChangeData.NewValue;
+		Cast<UCharacterMovementComponent>( Character->GetMovementComponent() )->MaxWalkSpeed = New;
 	}
 }
 
 void UNAVitalCheckComponent::HandleEffectToStatus( UAbilitySystemComponent* AbilitySystemComponent,
-	const FGameplayEffectSpec& GameplayEffectSpec, FActiveGameplayEffectHandle ActiveGameplayEffectHandle )
+                                                   const FGameplayEffectSpec& GameplayEffectSpec, FActiveGameplayEffectHandle ActiveGameplayEffectHandle )
 {
 	if ( GameplayEffectSpec.Def->IsA<UNAGE_Dead>() )
 	{
@@ -77,9 +102,20 @@ void UNAVitalCheckComponent::BeginPlay()
 		const ANACharacter* Character = GetCharacter(); // 체력 매쉬 등을 바꿔야 하므로 캐릭터만 호환 가능
 		check( Character );
 		
-		// ASC의 체력 변화를 감지, 클라이언트 모두 업데이트
-		Character->GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate( UNAAttributeSet::GetHealthAttribute() ).AddUObject( this, &UNAVitalCheckComponent::OnHealthChanged );
-		Character->GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate( UNAAttributeSet::GetMovementSpeedAttribute() ).AddUObject( this, &UNAVitalCheckComponent::OnMovementSpeedChanged );
+		// ASC의 체력 변화를 감지
+		if ( GetOwner()->HasAuthority() )
+		{
+			Character->GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate( UNAAttributeSet::GetHealthAttribute() ).AddUObject( this, &UNAVitalCheckComponent::OnHealthChanged );
+			Character->GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate( UNAAttributeSet::GetMovementSpeedAttribute() ).AddUObject( this, &UNAVitalCheckComponent::OnMovementSpeedChanged );	
+		}
+		else
+		{
+			if ( const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>( Character->GetAbilitySystemComponent()->GetAttributeSet( UNAAttributeSet::StaticClass() )  ))
+			{
+				AttributeSet->OnHealthChanged.AddUObject( this, &UNAVitalCheckComponent::OnHealthChanged );
+				AttributeSet->OnMovementSpeedChanged.AddUObject( this, &UNAVitalCheckComponent::OnMovementSpeedChanged );
+			}
+		}
 
 		Character->GetAbilitySystemComponent()->OnActiveGameplayEffectAddedDelegateToSelf.AddUObject( this, &UNAVitalCheckComponent::HandleEffectToStatus );
 		// 초기 업데이트
@@ -97,7 +133,10 @@ void UNAVitalCheckComponent::SetState( const ECharacterStatus NewStatus )
 {
 	const ECharacterStatus OldStatus = CharacterState;
 	CharacterState = NewStatus;
-	OnCharacterStateChanged.Broadcast( OldStatus, NewStatus );
+	if ( OldStatus != NewStatus )
+	{
+		OnCharacterStateChanged.Broadcast( OldStatus, NewStatus );	
+	}
 }
 
 ANACharacter* UNAVitalCheckComponent::GetCharacter() const
@@ -163,30 +202,15 @@ void UNAVitalCheckComponent::HandleAlive( const ANACharacter* Character, const f
 
 void UNAVitalCheckComponent::OnHealthChanged( const FOnAttributeChangeData& OnAttributeChangeData )
 {
-	if ( const ANACharacter* Character = Cast<ANACharacter>( GetCharacter() ) )
-	{
-		// 클라이언트 + 서버 동기화 (클라이언트가 요청해도 서버쪽에서 컴포넌트가 꺼져있기 때문에 공격 불가 판정)
-		HandleDead( Character, OnAttributeChangeData.NewValue );
-		HandleKnockDown( Character, OnAttributeChangeData.NewValue );
-		HandleAlive( Character, OnAttributeChangeData.NewValue );
-		
-		if ( const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>( Character->GetAbilitySystemComponent()->GetAttributeSet( UNAAttributeSet::StaticClass() ) ) )
-		{
-			ChangeHealthMesh
-			(
-				OnAttributeChangeData.NewValue,
-				AttributeSet->GetMaxHealth()
-			);
-		}
-	}
+	OnHealthChanged( OnAttributeChangeData.OldValue, OnAttributeChangeData.NewValue );
 }
 
 void UNAVitalCheckComponent::ChangeHealthMesh( const float NewValue, const float MaxValue )
 {
-	constexpr int32 MaxHealthMesh = 4;
+	static constexpr int32 MaxHealthMesh = 4;
 	
 	const float NewRatio = NewValue / MaxValue;
-	const int32 FillCount = static_cast<int32>( NewRatio / MeshHealthStep );
+	const int32 FillCount = NewRatio <= 0 ? 0 : static_cast<int32>( NewRatio / MeshHealthStep );
 	check( FillCount <= MaxHealthMesh );
 
 	const bool bShouldGreen = FillCount >= 3;
