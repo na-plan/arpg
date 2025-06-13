@@ -18,15 +18,20 @@ void UNAAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 
 bool UNAAttributeSet::PreGameplayEffectExecute( struct FGameplayEffectModCallbackData& Data )
 {
-	if ( Data.EffectSpec.Def->IsA( UNAGE_Damage::StaticClass() ) )
+	const bool bResult = Super::PreGameplayEffectExecute( Data );
+
+	if ( bResult )
 	{
-		if ( Data.EvaluatedData.Magnitude > 0)
+		if ( Data.EffectSpec.Def->IsA( UNAGE_Damage::StaticClass() ) )
 		{
-			Data.EvaluatedData.Magnitude = -Data.EvaluatedData.Magnitude;	
+			if ( Data.EvaluatedData.Magnitude > 0)
+			{
+				Data.EvaluatedData.Magnitude = -Data.EvaluatedData.Magnitude;	
+			}
 		}
 	}
-
-	return PreGameplayEffectExecute( Data );
+	
+	return bResult;
 }
 
 void UNAAttributeSet::PostGameplayEffectExecute( const struct FGameplayEffectModCallbackData& Data )
