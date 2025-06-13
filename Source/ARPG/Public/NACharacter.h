@@ -205,7 +205,7 @@ protected:
 
 	// Toggle the transition between camera view and inventory view 
 	UFUNCTION()
-	void ToggleInventoryCameraView(const bool bEnable, USpringArmComponent* NewBoom, float Overtime);
+	void ToggleInventoryCameraView( bool bEnable, USpringArmComponent* InNewBoom, float Overtime, const FRotator& Rotation );
 
 	UFUNCTION()
 	void OnInventoryCameraEnterFinished();
