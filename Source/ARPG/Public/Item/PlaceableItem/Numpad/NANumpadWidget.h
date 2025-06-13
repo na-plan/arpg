@@ -8,6 +8,7 @@
 #include "Components/HorizontalBox.h"
 #include "NANumpadWidget.generated.h"
 
+class ANAPlaceableItemActor;
 class UImage;
 class UUniformGridPanel;
 /**
@@ -35,6 +36,9 @@ public:
 
 	UFUNCTION()
 	void OnClick_ConfirmButton();
+
+	UFUNCTION()
+	void OnClick_CloseButton();
 	
 private:
 	void InitNumber();
@@ -46,9 +50,13 @@ private:
 	void ClearNumber();
 
 	void DetectHoveredButton();
-
+	
+	void CloseWidget();
+	
 public:
 	bool IsComplete() const { return bIsComplete; }
+
+	void SetTargetActor(ANAPlaceableItemActor* InActor) { TargetToActivate = InActor; }
 	
 protected:
 	UPROPERTY(EditAnywhere, meta = (bindwidget))
@@ -86,9 +94,24 @@ protected:
 
 	UPROPERTY(EditAnywhere, meta = (bindwidget))
 	UButton* Button_InputConfirm;
+
+	UPROPERTY(EditAnywhere, meta = (bindwidget))
+	UButton* Button_CloseWidget;
+
+	UPROPERTY(EditAnywhere, meta = (bindwidget))
+	UImage* InputNum00;
+
+	UPROPERTY(EditAnywhere, meta = (bindwidget))
+	UImage* InputNum01;
+
+	UPROPERTY(EditAnywhere, meta = (bindwidget))
+	UImage* InputNum02;
+
+	UPROPERTY(EditAnywhere, meta = (bindwidget))
+	UImage* InputNum03;
 	
 	UPROPERTY()
-	TArray<UImage*> InputNumImages;
+	TArray<UImage*> InputNums;
 
 	UPROPERTY()
 	TArray<UButton*> NumButtons;
@@ -101,7 +124,7 @@ private:
 	int CurrentInputIndex = 0;
 	
 	UPROPERTY()
-	int CurrentInputNumbers[3];
+	int CurrentInputNumbers[4];
 
 	UPROPERTY()
 	int PasswordLength = 4;
@@ -110,11 +133,14 @@ private:
 	int CorrectPassword = 1024; // temp
 
 	UPROPERTY()
-	UTexture2D* CachedNumImage[9];
+	UTexture2D* CachedNumImage[10];
 
 	UPROPERTY()
 	bool bIsComplete = false;
 
 	UPROPERTY()
 	APlayerController* CurrentController;
+
+	UPROPERTY()
+	ANAPlaceableItemActor* TargetToActivate;
 };

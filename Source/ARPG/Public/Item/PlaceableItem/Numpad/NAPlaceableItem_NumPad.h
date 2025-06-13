@@ -8,6 +8,8 @@
 
 class UNANumpadWidget;
 
+DECLARE_DYNAMIC_DELEGATE(FOnCompleteGimic);
+
 UCLASS()
 class ARPG_API ANAPlaceableItem_NumPad : public ANAPlaceableItemActor
 {
@@ -30,11 +32,12 @@ public:
 	virtual void EndInteract_Implementation(AActor* Interactor) override;
 	virtual bool ExecuteInteract_Implementation(AActor* Interactor) override;
 
-	void SelectActorInEditor(AActor* InActor);
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
+	
+	void ExecuteInteract_Wrapped();
+	
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -45,4 +48,12 @@ protected:
 	
 	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = true, AllowAnyActor))
 	ANAPlaceableItemActor* TargetActor;
+
+	UPROPERTY()
+	UNANumpadWidget* CachedWidget;
+
+public:
+	
+	UPROPERTY()
+	FOnCompleteGimic OnCompleteGimic;
 };

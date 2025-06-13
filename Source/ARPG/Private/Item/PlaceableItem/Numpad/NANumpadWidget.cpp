@@ -4,24 +4,25 @@
 #include "Item/PlaceableItem/Numpad//NANumpadWidget.h"
 
 #include "Components/Image.h"
+#include "Item/ItemActor/NAPlaceableItemActor.h"
+#include "Misc/NAWorldEventHandler.h"
 
 UNANumpadWidget::UNANumpadWidget(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
 {
-	for (int i = 0; i < 9; i++)
-	{
-		static ConstructorHelpers::FObjectFinder<UTexture2D> FoundImage(TEXT("/Script/Engine.Texture2D'/Game/00_ProjectNA/05_Resource/06_Widget/Numpad/%i_2.%i_2'"),i);
-
-		if (FoundImage.Succeeded())
-			CachedNumImage[i] = FoundImage.Object;
-	}
 }
 
 void UNANumpadWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	NumButtons.Reserve(9);
+	for (int i = 0; i < 9; i++)
+	{
+		FString FilePath = FString::Printf(TEXT("/Script/Engine.Texture2D'/Game/00_ProjectNA/05_Resource/06_Widget/Numpad/%i_2.%i_2'"),i, i);
+		CachedNumImage[i] = LoadObject<UTexture2D>(this, *FilePath);
+	}
+	
+	NumButtons.Reserve(10);
 	NumButtons.Add(Button_Input00);
 	NumButtons.Add(Button_Input01);
 	NumButtons.Add(Button_Input02);
@@ -32,11 +33,23 @@ void UNANumpadWidget::NativeConstruct()
 	NumButtons.Add(Button_Input07);
 	NumButtons.Add(Button_Input08);
 	NumButtons.Add(Button_Input09);
-		
+
+	InputNums.Reserve(4);
+	InputNums.Add(InputNum00);
+	InputNums.Add(InputNum01);
+	InputNums.Add(InputNum02);
+	InputNums.Add(InputNum03);
+	
 	if (!NumButtons.IsEmpty())
 	{
 		for (UButton* Button : NumButtons)
 			Button->OnClicked.AddDynamic(this, &ThisClass::OnClick_NumButton);
+	}
+
+	if (!InputNums.IsEmpty())
+	{
+		for (UImage* Image : InputNums)
+			Image->SetBrushFromTexture(CachedNumImage[0]);
 	}
 	
 	if (Button_InputClear)
@@ -45,6 +58,9 @@ void UNANumpadWidget::NativeConstruct()
 	if (Button_InputConfirm)
 		Button_InputConfirm->OnClicked.AddDynamic(this, &ThisClass::OnClick_ConfirmButton);
 
+	if (Button_CloseWidget)
+		Button_CloseWidget->OnClicked.AddDynamic(this, &ThisClass::OnClick_CloseButton);
+	
 	CurrentController = GetWorld()->GetFirstPlayerController();
 }
 
@@ -61,7 +77,7 @@ void UNANumpadWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 		return;
 	}
 
-	CurrentController->SetInputMode(FInputModeUIOnly());
+	//CurrentController->SetInputMode(FInputModeUIOnly());
 	CurrentController->bShowMouseCursor = bIsVisible;
 	
 	DetectHoveredButton();
@@ -69,12 +85,14 @@ void UNANumpadWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 void UNANumpadWidget::InitNumber()
 {
+	if (bIsComplete) return;
+	
 	for (int& Num :CurrentInputNumbers)
 	{
 		Num = 0;
 	}
 	
-	for (UImage* InputNumImage : InputNumImages)
+	for (UImage* InputNumImage : InputNums)
 	{
 		InputNumImage->SetBrushFromTexture(CachedNumImage[0]);
 	}
@@ -97,13 +115,20 @@ void UNANumpadWidget::OnClick_ConfirmButton()
 	ConfirmNumber();
 }
 
+void UNANumpadWidget::OnClick_CloseButton()
+{
+	CloseWidget();
+}
+
 void UNANumpadWidget::InputNumber()
 {
-	if (PasswordLength >= CurrentInputIndex) return;
+	if (PasswordLength <= CurrentInputIndex) return;
 	
-	CurrentInputNumbers[CurrentInputIndex] = CurrentHoveredButtonIndex;\
+	CurrentInputNumbers[CurrentInputIndex] = CurrentHoveredButtonIndex;
 	
-	InputNumImages[CurrentInputIndex]->SetBrushFromTexture(CachedNumImage[CurrentHoveredButtonIndex]);
+	InputNums[CurrentInputIndex]->SetBrushFromTexture(CachedNumImage[CurrentHoveredButtonIndex]);
+
+	++CurrentInputIndex;
 }
 
 void UNANumpadWidget::ClearNumber()
@@ -125,11 +150,18 @@ void UNANumpadWidget::DetectHoveredButton()
 	}
 }
 
+void UNANumpadWidget::CloseWidget()
+{
+	SetVisibility(ESlateVisibility::Hidden);
+}
+
 void UNANumpadWidget::ConfirmNumber()
 {
+	if (bIsComplete) return;
+	
 	int Password = CorrectPassword;
 	
-	for (int i = 0; i < PasswordLength; ++i)
+	for (int i = PasswordLength - 1; i > 0; --i)
 	{
 		if (CurrentInputNumbers[i] == Password % 10)
 		{
@@ -145,4 +177,6 @@ void UNANumpadWidget::ConfirmNumber()
 	SetVisibility(ESlateVisibility::Hidden);
 	CurrentController->SetInputMode(FInputModeGameAndUI());
 	CurrentController->bShowMouseCursor = true;
+
+	//UNAWorldEventHandler::GetInstance()->TriggerEvent(TEXT("Test"));
 }
