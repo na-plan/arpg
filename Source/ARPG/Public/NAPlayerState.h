@@ -4,7 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerState.h"
+#include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "NAPlayerState.generated.h"
+
+DECLARE_MULTICAST_DELEGATE_TwoParams( FOnPlayerStatusChanged, APlayerState*, ECharacterStatus );
 
 class UNAVitalCheckComponent;
 /**
@@ -16,6 +19,10 @@ class ARPG_API ANAPlayerState : public APlayerState
 	GENERATED_BODY()
 
 public:
+
+	FOnPlayerStatusChanged OnKnockDown;
+	FOnPlayerStatusChanged OnRevived;
+	FOnPlayerStatusChanged OnDead;
 
 	// 현재 체력
 	float GetHealth() const;
@@ -39,6 +46,9 @@ public:
 	// 빙의한 Pawn의 에셋 이름 설정
 	void SetPossessAssetName(const FName& AssetName);
 
+	UFUNCTION()
+	void BindVitalDelegate();
+
 protected:
 
 	// 서버에서 AssetName이 바뀐 경우 클라이언트 사이드에서 에셋 업데이트
@@ -49,6 +59,12 @@ protected:
 	UFUNCTION()
 	void UpdatePossessAssetByName();
 
+	UFUNCTION()
+	void OnPlayerStatusChanged( ECharacterStatus Old, ECharacterStatus New );
+
+	UFUNCTION()
+	void HandleDead( APlayerState* PlayerState, ECharacterStatus CharacterStatus );
+	
 	virtual void BeginPlay() override;
 
 	virtual void PostNetInit() override;
