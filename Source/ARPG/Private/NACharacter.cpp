@@ -443,11 +443,14 @@ void ANACharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
 
-	GetAbilitySystemComponent()->InitAbilityActorInfo
-	(
-		GetPlayerState<ANAPlayerState>(),
-		this
-	);
+	if ( ANAPlayerState* Casted = GetPlayerState<ANAPlayerState>() )
+	{
+		GetAbilitySystemComponent()->InitAbilityActorInfo
+		(
+			Casted,
+			this
+		);	
+	}
 }
 
 void ANACharacter::OnConstruction( const FTransform& Transform )

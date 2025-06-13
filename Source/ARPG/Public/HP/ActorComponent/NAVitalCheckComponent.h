@@ -64,9 +64,7 @@ public:
 protected:
 	// 매시에서 체력 구분 단위
 	constexpr static float MeshHealthStep = 0.25f;
-
-	void OnMovementSpeedChanged( const FOnAttributeChangeData& OnAttributeChangeData );
-
+	
 	void HandleEffectToStatus( UAbilitySystemComponent* AbilitySystemComponent, const FGameplayEffectSpec& GameplayEffectSpec, FActiveGameplayEffectHandle ActiveGameplayEffectHandle );
 	
 	// Called when the game starts
@@ -84,12 +82,18 @@ protected:
 
 	// 캐릭터가 살아있는 경우 캐릭터 속성 관리
 	void HandleAlive( const ANACharacter* Character, const float NewHealth );
+
+	// 캐릭터의 체력 매시를 수정
+	void ChangeHealthMesh( float NewValue, float MaxValue );
 	
 	// 캐릭터의 체력이 변화할 경우
 	void OnHealthChanged( const FOnAttributeChangeData& OnAttributeChangeData );
 
-	// 캐릭터의 체력 매시를 수정
-	void ChangeHealthMesh( float NewValue, float MaxValue );
+	void OnMovementSpeedChanged( const FOnAttributeChangeData& OnAttributeChangeData );
+
+	void OnHealthChanged( const float Old, const float New);
+
+	void OnMovementSpeedChanged( const float Old, const float New);
 	
 public:
 	// Called every frame

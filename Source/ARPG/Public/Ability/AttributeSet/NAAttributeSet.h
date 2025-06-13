@@ -8,6 +8,8 @@
 #include "ARPG/ARPG.h"
 #include "NAAttributeSet.generated.h"
 
+DECLARE_MULTICAST_DELEGATE_TwoParams( FOnNAAttributeChanged, float, float );
+
 /**
  * 일반적으로 객체에 필요로한 속성
  */
@@ -15,24 +17,52 @@ UCLASS()
 class ARPG_API UNAAttributeSet : public UAttributeSet
 {
 	GENERATED_BODY()
-
-public:
 	// 체력
-	UPROPERTY(VisibleAnywhere, Replicated)
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing=OnRep_Health)
 	FGameplayAttributeData Health;
 
 	// 최대 체력
-	UPROPERTY(VisibleAnywhere, Replicated)
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing=OnRep_MaxHealth)
 	FGameplayAttributeData MaxHealth;
 
 	// 스테미나
-	UPROPERTY(VisibleAnywhere, Replicated)
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing=OnRep_AP)
 	FGameplayAttributeData AP;
 
 	// 이동속력
-	UPROPERTY(VisibleAnywhere, Replicated)
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing=OnRep_MovementSpeed)
 	FGameplayAttributeData MovementSpeed;
 
+	UFUNCTION()
+	void OnRep_Health(const FGameplayAttributeData& Old) const
+	{
+		OnHealthChanged.Broadcast( Old.GetCurrentValue(), GetHealth() );
+	}
+
+	UFUNCTION()
+	void OnRep_MaxHealth(const FGameplayAttributeData& Old) const
+	{
+		OnMaxHealthChanged.Broadcast( Old.GetCurrentValue(), GetMaxHealth() );
+	}
+
+	UFUNCTION()
+	void OnRep_AP(const FGameplayAttributeData& Old) const
+	{
+		OnAPChanged.Broadcast( Old.GetCurrentValue(), GetAP() );
+	}
+
+	UFUNCTION()
+	void OnRep_MovementSpeed(const FGameplayAttributeData& Old) const
+	{
+		OnMaxHealthChanged.Broadcast( Old.GetCurrentValue(), GetMovementSpeed() );
+	}
+	
+public:
+	mutable FOnNAAttributeChanged OnHealthChanged;
+	mutable FOnNAAttributeChanged OnMaxHealthChanged;
+	mutable FOnNAAttributeChanged OnAPChanged;
+	mutable FOnNAAttributeChanged OnMovementSpeedChanged;
+	
 	// note: 만약 새로운 속성을 추가할 경우 아래의 매크로를 같이 추가해주어야 함!
 	ATTRIBUTE_ACCESSORS(UNAAttributeSet, Health);
 	ATTRIBUTE_ACCESSORS(UNAAttributeSet, MaxHealth);
@@ -40,9 +70,9 @@ public:
 	ATTRIBUTE_ACCESSORS(UNAAttributeSet, MovementSpeed);
 	
 protected:
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	virtual bool PreGameplayEffectExecute(struct FGameplayEffectModCallbackData& Data) override;
+	virtual bool PreGameplayEffectExecute(FGameplayEffectModCallbackData& Data) override;
 	
-	virtual void PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData& Data) override;
+	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
 };
