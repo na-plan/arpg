@@ -12,21 +12,19 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "InputMappingContext.h"
+#include "NAGameStateBase.h"
 #include "NAPlayerState.h"
 #include "ARPG/ARPG.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "HP/GameplayAbility/NAGA_Revive.h"
-#include "HP/GameplayEffect/NAGE_Damage.h"
 #include "HP/WidgetComponent/NAReviveWidgetComponent.h"
 #include "Net/UnrealNetwork.h"
-#include "DefaultAnimInstance.h"
 
 #include "Interaction/NAInteractionComponent.h"
 #include "Inventory/Component/NAInventoryComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Weapon/PickableItemActor/NAWeaponAmmoBox.h"
-
 
 DEFINE_LOG_CATEGORY( LogTemplateCharacter );
 
@@ -227,6 +225,33 @@ void ANACharacter::BeginPlay()
 void ANACharacter::PostNetInit()
 {
 	Super::PostNetInit();
+}
+
+void ANACharacter::PreReplication( IRepChangedPropertyTracker& ChangedPropertyTracker )
+{
+	Super::PreReplication( ChangedPropertyTracker );
+	DOREPLIFETIME_ACTIVE_OVERRIDE_FAST( ANACharacter, ReplicatedControlRotation, PredicateControlRotationReplication() );
+}
+
+bool ANACharacter::PredicateControlRotationReplication() const
+{
+	bool bShouldReplicate = true;
+	const ANAPlayerState* ThisPlayerState = GetPlayerState<ANAPlayerState>();
+	bShouldReplicate &= ThisPlayerState != nullptr;
+	if ( ThisPlayerState )
+	{
+		bShouldReplicate &= ThisPlayerState->IsAlive();
+	}
+
+	const ANAGameStateBase* CastedGameState = GetWorld()->GetGameState<ANAGameStateBase>();
+	bShouldReplicate &= CastedGameState != nullptr;
+	
+	if ( CastedGameState )
+	{
+		bShouldReplicate &= CastedGameState->HasAnyoneDead();
+	}
+
+	return bShouldReplicate;
 }
 
 void ANACharacter::PossessedBy(AController* NewController)
@@ -465,6 +490,11 @@ void ANACharacter::OnConstruction( const FTransform& Transform )
 #endif
 }
 
+FRotator ANACharacter::GetReplicatedControlRotation() const
+{
+	return ReplicatedControlRotation.Rotation();
+}
+
 void ANACharacter::SetChildActorOwnership( AActor* Actor )
 {
 	Actor->SetOwner( this );
@@ -635,7 +665,7 @@ void ANACharacter::ToggleInventoryWidget()
 			if (!InventoryComponent->IsInventoryWidgetVisible())
 			{
 				RotateSpringArmForInventory(true, 0.6f);
-				ToggleInventoryCameraView(true, InventoryAngleBoom, 0.6f);
+				ToggleInventoryCameraView(true, InventoryAngleBoom, 0.6f, {} );
 				InventoryComponent->ReleaseInventory();
 				if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
 				{
@@ -648,7 +678,7 @@ void ANACharacter::ToggleInventoryWidget()
 			else
 			{
 				RotateSpringArmForInventory(false, 0.4f);
-				ToggleInventoryCameraView(false, CameraBoom, 0.4f);
+				ToggleInventoryCameraView(false, CameraBoom, 0.4f, { -20.f, 0.f, 0.f } );
 				InventoryComponent->CollapseInventory();
 				if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
 				{
@@ -696,7 +726,7 @@ void ANACharacter::RotateSpringArmForInventory(bool bExpand, float Overtime)
 	);
 }
 
-void ANACharacter::ToggleInventoryCameraView(const bool bEnable, USpringArmComponent* InNewBoom, float Overtime)
+void ANACharacter::ToggleInventoryCameraView(const bool bEnable, USpringArmComponent* InNewBoom, float Overtime, const FRotator& Rotation)
 {
 	if (!ensure(InNewBoom != nullptr && FollowCamera != nullptr)) return;
 	
@@ -714,13 +744,14 @@ void ANACharacter::ToggleInventoryCameraView(const bool bEnable, USpringArmCompo
 	}
 	// 인벤토리 연출 순서: 인벤 위젯 회전 -> 카메라 앵글 변경(한 프레임 뒤에서)
 	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda(
-		[bEnable, this, InNewBoom, Overtime, CallbackFunc]()
+		[Rotation, this, InNewBoom, Overtime, CallbackFunc]()
 		{
 			// 1) 목표 위치/회전 계산 (NewBoom의 월드 위치/회전 등)
+			FollowCamera->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
 			FollowCamera->AttachToComponent(InNewBoom, FAttachmentTransformRules::KeepWorldTransform,
 											USpringArmComponent::SocketName);
 			FVector TargetLocation = FVector::ZeroVector;
-			FRotator TargetRotation = FRotator::ZeroRotator;
+			FRotator TargetRotation = Rotation;
 
 			// 2) 월드 공간에서 MoveComponentTo로 보간
 			FLatentActionInfo LatentInfo;
@@ -840,6 +871,7 @@ void ANACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME( ANACharacter, RightHandChildActor );
 	DOREPLIFETIME( ANACharacter, bIsZoom);
 	DOREPLIFETIME_CONDITION( ANACharacter, InteractionComponent, COND_OwnerOnly )
+	DOREPLIFETIME_CONDITION( ANACharacter, ReplicatedControlRotation, COND_Custom )
 }
 
 void ANACharacter::SyncAmmoConsumptionWithInventory( const FActiveGameplayEffect& ActiveGameplayEffect )
@@ -878,5 +910,15 @@ void ANACharacter::SyncAmmoConsumptionWithInventory( const FActiveGameplayEffect
 	if ( ensureAlways( DesignatedAmmo ) ) // 총알이 변했는데 변한 총알을 찾을 수 없는 경우..
 	{
 		check( InventoryComponent->TryRemoveItem( InventoryComponent->FindSlotIDForItem( DesignatedAmmo ), 1 ) );
+	}
+}
+
+void ANACharacter::Tick( float DeltaSeconds )
+{
+	Super::Tick( DeltaSeconds );
+
+	if ( Controller && HasAuthority() )
+	{
+		ReplicatedControlRotation = Controller->GetControlRotation().Vector();
 	}
 }

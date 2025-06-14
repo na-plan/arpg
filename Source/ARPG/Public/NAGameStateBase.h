@@ -46,10 +46,10 @@ class ARPG_API ANAGameStateBase : public AGameStateBase
 	
 	void CheckAndHandleFailed();
 	
-	void AttachSpectatorToOther( APawn* Pawn, ANAPlayerState* PlayerState );
-
 public:
 	ANAGameStateBase();
+	
+	bool HasAnyoneDead() const;
 
 protected:
 	virtual void BeginPlay() override;
