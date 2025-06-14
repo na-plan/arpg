@@ -15,12 +15,13 @@ enum class EDoorType : uint8
 };
 
 DECLARE_DELEGATE_RetVal_OneParam(bool, FOnTickInteraction, AActor*);
+DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(bool, FOnGimicClear, AActor*, InActor);
 
 UCLASS()
 class ARPG_API ANAPlaceableItemActor_Door : public ANAPlaceableItemActor
 {
 	GENERATED_BODY()
-
+	
 public:
 	// Sets default values for this actor's properties
 	ANAPlaceableItemActor_Door(const FObjectInitializer& ObjectInitializer);
@@ -36,11 +37,11 @@ public:
 	virtual void BeginInteract_Implementation(AActor* Interactor) override;
 	virtual void EndInteract_Implementation(AActor* Interactor) override;
 	virtual	bool ExecuteInteract_Implementation(AActor* Interactor) override;
-	
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
+	
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -82,6 +83,9 @@ protected:
 	UPROPERTY()
 	FTransform OriginTF2;
 
+	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = true))
+	bool bIsLocked = false;
+	
 	// Delegate
 	FOnTickInteraction TickInteraction;
 };
