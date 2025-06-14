@@ -39,7 +39,7 @@ void FNAItemBaseTableRow::OnDataTableChanged(const UDataTable* InDataTable, cons
 		}
 
 		if (ItemType == EItemType::IT_Weapon
-			|| ItemClass.Get()->IsChildOf<ANAWeapon>())
+			|| (ItemClass && ItemClass.Get()->IsChildOf<ANAWeapon>()))
 		{
 			NumericData.bIsStackable = false;
 			NumericData.MaxSlotStackSize = 1;
