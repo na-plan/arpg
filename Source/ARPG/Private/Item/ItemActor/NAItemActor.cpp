@@ -566,6 +566,16 @@ void ANAItemActor::DisableOverlapDuringInteraction(AActor* Interactor)
 		if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(Interactor))
 		{
 			TriggerSphere->SetGenerateOverlapEvents(false);
+			if (ItemCollision)
+			{
+				ItemCollision->SetGenerateOverlapEvents(false);
+				ItemCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			}
+			if (ItemMesh)
+			{
+				ItemMesh->SetGenerateOverlapEvents(false);
+				ItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			}
 		}
 	}
 }
