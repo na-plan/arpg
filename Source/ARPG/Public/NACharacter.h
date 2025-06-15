@@ -10,6 +10,7 @@
 #include "Logging/LogMacros.h"
 #include "NACharacter.generated.h"
 
+class UNAKineticComponent;
 class UNAReviveWidgetComponent;
 class UWidgetComponent;
 class UNAVitalCheckComponent;
@@ -74,6 +75,9 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	// 양손에 무기가 없을때 사용되는 전투 컴포넌트
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Replicated, Category = "Combat", meta=(AllowPrivateAccess="true"))
 	UNAMontageCombatComponent* DefaultCombatComponent;
+	
+	UPROPERTY(VisibleAnywhere, BLueprintReadOnly, Replicated, Category = "Kinesis", meta=(AllowPrivateAccess="true"))
+	UNAKineticComponent* KineticComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_Zoom, Category = "AnimInstance", meta = (AllowPrivateAccess = "true"))
 	bool bIsZoom;
@@ -127,6 +131,10 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory Input", meta = (AllowPrivateAccess = "true"))
 	UInputAction* StasisPackShortcutAction;
+	
+	/* Interaction Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
+	UInputAction* KineticGrabAction;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	
@@ -229,6 +237,12 @@ protected:
 	// 힐팩 단축키로 자동 사용: 높은 등급부터
 	void UseMedPackByShortcut(const FInputActionValue& Value);
 	void UseStasisPackByShortcut(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void KineticGrab();
+
+	UFUNCTION()
+	void KineticRelease();
 	
 protected:
 	void TryRevive();

@@ -31,4 +31,9 @@ void UNAAbilityGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Colle
 	{
 		AttributesDataTable = DataTable;
 	}
+
+	if (UDataTable* DataTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Script/Engine.DataTable'/Game/00_ProjectNA/04_DataTable/01_Ability/KineticAttribute.KineticAttribute'"))))
+	{
+		KineticDataTable = DataTable;
+	}
 }
