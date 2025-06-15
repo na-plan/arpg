@@ -77,7 +77,8 @@ UENUM(BLueprintType)
 enum class EAbilityInputID : uint8
 {
 	None,
-	Revive
+	Revive,
+	Grab
 };
 
 struct FObjectPropertyUtility

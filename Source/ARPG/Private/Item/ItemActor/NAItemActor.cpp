@@ -20,7 +20,7 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	TriggerSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	TriggerSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	TriggerSphere->CanCharacterStepUpOn = ECB_No;
-	TriggerSphere->SetCollisionResponseToChannel(ECC_Pawn, ECollisionResponse::ECR_Overlap); 
+	TriggerSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap); 
 	
 	ItemCollision = CreateOptionalDefaultSubobject<USphereComponent>(TEXT("ItemCollision(Sphere)"));
 	ItemMesh = CreateOptionalDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh(Static)"));
@@ -263,6 +263,7 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	{
 		ItemCollision->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		ItemCollision->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+		ItemCollision->SetSimulatePhysics( true );
 	}
 	if (ItemMesh)
 	{
