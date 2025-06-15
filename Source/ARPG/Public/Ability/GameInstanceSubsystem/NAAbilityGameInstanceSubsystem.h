@@ -19,10 +19,16 @@ class ARPG_API UNAAbilityGameInstanceSubsystem : public UGameInstanceSubsystem
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
 	UDataTable* AttributesDataTable;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
+	UDataTable* KineticDataTable;
+
 public:
 	// 모든 객체에 대한 Attributes를 담고 있는 테이블을 반환
 	UFUNCTION(BlueprintCallable)
 	UDataTable* GetCharacterAttributesDataTable() const { return AttributesDataTable; }
+
+	UFUNCTION(BlueprintCallable)
+	UDataTable* GetKineticAttributesDataTable() const { return KineticDataTable; }
 
 	// 특정 객체에 대한 Attributes를 담고 있는 테이블을 반환
 	UFUNCTION(BlueprintCallable)

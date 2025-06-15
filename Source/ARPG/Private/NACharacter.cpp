@@ -16,6 +16,7 @@
 #include "NAPlayerState.h"
 #include "ARPG/ARPG.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
+#include "Combat/PhysicsConstraintComponent/NAKineticComponent.h"
 #include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "HP/GameplayAbility/NAGA_Revive.h"
 #include "HP/WidgetComponent/NAReviveWidgetComponent.h"
@@ -24,6 +25,7 @@
 #include "Interaction/NAInteractionComponent.h"
 #include "Inventory/Component/NAInventoryComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "Weapon/PickableItemActor/NAWeaponAmmoBox.h"
 
 DEFINE_LOG_CATEGORY( LogTemplateCharacter );
@@ -153,10 +155,10 @@ ANACharacter::ANACharacter()
 
 	VitalCheckComponent = CreateDefaultSubobject<UNAVitalCheckComponent>(TEXT("VitalCheckComponent"));
 	ReviveWidget = CreateDefaultSubobject<UNAReviveWidgetComponent>( TEXT("ReviveWidgetComponent") );
+	KineticComponent = CreateDefaultSubobject<UNAKineticComponent>( TEXT("KineticComponent") );
 
 	ApplyAttachments();
 	
-	GetMesh()->SetIsReplicated( true );
 	bReplicates = true;
 	ACharacter::SetReplicateMovement( true );
 
@@ -164,7 +166,10 @@ ANACharacter::ANACharacter()
 	DefaultCombatComponent->SetNetAddressable();
 	LeftHandChildActor->SetNetAddressable();
 	RightHandChildActor->SetNetAddressable();
-
+	KineticComponent->SetNetAddressable();
+	
+	GetMesh()->SetIsReplicated( true );
+	KineticComponent->SetIsReplicated( true );
 	LeftHandChildActor->SetIsReplicated( true );
 	RightHandChildActor->SetIsReplicated( true );
 }
@@ -205,6 +210,7 @@ void ANACharacter::BeginPlay()
 	{
 		LeftHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
 		RightHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
+		KineticComponent->SetActive( true );
 	}
 
 	if ( GetController() == GetWorld()->GetFirstPlayerController() )
@@ -339,6 +345,9 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(StasisPackShortcutAction, ETriggerEvent::Started, this, &ANACharacter::UseStasisPackByShortcut);
 
 		EnhancedInputComponent->BindAction(RightMouseAttackAction, ETriggerEvent::Started, this, &ANACharacter::Zoom);
+
+		EnhancedInputComponent->BindAction( KineticGrabAction, ETriggerEvent::Started, this, &ANACharacter::KineticGrab );
+		EnhancedInputComponent->BindAction( KineticGrabAction, ETriggerEvent::Completed, this, &ANACharacter::KineticRelease );
 	}
 	else
 	{
@@ -844,6 +853,22 @@ void ANACharacter::UseStasisPackByShortcut(const FInputActionValue& Value)
 	}
 }
 
+void ANACharacter::KineticGrab()
+{
+	if ( KineticComponent )
+	{
+		KineticComponent->Grab();
+	}
+}
+
+void ANACharacter::KineticRelease()
+{
+	if ( KineticComponent )
+	{
+		KineticComponent->Release();
+	}
+}
+
 void ANACharacter::TryRevive()
 {
 	// todo: GAS의 Input 감지를 이용할 수 있음
@@ -870,8 +895,9 @@ void ANACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME( ANACharacter, LeftHandChildActor );
 	DOREPLIFETIME( ANACharacter, RightHandChildActor );
 	DOREPLIFETIME( ANACharacter, bIsZoom);
-	DOREPLIFETIME_CONDITION( ANACharacter, InteractionComponent, COND_OwnerOnly )
-	DOREPLIFETIME_CONDITION( ANACharacter, ReplicatedControlRotation, COND_Custom )
+	DOREPLIFETIME_CONDITION( ANACharacter, InteractionComponent, COND_OwnerOnly );
+	DOREPLIFETIME_CONDITION( ANACharacter, ReplicatedControlRotation, COND_Custom );
+	DOREPLIFETIME( ANACharacter, KineticComponent );
 }
 
 void ANACharacter::SyncAmmoConsumptionWithInventory( const FActiveGameplayEffect& ActiveGameplayEffect )
