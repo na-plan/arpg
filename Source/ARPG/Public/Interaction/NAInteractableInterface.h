@@ -25,32 +25,9 @@ class ARPG_API INAInteractableInterface
 	GENERATED_BODY()
 
 public:
-//====================================================================================================================================
-// 순수 가상 메서드
-//====================================================================================================================================
-
-	// @TODO: 아이템 메타데이터를 non const로 받아와서 InteractableData에 직접 대입함. 아이템 메타 데이터의 무결성을 침해할 우려가 있음
-	// @TODO: 아이템 인터렉터블 데이터를 아이템 메타데이터처럼 취급? 아이템 인터렉터블 데이터가 런타임 중에 바뀔 일이 있나?
-	// @TODO: 아이템 인터렉터블 데이터가 런타임 중에 변경될 일이 없다고 판단되면, 이 함수 지우기 & 인터렉터블 데이터 getter 함수 모두 const로 변경 
-	// @TODO: 이 함수 제거할 때, 코드에서는 아이템 인터렉터블 데이터의 수정 여부(에디터에서의 수동 편집 포함)를 캐싱하는 플래그만 수정하도록 변경 
-	// @see ANAItemActor::SetInteractableData
-	//UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
-	//void SetInteractableData(const FNAInteractableData& NewInteractableData);
-	
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
 	bool CanInteract() const;
 
-	// UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
-	// bool IsReadyToInteract() const;
-	
-//====================================================================================================================================
-// 기본 클래스(C++)에서 구현 시 INAInteractableInterface::..._Implementation 호출이 필요한 가상 메서드
-//====================================================================================================================================
-
-	// If overriding this function in a base class, **you must manually call INAInteractableInterface::CanInteract_Implementation()**
-	// UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
-	// bool CanInteract() const;
-	
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
 	bool IsOnInteract() const;
 	
@@ -73,6 +50,11 @@ public:
 	void NotifyInteractableFocusEnd(AActor* InteractableActor, AActor* InteractorActor);
 
 	virtual void DisableOverlapDuringInteraction(AActor* Interactor) {};
+
+	virtual bool TryGetInteractableData(FNAInteractableData& OutData) const { return false; }
+	virtual bool HasInteractionDelay() const { return false; }
+	virtual float GetInteractionDelay() const { return 0.0f; }
+	virtual TScriptInterface<INAInteractableInterface> GetInteractableInterface() const { return nullptr; }
 	
 protected:
 	/** If overriding this function in a base class, **you must manually call INAInteractableInterface::BeginInteract_Implementation()**
@@ -87,8 +69,8 @@ protected:
 	* @note	호출 순서) 유저가 상호작용 종료 입력 시 UNAInteractionComponent에서 EndInteraction 호출 -> INAInteractableInterface::EndInteract
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interactable Interface")
-	
 	void EndInteract(AActor* InteractorActor);
+	
 	/** If overriding this function in a base class, **you must manually call INAInteractableInterface::ExecuteInteract_Implementation()**
 	* @param	InteractorActor:	상호작용 대상자(캐릭터)
 	* @note	호출 순서) UNAInteractionComponent에서 ExecuteInteraction 호출 -> INAInteractableInterface::ExecuteInteract

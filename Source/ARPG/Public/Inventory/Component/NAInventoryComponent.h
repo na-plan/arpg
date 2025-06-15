@@ -11,9 +11,9 @@
 UENUM(BlueprintType)
 enum class ENAItemAddStatus : uint8
 {
-	IAR_NoItemAdded UMETA(DisplayName = "No Item Added"),
-	IAR_AddedPartial UMETA(DisplayName = "Partial Amount Item Added"),
-	IAR_AddedAll UMETA(DisplayName = "All Item Added"),
+	IAS_NoItemAdded		UMETA(DisplayName = "No Item Added"),
+	IAS_AddedPartial	UMETA(DisplayName = "Partial Amount Item Added"),
+	IAS_AddedAll		UMETA(DisplayName = "All Item Added"),
 };
 
 USTRUCT(BlueprintType)
@@ -23,7 +23,7 @@ struct FNAItemAddResult
 
 	FNAItemAddResult():
 		ActualAmountAdded(0),
-		OperationResult(ENAItemAddStatus::IAR_NoItemAdded),
+		OperationResult(ENAItemAddStatus::IAS_NoItemAdded),
 		ResultMessage(FText::GetEmpty())
 	{
 	}
@@ -42,7 +42,7 @@ struct FNAItemAddResult
 	{
 		FNAItemAddResult AddedNoneResult;
 		AddedNoneResult.ActualAmountAdded = 0;
-		AddedNoneResult.OperationResult = ENAItemAddStatus::IAR_NoItemAdded;
+		AddedNoneResult.OperationResult = ENAItemAddStatus::IAS_NoItemAdded;
 		AddedNoneResult.ResultMessage = ErrorText;
 
 		return AddedNoneResult;
@@ -52,7 +52,7 @@ struct FNAItemAddResult
 	{
 		FNAItemAddResult AddedPartialResult;
 		AddedPartialResult.ActualAmountAdded = PartialAmountAdded;
-		AddedPartialResult.OperationResult = ENAItemAddStatus::IAR_AddedPartial;
+		AddedPartialResult.OperationResult = ENAItemAddStatus::IAS_AddedPartial;
 		AddedPartialResult.ResultMessage = ErrorText;
 
 		return AddedPartialResult;
@@ -62,7 +62,7 @@ struct FNAItemAddResult
 	{
 		FNAItemAddResult AddedAllResult;
 		AddedAllResult.ActualAmountAdded = AmountAdded;
-		AddedAllResult.OperationResult = ENAItemAddStatus::IAR_AddedAll;
+		AddedAllResult.OperationResult = ENAItemAddStatus::IAS_AddedAll;
 		AddedAllResult.ResultMessage = Message;
 
 		return AddedAllResult;

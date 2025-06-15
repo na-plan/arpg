@@ -30,7 +30,7 @@ ANAWeapon::ANAWeapon() : ANAPickableItemActor(FObjectInitializer::Get())
 	AmmoIndicatorComponent->SetRelativeRotation( {0.f, -90.f, 0.f} );
 	AmmoIndicatorComponent->SetRelativeLocation( {0.f, 0.f, 300.f} );
 	
-	PickupMode = EPickupMode::PM_Holdable | EPickupMode::PM_Inventory;
+	PickupMode = /*EPickupMode::PM_Holdable | */EPickupMode::PM_Inventory;
 }
 
 // Called when the game starts or when spawned

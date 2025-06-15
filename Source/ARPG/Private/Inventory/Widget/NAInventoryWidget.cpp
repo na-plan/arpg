@@ -485,6 +485,7 @@ void UNAInventoryWidget::ReleaseInventoryWidget()
 	
 	OwningInventoryComponent->SetVisibility(true);
 	OwningInventoryComponent->SetWindowVisibility(EWindowVisibility::Visible);
+	SetIsEnabled(true);
 	SetVisibility(ESlateVisibility::HitTestInvisible);
 	PlayAnimationForward(Widget_Appear);
 }
@@ -514,7 +515,6 @@ void UNAInventoryWidget::OnInventoryWidgetReleased()
 		// }
 		
 		OwningInventoryComponent->SetWindowFocusable(true);
-		SetIsEnabled(true);
 		if (!LastFocusedSlotButton.IsValid())
 		{
 			Weapon_00->SetKeyboardFocus();	
@@ -534,7 +534,6 @@ void UNAInventoryWidget::CollapseInventoryWidget()
 	
 	UWidgetBlueprintLibrary::SetInputMode_GameOnly(GetOwningPlayer(), false);
 	OwningInventoryComponent->SetWindowFocusable(false);
-	SetIsEnabled(false);
 	PlayAnimationReverse(Widget_Appear, 1.3f);
 }
 
@@ -546,6 +545,7 @@ void UNAInventoryWidget::OnInventoryWidgetCollapsed()
 	if (!bReleaseInventoryWidget)
 	{
 		SetVisibility(ESlateVisibility::Hidden);
+		SetIsEnabled(false);
 		OwningInventoryComponent->SetWindowVisibility(EWindowVisibility::SelfHitTestInvisible);
 		OwningInventoryComponent->SetVisibility(false);
 	}

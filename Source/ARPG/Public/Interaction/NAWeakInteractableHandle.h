@@ -50,9 +50,9 @@ public:
 
 	FWeakInteractableHandle(AActor* InActor)
 	{
-		ensureAlways(InActor && InActor->Implements<UNAInteractableInterface>())
-				? ObjectPtr = InActor
-				: ObjectPtr = nullptr;
+		InActor && InActor->Implements<UNAInteractableInterface>()
+				? ObjectPtr		= InActor
+				: ObjectPtr  = nullptr;
 	}
 
 

@@ -19,8 +19,12 @@ ANAPlaceableItemActor_Door::ANAPlaceableItemActor_Door(const FObjectInitializer&
 	ItemCollision = CreateOptionalDefaultSubobject<UBoxComponent>(TEXT("ItemCollision(Box)"));
 	if (ItemCollision)
 	{
-		bUseItemCollision = true;
-		ItemCollision->SetupAttachment(RootComponent);
+		bWasItemCollisionCreated = true;
+		SetRootComponent(ItemCollision);
+		if (TriggerSphere)
+		{
+			TriggerSphere->SetupAttachment(ItemCollision);
+		}
 		if (ItemWidgetComponent)
 		{
 			ItemWidgetComponent->SetupAttachment(ItemCollision);
