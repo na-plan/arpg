@@ -28,7 +28,7 @@ public:
 	FNAInteractableData()
 		: InteractableType(ENAInteractableType::None),
 		InteractionName(FText::GetEmpty()),
-		InteractionDelayTime(0.f)
+		InteractionDuration(0.f)
 	{
 	}
 
@@ -39,5 +39,5 @@ public:
 	FText InteractionName;
 
 	UPROPERTY(EditInstanceOnly, Category = "Item Interactable Data", meta=(ClampMin="0.0"))
-	float InteractionDelayTime;
+	float InteractionDuration;
 };

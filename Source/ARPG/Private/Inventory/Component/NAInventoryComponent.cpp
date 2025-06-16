@@ -432,8 +432,8 @@ int32 UNAInventoryComponent::TryAddItem(UNAItemData* ItemToAdd)
 	}
 
 	// 반환값을 OriginalQuantity – ActualAmountAdded 형태로 계산
-	if (Result.OperationResult == ENAItemAddStatus::IAS_AddedAll ||
-		Result.OperationResult == ENAItemAddStatus::IAS_AddedPartial)
+	if (Result.OperationResult == ENAItemAddStatus::IAR_AddedAll ||
+		Result.OperationResult == ENAItemAddStatus::IAR_AddedPartial)
 	{
 		// 성공(전부 혹은 일부 추가)이므로 정렬 실행
 		SortInvenSlotItems();

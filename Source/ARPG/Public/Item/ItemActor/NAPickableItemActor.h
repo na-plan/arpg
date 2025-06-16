@@ -25,11 +25,10 @@ enum class EPickupMode : uint8
 	// 이 경우 아이템 사용 키는 활성되지 않음
 	// PM_Inventory | PM_AutoUse | PM_Holdable -> 인벤토리에 아이템을 이동시키기 전에 자동 사용부터 시도함
 	PM_AutoUse     = 1 << 2 UMETA(DisplayName = "Auto Use"),
-	
 	// 인벤토리 적재 가능하면서, 캐릭터가 '들 수(메쉬 어태치 가능)' 있는 아이템 -> (들고 있다가) 지연 사용 가능한 아이템
 	// 아이템 사용 키를 활성화
 	// PM_CarryOnly가 이미 켜져있다면 이 플래그는 무시됨
-	//PM_Holdable    = 1 << 3 UMETA(DisplayName = "Holdable"),
+	PM_Holdable    = 1 << 3 UMETA(DisplayName = "Holdable"),
 };
 ENUM_CLASS_FLAGS(EPickupMode)
 
@@ -41,12 +40,14 @@ class ARPG_API ANAPickableItemActor : public ANAItemActor
 
 public:
 	ANAPickableItemActor(const FObjectInitializer& ObjectInitializer);
-	
-	UFUNCTION(BlueprintCallable, Category = "Pickable Item")
-	FORCEINLINE EPickupMode GetPickupMode() const
-	{
-		return 	PickupMode;
-	}
+	// UFUNCTION(BlueprintCallable, Category = "Pickable Item")
+	// FORCEINLINE EPickupMode GetPickupMode() const
+	// {
+	// 	return 	PickupMode;
+	// }
+
+	//UFUNCTION(BlueprintCallable, Category = "Pickable Item")
+	//void SetPickupMode(EPickupMode InPickupMode);
 
 public:
 	virtual void PostRegisterAllComponents() override;
@@ -77,6 +78,7 @@ public:
 	virtual void EndInteract_Implementation(AActor* Interactor) override;
 	
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Pickable Item")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Pickable Item"
+		/*,BlueprintGetter=GetPickupMode, BlueprintSetter=SetPickupMode*/)
 	EPickupMode PickupMode = EPickupMode::PM_None;
 };

@@ -32,6 +32,7 @@ void UNAItemWidget::ReleaseItemWidget()
 	if (!OwningItemWidgetComponent.IsValid()) return;
 	
 	bReleaseItemWidget = true;
+	SetIsEnabled(true);
 	if (Interaction_Name && bIsToggleAction)
 	{
 		SwapToggleActionText(ToggleActionText);
@@ -67,6 +68,7 @@ void UNAItemWidget::CollapseItemWidget()
 	if (!OwningItemWidgetComponent.IsValid()) return;
 	
 	bReleaseItemWidget = false;
+	SetIsEnabled(false);
 	if (Widget_Appear)
 	{
 		PlayAnimationReverse(Widget_Appear, 1.8f);
@@ -80,13 +82,11 @@ void UNAItemWidget::OnItemWidgetCollapsed()
 		OwningItemWidgetComponent->Activate();
 		OwningItemWidgetComponent->SetVisibility(true);
 		OwningItemWidgetComponent->SetWindowVisibility(EWindowVisibility::Visible);
-		SetIsEnabled(true);
 		SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
 	else
 	{
 		SetVisibility(ESlateVisibility::Hidden);
-		SetIsEnabled(false);
 		OwningItemWidgetComponent->SetWindowVisibility(EWindowVisibility::SelfHitTestInvisible);
 		OwningItemWidgetComponent->SetVisibility(false);
 		OwningItemWidgetComponent->Deactivate();
