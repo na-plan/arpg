@@ -16,7 +16,7 @@
 #include "NAPlayerState.h"
 #include "ARPG/ARPG.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
-#include "Combat/PhysicsConstraintComponent/NAKineticComponent.h"
+#include "../Public/Combat/PhysicsHandleComponent/NAKineticComponent.h"
 #include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "HP/GameplayAbility/NAGA_Revive.h"
 #include "HP/WidgetComponent/NAReviveWidgetComponent.h"

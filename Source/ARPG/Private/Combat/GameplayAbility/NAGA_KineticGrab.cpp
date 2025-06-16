@@ -8,7 +8,7 @@
 #include "Combat/AbilityTask/NAAT_ConsumeKineticGrabAP.h"
 #include "Combat/AbilityTask/NAAT_MoveActorTo.h"
 #include "Combat/AttributeSet/NAKineticAttributeSet.h"
-#include "Combat/PhysicsConstraintComponent/NAKineticComponent.h"
+#include "ARPG/Public/Combat/PhysicsHandleComponent/NAKineticComponent.h"
 
 FVector UNAGA_KineticGrab::EvaluateActorPosition( const AActor* OriginActor, const UPrimitiveComponent* TargetBoundComponent, const FVector& ForwardVector, float Distance )
 {
@@ -31,10 +31,10 @@ FVector UNAGA_KineticGrab::EvaluateActorPosition( const AActor* OriginActor, con
 FVector UNAGA_KineticGrab::GetMinimumDistance( const AActor* OriginActor,
                                                const UPrimitiveComponent* TargetBoundComponent, const FVector& ForwardVector )
 {
-	const FVector TargetDimension = TargetBoundComponent->Bounds.BoxExtent * 2.f;
+	const FVector TargetDimension = TargetBoundComponent->Bounds.BoxExtent;
 	FVector OriginOrigin, OriginExtents;
 	OriginActor->GetActorBounds( true, OriginOrigin, OriginExtents );
-	const FVector OriginDimension = OriginExtents * 2.f;
+	const FVector OriginDimension = OriginExtents;
 
 	const FVector OriginDimensionToForward = OriginDimension * ForwardVector;
 	const FVector TargetDimensionToForward = TargetDimension * ForwardVector;
@@ -166,6 +166,7 @@ void UNAGA_KineticGrab::ActivateAbility( const FGameplayAbilitySpecHandle Handle
 		{
 			if ( Hit.GetComponent()->IsSimulatingPhysics() )
 			{
+				Component->ForceUpdateActorForward();
 				Component->GrabComponentAtLocationWithRotation
 				(
 					Hit.GetComponent(),
@@ -179,6 +180,9 @@ void UNAGA_KineticGrab::ActivateAbility( const FGameplayAbilitySpecHandle Handle
 					),
 					Hit.GetComponent()->GetComponentRotation()
 				);
+
+				UE_LOG(LogTemp, Log, TEXT("%hs: Grabbing %s"), __FUNCTION__, *GetNameSafe( Hit.GetActor() ) )
+				
 				Component->bIsGrab = true;
 				bSuccess = true;
 			}

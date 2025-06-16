@@ -51,6 +51,8 @@ public:
 	FVector_NetQuantizeNormal GetActorForward() const;
 
 	void ToggleGrabAbility( const bool bFlag );
+	
+	void ForceUpdateActorForward();
 
 protected:
 	// Called when the game starts

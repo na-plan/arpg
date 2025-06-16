@@ -43,8 +43,9 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	
 	ItemDataID = NAME_None;
 	
-	bReplicates = true;
-	AActor::SetReplicateMovement( true );
+	SetReplicates( true );
+	SetReplicateMovement( true );
+	RootComponent->SetIsReplicated( true );
 	bAlwaysRelevant = true;
 }
 
@@ -414,6 +415,7 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		ItemCollision->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		ItemCollision->SetCollisionProfileName(TEXT("BlockAllDynamic"));
 		ItemCollision->SetSimulatePhysics( true );
+		ItemCollision->SetIsReplicated( true );
 	}
 	if ( ItemMesh )
 	{
@@ -569,6 +571,8 @@ void ANAItemActor::BeginPlay()
 		OnActorBeginOverlap.AddUniqueDynamic(this, &ThisClass::OnActorBeginOverlap_Impl);
 		OnActorEndOverlap.AddUniqueDynamic(this, &ThisClass::OnActorEndOverlap_Impl);
 	}
+
+	SetReplicates( true );
 
 	if (GetItemData())
 	{

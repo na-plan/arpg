@@ -4,7 +4,7 @@
 #include "Combat/AbilityTask/NAAT_MoveActorTo.h"
 
 #include "Combat/GameplayAbility/NAGA_KineticGrab.h"
-#include "Combat/PhysicsConstraintComponent/NAKineticComponent.h"
+#include "ARPG/Public/Combat/PhysicsHandleComponent/NAKineticComponent.h"
 
 UNAAT_MoveActorTo* UNAAT_MoveActorTo::MoveActorTo( UGameplayAbility* OwningAbility, FName TaskInstanceName,
                                                    AActor* Origin, AActor* Target, UPrimitiveComponent* InTargetBoundComponent )
@@ -25,10 +25,17 @@ void UNAAT_MoveActorTo::Activate()
 		PreviousResponse = TargetBoundComponent->GetCollisionResponseToChannel( ECC_Pawn );
 		TargetBoundComponent->SetCollisionResponseToChannel( ECC_Pawn, ECR_Ignore );
 		Mass = TargetBoundComponent->GetMass();
-		TargetBoundComponent->SetMassOverrideInKg( NAME_None, FMath::LogX( 10, Mass ), true );
+		// 무거운 물체도 가볍게 움직일 수 있도록...
+		TargetBoundComponent->SetMassOverrideInKg( NAME_None, Mass / 10.f, true );
 		if ( OriginActor.IsValid() )
 		{
 			TargetBoundComponent->IgnoreActorWhenMoving( OriginActor.Get(), true );
+		}
+
+		TargetForwardVector = TargetBoundComponent->GetForwardVector();
+		if ( const UNAKineticComponent* Component = OriginActor->GetComponentByClass<UNAKineticComponent>() )
+		{
+			OriginForwardVector = Component->GetActorForward();	
 		}
 	}
 }
@@ -46,14 +53,6 @@ void UNAAT_MoveActorTo::TickTask( float DeltaTime )
 	{
 		if ( UNAKineticComponent* KineticComponent = OriginActor->GetComponentByClass<UNAKineticComponent>() )
 		{
-			FVector TargetPosition = UNAGA_KineticGrab::EvaluateActorPosition
-			(
-				OriginActor.Get(),
-				TargetBoundComponent.Get(),
-				KineticComponent->GetActorForward(),
-				KineticComponent->GetGrabDistance()
-			);
-
 			FHitResult Hit;
 			FCollisionQueryParams Params;
 			Params.AddIgnoredActor( OriginActor.Get() );
@@ -66,15 +65,38 @@ void UNAAT_MoveActorTo::TickTask( float DeltaTime )
 			Params.AddIgnoredActors( OriginChildActors );
 			Params.AddIgnoredActors( TargetChildActors );
 
+			const FRotator RotationDelta = (KineticComponent->GetActorForward() - OriginForwardVector).Rotation();
+			const FRotator TargetDelta = RotationDelta.RotateVector( FVector::ForwardVector ).Rotation();
+			
+			// Physics Handle Component를 사용하면 Lerp가 자동으로 적용됨
+			//const FVector& Lerped = FMath::VInterpTo( TargetActor->GetActorLocation(), TargetPosition, DeltaTime, 10.f );
+
+			FVector TargetLocation;
+			FRotator TargetRotation;
+			KineticComponent->GetTargetLocationAndRotation( TargetLocation, TargetRotation );
+
+			const FRotator NewRotation = TargetRotation + TargetDelta * DeltaTime;
+
+			FVector TargetPosition = UNAGA_KineticGrab::EvaluateActorPosition
+			(
+				OriginActor.Get(),
+				TargetBoundComponent.Get(),
+				KineticComponent->GetActorForward(),
+				KineticComponent->GetGrabDistance()
+			);
+
 			if ( GetWorld()->LineTraceSingleByChannel( Hit, OriginActor->GetActorLocation(), TargetPosition, ECC_Visibility, Params ) )
 			{
 				Ability->CancelAbility( GetAbilitySpecHandle(), Ability->GetCurrentActorInfo(), Ability->GetCurrentActivationInfo(), false );
 				return;
 			}
+
+			KineticComponent->SetTargetLocation( TargetPosition );
+			KineticComponent->SetTargetRotation( NewRotation );
+			//UE_LOG( LogTemp, Log, TEXT("%s"), *TargetPosition.ToString() );
 			
-			//const FVector& Lerped = FMath::VInterpTo( TargetActor->GetActorLocation(), TargetPosition, DeltaTime, 10.f );
-			KineticComponent->SetTargetLocationAndRotation( TargetPosition, KineticComponent->GetActorForward().Rotation() );
-			UE_LOG( LogTemp, Log, TEXT("%s"), *TargetPosition.ToString() );
+			TargetForwardVector = TargetBoundComponent->GetForwardVector();
+			OriginForwardVector = KineticComponent->GetActorForward();
 		}
 	}
 }

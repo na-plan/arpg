@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Combat/PhysicsConstraintComponent/NAKineticComponent.h"
+#include "Combat/PhysicsHandleComponent/NAKineticComponent.h"
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
@@ -127,6 +127,17 @@ void UNAKineticComponent::ToggleGrabAbility( const bool bFlag )
 		{
 			Interface->GetAbilitySystemComponent()->ClearAbility( GrabSpecHandle );
 			GrabSpecHandle = {};
+		}
+	}
+}
+
+void UNAKineticComponent::ForceUpdateActorForward()
+{
+	if ( const APawn* OwnerPawn = Cast<APawn>( GetOwner() ) )
+	{
+		if ( const APlayerController* PlayerController = Cast<APlayerController>( OwnerPawn->GetController() ) )
+		{
+			ActorForward = PlayerController->GetControlRotation().Vector();
 		}
 	}
 }
