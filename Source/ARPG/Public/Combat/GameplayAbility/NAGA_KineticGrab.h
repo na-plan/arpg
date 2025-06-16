@@ -17,13 +17,13 @@ class ARPG_API UNAGA_KineticGrab : public UGameplayAbility
 	GENERATED_BODY()
 
 	ECollisionResponse PreviousResponse;
-
+	
 	UPROPERTY()
 	UNAAT_ConsumeKineticGrabAP* APConsumeTask;
 
 	UPROPERTY()
 	UNAAT_MoveActorTo* MoveActorToTask;
-
+	
 	virtual bool CommitAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, FGameplayTagContainer* OptionalRelevantTags = nullptr) override;
 
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
@@ -36,4 +36,12 @@ class ARPG_API UNAGA_KineticGrab : public UGameplayAbility
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 
 	virtual void InputReleased(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) override;
+
+public:
+	static FVector EvaluateActorPosition( const AActor* OriginActor, const UPrimitiveComponent* TargetBoundComponent,
+	                                      const FVector& ForwardVector, float Distance );
+
+	static FVector EvaluateActorPosition( const AActor* OriginActor, const FVector& ForwardVector, float MinimumDistance );
+
+	static FVector GetMinimumDistance( const AActor* OriginActor, const UPrimitiveComponent* TargetBoundComponent, const FVector& ForwardVector );
 };

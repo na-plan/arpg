@@ -3,6 +3,7 @@
 
 #include "Combat/AbilityTask/NAAT_MoveActorTo.h"
 
+#include "Combat/GameplayAbility/NAGA_KineticGrab.h"
 #include "Combat/PhysicsConstraintComponent/NAKineticComponent.h"
 
 UNAAT_MoveActorTo* UNAAT_MoveActorTo::MoveActorTo( UGameplayAbility* OwningAbility, FName TaskInstanceName,
@@ -23,6 +24,8 @@ void UNAAT_MoveActorTo::Activate()
 	{
 		PreviousResponse = TargetBoundComponent->GetCollisionResponseToChannel( ECC_Pawn );
 		TargetBoundComponent->SetCollisionResponseToChannel( ECC_Pawn, ECR_Ignore );
+		Mass = TargetBoundComponent->GetMass();
+		TargetBoundComponent->SetMassOverrideInKg( NAME_None, FMath::LogX( 10, Mass ), true );
 		if ( OriginActor.IsValid() )
 		{
 			TargetBoundComponent->IgnoreActorWhenMoving( OriginActor.Get(), true );
@@ -30,7 +33,7 @@ void UNAAT_MoveActorTo::Activate()
 	}
 }
 
-UNAAT_MoveActorTo::UNAAT_MoveActorTo()
+UNAAT_MoveActorTo::UNAAT_MoveActorTo(): Mass( 0.f ), PreviousResponse( ECR_MAX )
 {
 	bTickingTask = true;
 }
@@ -41,41 +44,37 @@ void UNAAT_MoveActorTo::TickTask( float DeltaTime )
 
 	if ( OriginActor.IsValid() && TargetActor.IsValid() )
 	{
-		if ( const UNAKineticComponent* KineticComponent = OriginActor->GetComponentByClass<UNAKineticComponent>() )
+		if ( UNAKineticComponent* KineticComponent = OriginActor->GetComponentByClass<UNAKineticComponent>() )
 		{
-			const FVector TargetDimension = TargetBoundComponent->Bounds.BoxExtent * 2.f;
-			FVector OriginOrigin, OriginExtents;
-			OriginActor->GetActorBounds( true, OriginOrigin, OriginExtents );
-			const FVector OriginDimension = OriginExtents * 2.f;
+			FVector TargetPosition = UNAGA_KineticGrab::EvaluateActorPosition
+			(
+				OriginActor.Get(),
+				TargetBoundComponent.Get(),
+				KineticComponent->GetActorForward(),
+				KineticComponent->GetGrabDistance()
+			);
 
-			const FVector ForwardVector = KineticComponent->GetActorForward();
-			const FVector OriginDimensionToForward = OriginDimension * ForwardVector;
-			const FVector TargetDimensionToForward = TargetDimension * ForwardVector;
-			const FVector TotalDimensionToForward = OriginDimensionToForward + TargetDimensionToForward;
-			const FVector ShouldDistanced = TotalDimensionToForward + ForwardVector * KineticComponent->GetGrabDistance();
-			const FVector TargetPosition = OriginActor->GetActorLocation() + ShouldDistanced ;
+			FHitResult Hit;
+			FCollisionQueryParams Params;
+			Params.AddIgnoredActor( OriginActor.Get() );
+			Params.AddIgnoredActor( TargetActor.Get() );
 
-			if ( !TargetActor->GetActorLocation().Equals( TargetPosition, 0.1f ) )
+			TArray<AActor*> OriginChildActors;
+			TArray<AActor*> TargetChildActors;
+			OriginActor->GetAllChildActors( OriginChildActors );
+			TargetActor->GetAllChildActors( TargetChildActors );
+			Params.AddIgnoredActors( OriginChildActors );
+			Params.AddIgnoredActors( TargetChildActors );
+
+			if ( GetWorld()->LineTraceSingleByChannel( Hit, OriginActor->GetActorLocation(), TargetPosition, ECC_Visibility, Params ) )
 			{
-				const FVector& Lerped = FMath::VInterpTo( OriginActor->GetActorLocation(), TargetPosition, DeltaTime, 10.f );
-				
-				FHitResult Hit;
-				FCollisionQueryParams Params;
-				Params.AddIgnoredActor( OriginActor.Get() );
-				Params.AddIgnoredActor( TargetActor.Get() );
-
-				TArray<AActor*> OriginChildActors;
-				TArray<AActor*> TargetChildActors;
-				OriginActor->GetAllChildActors( OriginChildActors );
-				TargetActor->GetAllChildActors( TargetChildActors );
-				Params.AddIgnoredActors( OriginChildActors );
-				Params.AddIgnoredActors( TargetChildActors );
-				
-				if ( !GetWorld()->LineTraceSingleByChannel( Hit, OriginActor->GetActorLocation(), TargetPosition, ECC_Visibility, Params ) )
-				{
-					TargetActor->SetActorLocation( Lerped, false, nullptr, ETeleportType::TeleportPhysics );
-				}
+				Ability->CancelAbility( GetAbilitySpecHandle(), Ability->GetCurrentActorInfo(), Ability->GetCurrentActivationInfo(), false );
+				return;
 			}
+			
+			//const FVector& Lerped = FMath::VInterpTo( TargetActor->GetActorLocation(), TargetPosition, DeltaTime, 10.f );
+			KineticComponent->SetTargetLocationAndRotation( TargetPosition, KineticComponent->GetActorForward().Rotation() );
+			UE_LOG( LogTemp, Log, TEXT("%s"), *TargetPosition.ToString() );
 		}
 	}
 }
@@ -88,5 +87,6 @@ void UNAAT_MoveActorTo::OnDestroy( bool bInOwnerFinished )
 	{
 		TargetBoundComponent->SetCollisionResponseToChannel( ECC_Pawn, PreviousResponse );
 		TargetBoundComponent->IgnoreActorWhenMoving( OriginActor.Get(), false );
+		TargetBoundComponent->SetMassOverrideInKg( NAME_None, 0.f, false );
 	}
 }

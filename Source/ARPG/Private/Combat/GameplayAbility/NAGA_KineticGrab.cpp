@@ -8,8 +8,39 @@
 #include "Combat/AbilityTask/NAAT_ConsumeKineticGrabAP.h"
 #include "Combat/AbilityTask/NAAT_MoveActorTo.h"
 #include "Combat/AttributeSet/NAKineticAttributeSet.h"
-#include "Combat/Interface/NAHandActor.h"
 #include "Combat/PhysicsConstraintComponent/NAKineticComponent.h"
+
+FVector UNAGA_KineticGrab::EvaluateActorPosition( const AActor* OriginActor, const UPrimitiveComponent* TargetBoundComponent, const FVector& ForwardVector, float Distance )
+{
+	const FVector ShouldDistanced = GetMinimumDistance( OriginActor, TargetBoundComponent, ForwardVector ) + ( ForwardVector * Distance );
+	const FVector OriginPosition = OriginActor->GetActorLocation();
+	const FVector TargetPosition = OriginPosition + ShouldDistanced;
+
+	return TargetPosition;
+}
+
+FVector UNAGA_KineticGrab::EvaluateActorPosition( const AActor* OriginActor, const FVector& ForwardVector, const float MinimumDistance )
+{
+	const FVector ShouldDistanced = ForwardVector * MinimumDistance;
+	const FVector OriginPosition = OriginActor->GetActorLocation();
+	const FVector TargetPosition = OriginPosition + ShouldDistanced;
+
+	return TargetPosition;
+}
+
+FVector UNAGA_KineticGrab::GetMinimumDistance( const AActor* OriginActor,
+                                               const UPrimitiveComponent* TargetBoundComponent, const FVector& ForwardVector )
+{
+	const FVector TargetDimension = TargetBoundComponent->Bounds.BoxExtent * 2.f;
+	FVector OriginOrigin, OriginExtents;
+	OriginActor->GetActorBounds( true, OriginOrigin, OriginExtents );
+	const FVector OriginDimension = OriginExtents * 2.f;
+
+	const FVector OriginDimensionToForward = OriginDimension * ForwardVector;
+	const FVector TargetDimensionToForward = TargetDimension * ForwardVector;
+
+	return TargetDimensionToForward + OriginDimensionToForward;
+}
 
 bool UNAGA_KineticGrab::CommitAbility( const FGameplayAbilitySpecHandle Handle,
                                        const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
@@ -43,7 +74,7 @@ void UNAGA_KineticGrab::EndAbility( const FGameplayAbilitySpecHandle Handle, con
 
 		if ( Component && Component->bIsGrab )
 		{
-			Component->BreakConstraint();
+			Component->ReleaseComponent();
 			Component->bIsGrab = false;
 		}
 
@@ -135,15 +166,18 @@ void UNAGA_KineticGrab::ActivateAbility( const FGameplayAbilitySpecHandle Handle
 		{
 			if ( Hit.GetComponent()->IsSimulatingPhysics() )
 			{
-				const ANACharacter* Character = Cast<ANACharacter>( ActorInfo->AvatarActor );
-				Hit.GetActor()->SetActorLocation( Character->GetActorLocation() + Character->GetActorForwardVector() * Component->GetRange() );
-			
-				Component->SetConstrainedComponents
+				Component->GrabComponentAtLocationWithRotation
 				(
-					Character->GetMesh(),
-					TEXT( "ValveBiped_Bip01_L_Hand" ),
 					Hit.GetComponent(),
-					NAME_None
+					NAME_None,
+					EvaluateActorPosition
+					(
+						ActorInfo->AvatarActor.Get(),
+						Hit.GetComponent(),
+						Component->GetActorForward(),
+						Component->GetGrabDistance()
+					),
+					Hit.GetComponent()->GetComponentRotation()
 				);
 				Component->bIsGrab = true;
 				bSuccess = true;

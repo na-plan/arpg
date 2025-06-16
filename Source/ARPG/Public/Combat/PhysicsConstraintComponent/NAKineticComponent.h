@@ -4,14 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "GameplayAbilitySpecHandle.h"
-#include "PhysicsEngine/PhysicsConstraintComponent.h"
+#include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "NAKineticComponent.generated.h"
 
 
 class UNAKineticAttributeSet;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class ARPG_API UNAKineticComponent : public UPhysicsConstraintComponent
+class ARPG_API UNAKineticComponent : public UPhysicsHandleComponent
 {
 	GENERATED_BODY()
 
@@ -31,9 +31,7 @@ class ARPG_API UNAKineticComponent : public UPhysicsConstraintComponent
 public:
 	// Sets default values for this component's properties
 	UNAKineticComponent();
-
-	virtual void SetActive(bool bNewActive, bool bReset = false) override;
-
+	
 	UFUNCTION()
 	void Grab();
 
@@ -51,6 +49,8 @@ public:
 	float GetGrabDistance() const;
 
 	FVector_NetQuantizeNormal GetActorForward() const;
+
+	void ToggleGrabAbility( const bool bFlag );
 
 protected:
 	// Called when the game starts

@@ -21,46 +21,20 @@ UNAKineticComponent::UNAKineticComponent()
 	SetIsReplicatedByDefault( true );
 
 	// ...
-	SetDisableCollision( true );
 	ConstraintInstance.EnableParentDominates();
-	SetAngularSwing1Limit( ACM_Free, 0.f );
-	SetAngularSwing2Limit( ACM_Free, 0.f );
-	SetAngularTwistLimit( ACM_Free, 0.f );
-	SetAngularDriveMode( EAngularDriveMode::TwistAndSwing );
-	SetLinearXLimit( LCM_Limited, 0 );
-	SetLinearYLimit( LCM_Limited, 0 );
-	SetLinearZLimit( LCM_Limited, 0 );
-	SetLinearPositionDrive( true, true, true );
-	SetLinearVelocityDrive( true, true, true );
-	SetLinearDriveParams( 5000.f, 200.f, 0.f );
-}
+	ConstraintInstance.SetDisableCollision( true );
+	ConstraintInstance.ProfileInstance.LinearBreakThreshold = 2000.f;
+	ConstraintInstance.ProfileInstance.AngularBreakThreshold = 2000.f;
 
-void UNAKineticComponent::SetActive( bool bNewActive, bool bReset )
-{
-	if ( const bool PreviousActive = IsActive();
-		 PreviousActive != bNewActive )
-	{
-		if ( bNewActive )
-		{
-			check( !GrabSpecHandle.IsValid() );
-		
-			if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner() )
-			{
-				const FGameplayAbilitySpec Spec( UNAGA_KineticGrab::StaticClass(), 1.f, static_cast<int32>( EAbilityInputID::Grab ) );
-				GrabSpecHandle = Interface->GetAbilitySystemComponent()->GiveAbility( Spec );
-			}
-		}
-		else
-		{
-			if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner() )
-			{
-				Interface->GetAbilitySystemComponent()->ClearAbility( GrabSpecHandle );
-				GrabSpecHandle = {};
-			}
-		}
-	}
-	
-	Super::SetActive( bNewActive, bReset );
+	InterpolationSpeed = 20.0f;
+	LinearStiffness = 3000.0f;
+	LinearDamping = 500.0f;
+
+	AngularStiffness = 1500.0f;
+	AngularDamping = 200.0f;
+
+	bSoftAngularConstraint = true;
+	bSoftLinearConstraint = true;
 }
 
 void UNAKineticComponent::Grab()
@@ -134,6 +108,29 @@ FVector_NetQuantizeNormal UNAKineticComponent::GetActorForward() const
 	return ActorForward;
 }
 
+void UNAKineticComponent::ToggleGrabAbility( const bool bFlag )
+{
+	if ( bFlag )
+	{
+		if( !GrabSpecHandle.IsValid() )
+		{
+			if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner() )
+			{
+				const FGameplayAbilitySpec Spec( UNAGA_KineticGrab::StaticClass(), 1.f, static_cast<int32>( EAbilityInputID::Grab ) );
+				GrabSpecHandle = Interface->GetAbilitySystemComponent()->GiveAbility( Spec );
+			}	
+		}
+	}
+	else
+	{
+		if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner() )
+		{
+			Interface->GetAbilitySystemComponent()->ClearAbility( GrabSpecHandle );
+			GrabSpecHandle = {};
+		}
+	}
+}
+
 const UNAKineticAttributeSet* UNAKineticComponent::GetAttributeSet() const
 {
 	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner() )
@@ -182,7 +179,7 @@ void UNAKineticComponent::TickComponent( float DeltaTime, ELevelTick TickType,
 					{
 						const FGameplayEffectContextHandle Context = Interface->GetAbilitySystemComponent()->MakeEffectContext();
 						const FGameplayEffectSpecHandle SpecHandle = Interface->GetAbilitySystemComponent()->MakeOutgoingSpec( UNAGE_KineticAP::StaticClass(), 1.f, Context );
-						SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( "Data.KineticAP" ), DeltaTime );
+						SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( "Data.KineticAP" ), 10.f * DeltaTime );
 						const FActiveGameplayEffectHandle Handle = Interface->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf( *SpecHandle.Data.Get() );
 						check( Handle.WasSuccessfullyApplied() );
 					}

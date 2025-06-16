@@ -211,7 +211,7 @@ void ANACharacter::BeginPlay()
 	{
 		LeftHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
 		RightHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
-		KineticComponent->SetActive( true );
+		KineticComponent->ToggleGrabAbility( true );
 	}
 
 	if ( GetController() == GetWorld()->GetFirstPlayerController() )
