@@ -1,24 +1,17 @@
 #include "Item/ItemActor/NAPlaceableItemActor.h"
 
+#include "Components/ShapeComponent.h"
+
 ANAPlaceableItemActor::ANAPlaceableItemActor(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer
 		.DoNotCreateDefaultSubobject(TEXT("ItemMesh(Static)")))
 {
-	bUseItemMesh = false;
+	bWasItemMeshCreated = false;
 }
 
 void ANAPlaceableItemActor::PostInitProperties()
 {
 	Super::PostInitProperties();
-
-	for (UActorComponent* It : GetComponents().Array())
-	{
-		if (It->GetName().StartsWith(TEXT("ItemRootShape"))
-			|| It->GetName().StartsWith(TEXT("ItemMesh")))
-		{
-			It->DestroyComponent();
-		}
-	}
 }
 
 void ANAPlaceableItemActor::PostRegisterAllComponents()
@@ -29,6 +22,11 @@ void ANAPlaceableItemActor::PostRegisterAllComponents()
 void ANAPlaceableItemActor::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
+
+	if (ItemCollision)
+	{
+		ItemCollision->SetSimulatePhysics(false);
+	}
 }
 
 void ANAPlaceableItemActor::PostInitializeComponents()

@@ -744,10 +744,9 @@ void ANACharacter::ToggleInventoryCameraView(const bool bEnable, USpringArmCompo
 	}
 	// 인벤토리 연출 순서: 인벤 위젯 회전 -> 카메라 앵글 변경(한 프레임 뒤에서)
 	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda(
-		[Rotation, this, InNewBoom, Overtime, CallbackFunc]()
+		[this, Rotation,InNewBoom, Overtime, CallbackFunc]()
 		{
 			// 1) 목표 위치/회전 계산 (NewBoom의 월드 위치/회전 등)
-			FollowCamera->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
 			FollowCamera->AttachToComponent(InNewBoom, FAttachmentTransformRules::KeepWorldTransform,
 											USpringArmComponent::SocketName);
 			FVector TargetLocation = FVector::ZeroVector;
@@ -785,7 +784,7 @@ void ANACharacter::OnInventoryCameraEnterFinished()
 }
 void ANACharacter::OnInventoryCameraExitFinished()
 {
-	// 회전 컨트롤 세팅 바뀔때 약간 끊겨서 한 프레임 뒤에서 세팅 변경
+	// 회전 컨트롤 세팅 바뀔때 약간 끊겨서 다음 프레임 틱에서 세팅 변경
 	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([this]()
 	{
 		bIsExpandingInventoryWidget = false;
@@ -807,6 +806,7 @@ void ANACharacter::SelectInventorySlot(const FInputActionValue& Value)
 	// }
 	if (InventoryComponent)
 	{
+		// @TODO: 인벤토리에서 '선택' 액션 구현하기
 		InventoryComponent->SelectInventorySlotButton();
 	}
 }

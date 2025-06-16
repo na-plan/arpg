@@ -29,9 +29,11 @@ class ARPG_API ANAItemActor : public AActor, public INAInteractableInterface, pu
 public:
 	ANAItemActor(const FObjectInitializer& ObjectInitializer);
 	virtual void PostInitProperties() override;
+	virtual void PostReinitProperties() override;
+	virtual void PostLoad() override;
+	virtual void PostActorCreated() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 
-	virtual void PostLoad() override;
 	virtual void Destroyed() override;
 	
 #if WITH_EDITOR
@@ -89,12 +91,12 @@ private:
 protected:
 	// Optional Subobject
 	uint8 bWasItemCollisionCreated :1 = false;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Collision Shape")
+	UPROPERTY(Instanced, VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Collision Shape")
 	TObjectPtr<UShapeComponent> ItemCollision;
 
 	// Optional Subobject
 	uint8 bWasItemMeshCreated :1 = false;
-	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Mesh")
+	UPROPERTY(Instanced, VisibleAnywhere, Category = "Item Actor | Mesh")
 	TObjectPtr<UMeshComponent> ItemMesh;
 
 	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Static Mesh")

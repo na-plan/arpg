@@ -2,7 +2,6 @@
 
 #include "Components/ShapeComponent.h"
 #include "Interaction/NAInteractionComponent.h"
-#include "UObject/FastReferenceCollector.h"
 
 ANAPickableItemActor::ANAPickableItemActor(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
@@ -62,9 +61,10 @@ int32 ANAPickableItemActor::PerformAutoUse_Impl(AActor* User)
 	return 0;
 }
 
-// void ANAPickableItemActor::SetPickupMode(EPickupMode InPickupMode)
-// {
-// }
+bool ANAPickableItemActor::CanInteract_Implementation() const
+{
+	return Super::CanInteract_Implementation() && PickupMode != EPickupMode::PM_None;
+}
 
 // "일반적으로 대부분의 상황에서", InteractionComponent::BeginInteraction에 의해 호출됨(될 것을 전제)
 // 즉, 이 함수가 호출될 때, 이미 InteractionComponent 쪽에서 상호작용할 아이템과 상호작용 process이 시작됨을 알고 있다는 것이 전제됨
@@ -83,12 +83,6 @@ void ANAPickableItemActor::BeginInteract_Implementation(AActor* Interactor)
 	{
 		if (EnumHasAnyFlags(PickupMode, EPickupMode::PM_Inventory))
 		{
-			if (EnumHasAnyFlags(PickupMode, EPickupMode::PM_Holdable))
-			{
-				// PM_Holdable -> 어태치도 성공했음. 상호작용 종료가 아니라 사용 대기 상태로
-				return;
-			}
-
 			// 인벤토리에 성공적으로 (남은 수량 없음) 추가되었다면 상호작용 종료 & 이 액터 인스턴스 제거
 			Execute_EndInteract(this, Interactor);
 			Destroy();
@@ -142,27 +136,22 @@ bool ANAPickableItemActor::ExecuteInteract_Implementation(AActor* Interactor)
 			InteractComp->Client_AddItemToInventory( this );
 		}
 
-		if (EnumHasAnyFlags(PickupMode, EPickupMode::PM_Holdable))
+		TScriptInterface<INAInteractableInterface> NewInteractableActor =
+			InteractComp->TryAttachItemMeshToOwner(this);
+		if (NewInteractableActor != nullptr)
 		{
-			TScriptInterface<INAInteractableInterface> NewInteractableActor = InteractComp->
-				TryAttachItemMeshToOwner(this);
-			if (NewInteractableActor != nullptr)
-			{
-				// 사용 대기 상태(bIsOnInteract == true)일 때 어태치 중인 아이템 액터 콜리전 오버랩 비활성화
-				NewInteractableActor->DisableOverlapDuringInteraction(Interactor);
-				return true; // 상호작용 성공 true -> 사용 대기 상태
-			}
+			// 사용 대기 상태(bIsOnInteract == true)일 때 어태치 중인 아이템 액터 콜리전 오버랩 비활성화
+			NewInteractableActor->DisableOverlapDuringInteraction(Interactor);
+			return true; // 상호작용 성공 true -> 사용 대기 상태
 		}
-		else 
-		{
-			// holdable이 아니면서, 전부 추가 성공 -> 상호작용 성공 true -> 종료
-			return true;
-		}
+		
+		// holdable이 아니면서, 전부 추가 성공 -> 상호작용 성공 true -> 종료
+		return true;
 		
 		// 부분 추가 or 추가 실패 -> (임시) 부분 추가되면 어태치 시도 안함
 	}
 	// 바로 어태치 시도
-	else if (EnumHasAnyFlags(PickupMode, EPickupMode::PM_CarryOnly))
+	if (EnumHasAnyFlags(PickupMode, EPickupMode::PM_CarryOnly))
 	{
 		TScriptInterface<INAInteractableInterface> NewInteractableActor = InteractComp->TryAttachItemMeshToOwner(this);
 		if (NewInteractableActor != nullptr)

@@ -113,7 +113,7 @@ void UNAItemEngineSubsystem::VerifyItemMetaDataRowHandle(UClass* ItemClass, cons
 	{
 		if (ItemMetaDataMap[ItemClass].IsNull())
 		{
-			ensureAlwaysMsgf(false, TEXT("[VerifyItemMetaDataRowHandle] 왜 어째서 메타데이터 핸들이 null입니까 휴먼."));
+			UE_LOG(LogTemp, Warning, TEXT("[VerifyItemMetaDataRowHandle]  왜 어째서 메타데이터 핸들이 null입니까 휴먼."));
 			ItemMetaDataMap[ItemClass].DataTable = InDataTable;
 			ItemMetaDataMap[ItemClass].RowName = InRowName;
 			return;
@@ -121,8 +121,10 @@ void UNAItemEngineSubsystem::VerifyItemMetaDataRowHandle(UClass* ItemClass, cons
 
 		if (ItemMetaDataMap[ItemClass].DataTable != InDataTable)
 		{
-			ensureAlwaysMsgf(false, TEXT("[VerifyItemMetaDataRowHandle] 데이터 테이블이 왜 다름. ????"));
-			ItemMetaDataMap[ItemClass].DataTable = InDataTable;
+			ensureAlwaysMsgf(false,
+				TEXT("[VerifyItemMetaDataRowHandle]  아이템 메타데이터 오류: 아이템 클래스는 동일한데 데이터 테이블이 달랐음"));
+			//ItemMetaDataMap[ItemClass].DataTable = InDataTable;
+			return;
 		}
 		
 		if (ItemMetaDataMap[ItemClass].RowName != InRowName)
