@@ -28,9 +28,12 @@ class ARPG_API ANAItemActor : public AActor, public INAInteractableInterface, pu
 	friend class UNAItemEngineSubsystem;
 public:
 	ANAItemActor(const FObjectInitializer& ObjectInitializer);
+	virtual void PostInitProperties() override;
+	virtual void PostReinitProperties() override;
+	virtual void PostLoad() override;
+	virtual void PostActorCreated() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 
-	virtual void PostLoad() override;
 	virtual void Destroyed() override;
 	
 #if WITH_EDITOR
@@ -86,16 +89,13 @@ private:
 	void VerifyInteractableData();
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Trigger Sphere")
-	TObjectPtr<class USphereComponent> TriggerSphere;
-
 	// Optional Subobject
-	uint8 bUseItemCollision :1 = false;
+	uint8 bWasItemCollisionCreated :1 = false;
 	UPROPERTY(Instanced, VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Collision Shape")
 	TObjectPtr<UShapeComponent> ItemCollision;
 
 	// Optional Subobject
-	uint8 bUseItemMesh :1 = false;
+	uint8 bWasItemMeshCreated :1 = false;
 	UPROPERTY(Instanced, VisibleAnywhere, Category = "Item Actor | Mesh")
 	TObjectPtr<UMeshComponent> ItemMesh;
 
@@ -104,6 +104,9 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Static Mesh")
 	TObjectPtr<class UGeometryCollectionCache> ItemFractureCache;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Trigger Sphere")
+	TObjectPtr<class USphereComponent> TriggerSphere;
 
 	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Static Mesh")
 	TObjectPtr<class UNAItemWidgetComponent> ItemWidgetComponent;
@@ -117,7 +120,6 @@ private:
 //======================================================================================================================
 public:
 	virtual bool CanInteract_Implementation() const override;
-	//virtual bool CanInteract_Implementation() const override;
 	virtual void NotifyInteractableFocusBegin_Implementation(AActor* InteractableActor, AActor* InteractorActor) override;
 	virtual void NotifyInteractableFocusEnd_Implementation(AActor* InteractableActor, AActor* InteractorActor) override;
 
@@ -128,10 +130,18 @@ public:
 	virtual bool IsOnInteract_Implementation() const override;
 	
 	virtual void DisableOverlapDuringInteraction(AActor* Interactor) override;
+	// virtual bool TryGetInteractableData(FNAInteractableData& OutData) const override final;
+	// virtual bool HasInteractionDelay() const override final;
+	// virtual float GetInteractionDelay() const override final;
+	// virtual TScriptInterface<INAInteractableInterface> GetInteractableInterface() const override final
+	// {
+	// 	return InteractableInterfaceRef;
+	// }
 
 protected:
 	/** 자기 자신(this)이 구현한 인터페이스를 보관 */
 	UPROPERTY()
 	TScriptInterface<INAInteractableInterface> InteractableInterfaceRef = nullptr;
 };
+
 
