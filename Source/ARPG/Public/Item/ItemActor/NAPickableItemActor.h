@@ -17,15 +17,18 @@ enum class EPickupMode : uint8
 	// 인벤토리에 "들어갈 수 있는" 아이템
 	// PM_Holdable 플래그의 여부에 따라: 1. 바로 인벤토리로 물리적 이동(아이템 액터 파괴) / 2. 인벤토리에 적재되긴 하나 캐릭터의 메쉬에 어태치되어 사용 대기 상태가 됨
 	PM_Inventory   = 1 << 0 UMETA(DisplayName = "Inventory"),
-	
 	// 줍기는 가능하지만 인벤토리에 못 들어가는 아이템. "들고 있기"만 가능. 캐릭터의 양쪽 손의 어태치 상황에 따라 줍기가 거부될 수 있음
 	// @TODO: '들고 있기'는 전용 애니메이션이 필요할 수 있음. '들고 있기' 상태일 때, 상호작용 버튼의 동작: 내려놓기. '들고 있는 아이템 사용(들고 있기 상태일 때만 활성)' 전용 입력 키 추가 필요
 	PM_CarryOnly   = 1 << 1 UMETA(DisplayName = "Carry Only"),
 
 	// 줍자마자 자동 사용되는 아이템	(인벤토리 적재 가능 여부와 상관 없음)
 	// 이 경우 아이템 사용 키는 활성되지 않음
-	// PM_Inventory | PM_AutoUse -> 인벤토리에 아이템을 이동시키기 전에 자동 사용부터 시도함
+	// PM_Inventory | PM_AutoUse | PM_Holdable -> 인벤토리에 아이템을 이동시키기 전에 자동 사용부터 시도함
 	PM_AutoUse     = 1 << 2 UMETA(DisplayName = "Auto Use"),
+	// 인벤토리 적재 가능하면서, 캐릭터가 '들 수(메쉬 어태치 가능)' 있는 아이템 -> (들고 있다가) 지연 사용 가능한 아이템
+	// 아이템 사용 키를 활성화
+	// PM_CarryOnly가 이미 켜져있다면 이 플래그는 무시됨
+	PM_Holdable    = 1 << 3 UMETA(DisplayName = "Holdable"),
 };
 ENUM_CLASS_FLAGS(EPickupMode)
 
@@ -37,12 +40,14 @@ class ARPG_API ANAPickableItemActor : public ANAItemActor
 
 public:
 	ANAPickableItemActor(const FObjectInitializer& ObjectInitializer);
-	
-	UFUNCTION(BlueprintCallable, Category = "Pickable Item")
-	FORCEINLINE EPickupMode GetPickupMode() const
-	{
-		return 	PickupMode;
-	}
+	// UFUNCTION(BlueprintCallable, Category = "Pickable Item")
+	// FORCEINLINE EPickupMode GetPickupMode() const
+	// {
+	// 	return 	PickupMode;
+	// }
+
+	//UFUNCTION(BlueprintCallable, Category = "Pickable Item")
+	//void SetPickupMode(EPickupMode InPickupMode);
 
 public:
 	virtual void PostRegisterAllComponents() override;
@@ -68,12 +73,12 @@ protected:
 // Interactable Interface Implements
 //======================================================================================================================
 public:
-	virtual bool CanInteract_Implementation() const override;
 	virtual void BeginInteract_Implementation(AActor* Interactor) override;
 	virtual bool ExecuteInteract_Implementation(AActor* Interactor) override;
 	virtual void EndInteract_Implementation(AActor* Interactor) override;
 	
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Pickable Item")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Pickable Item"
+		/*,BlueprintGetter=GetPickupMode, BlueprintSetter=SetPickupMode*/)
 	EPickupMode PickupMode = EPickupMode::PM_None;
 };

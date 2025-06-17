@@ -317,7 +317,7 @@ void UNAInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 	// ...
 }
 
-// @TODO: (임시) 인벤토리 슬롯 한 칸에 담긴 아이템 전부 삭제
+// 일단 슬롯 한 칸에 들어있는 아이템 한 번에 전부 삭제
 void UNAInventoryComponent::RemoveItemAtInventorySlot()
 {
 	if (!GetInventoryWidget()) return;
@@ -362,7 +362,6 @@ void UNAInventoryComponent::UseMedPackByShortcut(AActor* User)
 			return static_cast<uint8>(GradeA) > static_cast<uint8>(GradeB);
 		}
 
-		// @TODO: 같은 등급 슬롯들을 슬롯 넘버의 오름차순으로 따라 정렬
 		return static_cast<uint8>(GradeA) == static_cast<uint8>(GradeB);
 	});
 
@@ -433,8 +432,8 @@ int32 UNAInventoryComponent::TryAddItem(UNAItemData* ItemToAdd)
 	}
 
 	// 반환값을 OriginalQuantity – ActualAmountAdded 형태로 계산
-	if (Result.OperationResult == ENAItemAddStatus::IAS_AddedAll ||
-		Result.OperationResult == ENAItemAddStatus::IAS_AddedPartial)
+	if (Result.OperationResult == ENAItemAddStatus::IAR_AddedAll ||
+		Result.OperationResult == ENAItemAddStatus::IAR_AddedPartial)
 	{
 		// 성공(전부 혹은 일부 추가)이므로 정렬 실행
 		SortInvenSlotItems();

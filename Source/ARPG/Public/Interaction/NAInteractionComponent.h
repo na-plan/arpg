@@ -7,30 +7,7 @@
 #include "Interaction/NAWeakInteractableHandle.h"
 #include "NAInteractionComponent.generated.h"
 
-
-class INAInteractableInterface;
 class ANAItemActor;
-
-USTRUCT(BlueprintType)
-struct FNAInteractionCandidateData
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	float Distance = 0.0f;
-
-	UPROPERTY()
-	FVector Direction = FVector::ZeroVector;
-
-	UPROPERTY()
-	float DotWithView = -1.0f;
-
-	UPROPERTY()
-	float AngleDegrees = 0.f;
-	
-	UPROPERTY()
-	bool bIsInViewAngle = false;
-};
 
 USTRUCT(BlueprintType)
 struct FNAInteractionData
@@ -38,142 +15,38 @@ struct FNAInteractionData
 	GENERATED_BODY()
 public:
 	FNAInteractionData()
-		: InteractorActor(nullptr)
-		, InteractableItemActor(nullptr)
+		: FocusedInteractable(nullptr),
+		LastInteractionCheckTime(0.f),
+		DistanceToActiveInteractable(0.f)
 	{
 	}
 
-	UPROPERTY(BlueprintReadOnly, Category = "Interaction Data")
-	TWeakObjectPtr<AActor> InteractorActor;
-	
-	UPROPERTY(BlueprintReadOnly, Category = "Interaction Data")
-	TWeakObjectPtr<ANAItemActor> InteractableItemActor;
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Interaction Data")
+	TWeakObjectPtr<ANAItemActor> FocusedInteractable;
 
 	// 마지막 상호작용 확인이 이루어진 월드 시간(초)
-	UPROPERTY(BlueprintReadOnly, Category = "Interaction Data")
-	float LastInteractionCheckTime = 0.f;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Interaction Data")
+	float LastInteractionCheckTime;
 
-	// Interactor와 Interactable 사이의 거리 및 방향 정보
-	UPROPERTY(BlueprintReadOnly, Category = "Interaction Data")
-	FNAInteractionCandidateData InteractionCandidateData;
+	// @TODO: FVector로 변경해서 거리 및 방향 정보도 저장할지 말지 생각해보기
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Interaction Data")
+	float DistanceToActiveInteractable;
 
-	// 우선순위 비교용 점수 (Distance와 Dot을 조합한 정렬용 메타값)
-	UPROPERTY(BlueprintReadOnly, Category = "Interaction Data")
-	float InteractionScore = -FLT_MAX;
-	
+	// 상호작용 트리거 시 딜레이가 필요하면 쓰기
+	FTimerHandle InteractionTimerHandle;
+
 	bool IsValid() const
 	{
-		return InteractorActor.IsValid() && InteractableItemActor.IsValid();
-	}
-
-	void SetInteractionCandidateData(float Distance, FVector Direction, float DotWithView, float AngleDegrees, bool bIsInViewAngle)
-	{
-		InteractionCandidateData.Distance = Distance;
-		InteractionCandidateData.Direction = Direction;
-		InteractionCandidateData.DotWithView = DotWithView;
-		InteractionCandidateData.AngleDegrees = AngleDegrees;
-		InteractionCandidateData.bIsInViewAngle = bIsInViewAngle;
-	}
-	
-	float CalculateInteractionScore()
-	{
-		// DotWithView: 1.0(정면), 0.0(측면), -1.0(정반대)
-		// 정면 우선, 거리 보정. (가중치 조정 가능)
-		const float AngleWeight = 10000.0f;
-		const float DistWeight = 1.0f;
-		// 시야각 밖은 점수 낮게
-		if (!InteractionCandidateData.bIsInViewAngle)
-		{
-			InteractionScore = -FLT_MAX;
-		}
-		else
-		{
-			// 가까운 거리에, 정면에 가까울수록 점수↑
-			InteractionScore =
-				(InteractionCandidateData.DotWithView * AngleWeight) - (InteractionCandidateData.Distance * DistWeight);
-		}
-		return InteractionScore;
+		return FocusedInteractable.IsValid();
 	}
 };
 
-UENUM(BlueprintType)
-enum class ENAInteractionStatus : uint8
-{
-	IxS_None				UMETA(DisplayName = "None"),
-	
-	IxS_Succeeded			UMETA(DisplayName = "Succeeded"),
-	IxS_PartiallySucceeded	UMETA(DisplayName = "Partially Succeeded"),
-	IxS_Failed				UMETA(DisplayName = "Failed"),
-	IxS_Pended				UMETA(DisplayName = "Pended"),
-};
+class INAInteractableInterface;
+struct FWeakInteractableKey;
 
-UENUM(BlueprintType)
-enum class ENAInteractionFailureReason : uint8
-{
-	IxFR_None					UMETA(DisplayName = "None"),
-	
-	IxFR_Canceled				UMETA(DisplayName = "Canceled"),				// 유저가 직접 취소
-	IxFR_Interrupted			UMETA(DisplayName = "Interrupted"),				// 외부 방해로 중단
-	IxFR_InvalidTarget			UMETA(DisplayName = "Invalid Target"),			// 상호작용 대상이 유효하지 않음
-	IxFR_RequirementNotMet		UMETA(DisplayName = "Requirement Not Met"),		// 조건 부족 (인벤토리 여유 없음, 양 손 꽉 참 등)
-	IxFR_OutOfRange				UMETA(DisplayName = "Out of Range"),			// 거리 부족
-};
-
-USTRUCT(BlueprintType)
-struct FNAInteractionResult
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadOnly, Category = "Interaction Result")
-	ENAInteractionStatus OperationResult = ENAInteractionStatus::IxS_None;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Interaction Result")
-	ENAInteractionFailureReason FailureReason = ENAInteractionFailureReason::IxFR_None;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Interaction Result")
-	FText ResultMessage = FText::GetEmpty();
-
-	static FNAInteractionResult InteractionSucceeded(const FText& SucceededText)
-	{
-		FNAInteractionResult SucceededResult;
-		SucceededResult.OperationResult = ENAInteractionStatus::IxS_Succeeded;
-		SucceededResult.FailureReason = ENAInteractionFailureReason::IxFR_None;
-		SucceededResult.ResultMessage = SucceededText;
-
-		return SucceededResult;
-	}
-
-	static FNAInteractionResult InteractionPartiallySucceeded(const FText& SucceededText)
-	{
-		FNAInteractionResult PartiallySucceededResult;
-		PartiallySucceededResult.OperationResult = ENAInteractionStatus::IxS_PartiallySucceeded;
-		PartiallySucceededResult.FailureReason = ENAInteractionFailureReason::IxFR_None;
-		PartiallySucceededResult.ResultMessage = SucceededText;
-
-		return PartiallySucceededResult;
-	}
-	
-	static FNAInteractionResult InteractionFailed(ENAInteractionFailureReason FailureReason, const FText& FailedText)
-	{
-		FNAInteractionResult FailedResult;
-		FailedResult.OperationResult = ENAInteractionStatus::IxS_Failed;
-		FailedResult.FailureReason = FailureReason;
-		FailedResult.ResultMessage = FailedText;
-
-		return FailedResult;
-	}
-
-	static FNAInteractionResult InteractionPended(const FText& PendedText)
-	{
-		FNAInteractionResult PendedResult;
-		PendedResult.OperationResult = ENAInteractionStatus::IxS_Pended;
-		PendedResult.FailureReason = ENAInteractionFailureReason::IxFR_None;
-		PendedResult.ResultMessage = PendedText;
-
-		return PendedResult;
-	}
-};
-
+/**
+ * @TODO: 소유주의 트랜스폼 정보를 가져올 때, 소유주가 APawn인 경우 vs AController인 경우 나눠서 대응해야 함
+ */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class ARPG_API UNAInteractionComponent : public UActorComponent
 {
@@ -183,113 +56,118 @@ public:
 	// Sets default values for this component's properties
 	UNAInteractionComponent();
 
+	void SetUpdate(const bool bFlag);
+
 protected:
 	virtual void OnRegister() override;
 
+	// UFUNCTION()
+	// void OnActorBeginOverlap( AActor* OverlappedActor, AActor* OtherActor );
+	
+	// UFUNCTION()
+	// void OnActorEndOverlap( AActor* OverlappedActor, AActor* OtherActor );
+	
 	// Called when the game starts
 	virtual void BeginPlay() override;
+
+	void UpdateInteractionData();
+	void SetNearestInteractable(INAInteractableInterface* InteractableActor);
 
 public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 protected:
-//======================================================================================================================
-// Interaction Properties
-//======================================================================================================================
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction Component")
-	TMap<FWeakInteractableHandle, FNAInteractionData> FocusedInteractables;
+	//==================================================================================================
+	// Interaction Properties
+	//==================================================================================================
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction Component",
-		meta = (ClampMin = "0.0", ClampMax = "180.0"))
-	float InteractionAngleDegrees = 170.f;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction Component")
+	//UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Interaction Component")
+	//TWeakInterfacePtr<class INAInteractableInterface> FocusedInteractable;
+
+	//UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Interaction Component")
+	//FNAInteractionData InteractionData;
+
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Interaction Component")
+	TMap<FWeakInteractableHandle, FNAInteractionData> FocusedInteractableMap;
+	//TMap<TWeakInterfacePtr<class INAInteractableInterface>, FNAInteractionData> FocusedInteractableMap;
+
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Interaction Component")
 	float InteractionCheckFrequency = 0.1f;
 
 	float CurrentInteractionCheckTime;
-	
-	// 상호작용 트리거 시 딜레이가 필요하면 쓰기
-	FTimerHandle InteractionTimerHandle;
 
-	// 틱에서 UpdateInteractionData 실행 여부
+	//UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Interaction Component")
+	//float InteractionCheckDistance;
+
+	//FTimerHandle InteractionTimerHandle;
+	
 	uint8 bUpdateInteractionData : 1 = false;
 
 private:
 	// 상호작용이 활성 중인(+사용 대기 상태) Interactable 객체
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction Component", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(/*VisibleInstanceOnly, BlueprintReadOnly, Category = "Interaction Component"*/)
 	FWeakInteractableHandle ActiveInteractable = nullptr;
+	//TWeakInterfacePtr<INAInteractableInterface> ActiveInteractable = nullptr;
 
 	// 가장 가까이 있는 Interactable 객체
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction Component", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(/*VisibleInstanceOnly, BlueprintReadOnly, Category = "Interaction Component"*/)
 	FWeakInteractableHandle NearestInteractable = nullptr;
-	
-	uint8 bIsInInteraction :1 = false;
+	//TWeakInterfacePtr<INAInteractableInterface> NearestInteractable = nullptr;
+
+	// 사용 대기 중인 아이템이 있는 경우 true(ChlildActor가 생성된 경우)
+	uint8 bHasPendingUseItem : 1 = false;
+	void SetPendingUseItem(TScriptInterface<INAInteractableInterface> InteractableActor);
 
 public:
-//======================================================================================================================
-// Interaction Functions
-//======================================================================================================================
+	//==================================================================================================
+	// Interaction Functions
+	//==================================================================================================
 
-	/**
-	 * @param InteractableActor 
-	 * @return 최초 발견일 때만 true
-	 */
+	// Interactable 아이템 인스턴스 쪽에서 상호작용 범위를 체크(트리거 콜리전 활용)
+	// 아이템 인스턴스에서 유저가 상호작용 범위 내에 들어왔는지 체크 후 캐릭터에게 상호작용이 가능함을 알림
 	bool OnInteractableFound(TScriptInterface<INAInteractableInterface> InteractableActor);
+	// @TODO: FocusedInteractableMap 요소 지연 삭제 고민해보기 -> 상호작용 아이템 포커스 갱신 때문에 병목 생기는지 확인하기
 	bool OnInteractableLost(TScriptInterface<INAInteractableInterface> InteractableActor);
 
 	// 캐릭터에서 상호작용 시작 이니시
-	void StartInteraction();
-	
+	void StartInteraction(/*INAInteractableInterface* InteractableActor*/);
+	uint8 befajfl :1 = false;
 	// 캐릭터에서 상호작용 중단 이니시
-	void StopInteraction();
+	void StopInteraction(/*TScriptInterface<INAInteractableInterface> InteractableActor*/);
 	
 	// Interactable에서 상호작용 실행을 실패/중단/완료한 경우에 호출됨
 	void OnInteractionEnded(TScriptInterface<INAInteractableInterface> InteractableActor);
 
 	bool HasPendingUseItem() const
 	{
+		bHasPendingUseItem;
 		const bool b1 = ActiveInteractable.IsValid();
 		const bool b2 = ActiveInteractable.ToScriptInterface() ?
 		ActiveInteractable.ToScriptInterface()->Execute_IsOnInteract(ActiveInteractable.GetRawObject())
 			: false;
-		return b1 && b2;
+		return bHasPendingUseItem && b1 && b2;
 	}
 
 	TScriptInterface<INAInteractableInterface> GetCurrentActiveInteractable() const
 	{
 		return ActiveInteractable.IsValid() ?  ActiveInteractable.GetRawObject() : nullptr;
 	}
-
-	/**
-	 * @param InteractableActor	어태치에 성공하면 파괴됨
-	 * @return ChildActorComponent에 의해 새로 생성된 객체.
-	 */
-	TScriptInterface<INAInteractableInterface> TryAttachItemMeshToOwner(TScriptInterface<INAInteractableInterface> InteractableActor);
+	
+	// @ return	새로 생성된 Interactable 객체
+	// 어태치에 성공하면 기존 액터를 Destory
+	/*AActor**/TScriptInterface<INAInteractableInterface> TryAttachItemMeshToOwner(TScriptInterface<INAInteractableInterface> InteractableActor);
 	
 protected:
-	void UpdateInteractionData();
-	void SetNearestInteractable(FWeakInteractableHandle InteractableActor);
-	void SetActiveInteractable(TScriptInterface<INAInteractableInterface> InteractableActor);
-
-	FNAInteractionResult TryInitiateInteraction(FWeakInteractableHandle TargetInteractable);
-	
-	void TransferInteractableMidInteraction(TScriptInterface<INAInteractableInterface> NewActiveInteractable);
+	void TransferInteractableMidInteraction(FWeakInteractableHandle NewActiveInteractable);
 	
 public:
-//======================================================================================================================
-// 인벤토리 연계
-//======================================================================================================================
+	//==================================================================================================
+	// 인벤토리 연계
+	//==================================================================================================
 
 	UFUNCTION( Client, Reliable )
 	void Client_AddItemToInventory(ANAItemActor* ItemActor);
-
-	/**
-	 * @param ItemActor 
-	 * @return	0: 전부 추가 성공
-	 *			0>: 부분 추가
-	 *			0<: 전부 실패
-	 */
-	int32 TryAddItemToInventory(ANAItemActor* ItemActor);
+	
+	bool TryAddItemToInventory(ANAItemActor* ItemActor);
 };

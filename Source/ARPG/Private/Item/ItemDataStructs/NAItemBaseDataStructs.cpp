@@ -25,7 +25,7 @@ void FNAItemBaseTableRow::OnDataTableChanged(const UDataTable* InDataTable, cons
 			&& UNAItemEngineSubsystem::Get()->IsItemMetaDataInitialized())
 		{
 			UClass* ItemActorClass = ItemRowStruct->ItemClass.Get();
-			if (ItemActorClass)
+			if (ensure(ItemActorClass))
 			{
 				if (!UNAItemEngineSubsystem::Get()->IsRegisteredItemMetaClass(ItemActorClass))
 				{
