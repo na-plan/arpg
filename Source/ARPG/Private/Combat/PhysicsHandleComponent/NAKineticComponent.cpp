@@ -35,6 +35,10 @@ UNAKineticComponent::UNAKineticComponent()
 
 	bSoftAngularConstraint = true;
 	bSoftLinearConstraint = true;
+
+	FIND_OBJECT( GreenMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_green.MI_health_green'", 0 );
+	FIND_OBJECT( YellowMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_yellow.MI_health_yellow'", 1 );
+	FIND_OBJECT( RedMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_red.MI_health_red'", 2 );
 }
 
 void UNAKineticComponent::Grab()
@@ -142,6 +146,49 @@ void UNAKineticComponent::ForceUpdateActorForward()
 	}
 }
 
+void UNAKineticComponent::OnAPChanged( const FOnAttributeChangeData& OnAttributeChangeData )
+{
+	OnAPChanged( OnAttributeChangeData.OldValue, OnAttributeChangeData.NewValue );
+}
+
+void UNAKineticComponent::OnAPChanged( float Old, float New )
+{
+	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner() )
+	{
+		if ( const UNAKineticAttributeSet* AttributeSet = Cast<UNAKineticAttributeSet>( Interface->GetAbilitySystemComponent()->GetAttributeSet( UNAKineticAttributeSet::StaticClass() ) ) )
+		{
+			const float MaxAP = AttributeSet->GetMaxAP();
+
+			static constexpr int32 MaxHealthMesh = 4;
+	
+			const float NewRatio = New / MaxAP;
+			const int32 FillCount = NewRatio <= 0 ? 0 : static_cast<int32>( NewRatio / MeshHealthStep );
+			check( FillCount <= MaxHealthMesh );
+	
+			UMaterialInstance* TargetMaterial = nullptr;
+
+			if ( FillCount >= 4 )
+			{
+				TargetMaterial = GreenMaterial;
+			}
+			else if ( FillCount >= 3 )
+			{
+				TargetMaterial = YellowMaterial;
+			}
+			else if ( FillCount >= 2 )
+			{
+				TargetMaterial = RedMaterial;
+			}
+
+			if ( USkeletalMeshComponent* SkeletalMeshComponent = GetOwner()->GetComponentByClass<USkeletalMeshComponent>() )
+			{
+				constexpr const char* HealthMaterial = "health";
+				SkeletalMeshComponent->SetMaterialByName( HealthMaterial, TargetMaterial );
+			}
+		}
+	}
+}
+
 const UNAKineticAttributeSet* UNAKineticComponent::GetAttributeSet() const
 {
 	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner() )
@@ -165,6 +212,18 @@ void UNAKineticComponent::BeginPlay()
 	{
 		const UNAAbilityGameInstanceSubsystem* AbilityGameInstance = GetWorld()->GetGameInstance()->GetSubsystem<UNAAbilityGameInstanceSubsystem>(); 
 		Character->GetAbilitySystemComponent()->InitStats( UNAKineticAttributeSet::StaticClass(), AbilityGameInstance->GetKineticAttributesDataTable() );
+
+		if ( GetOwner()->HasAuthority() )
+		{
+			Character->GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate( UNAKineticAttributeSet::GetAPAttribute() ).AddUObject( this, &UNAKineticComponent::OnAPChanged );	
+		}
+		else
+		{
+			if ( const UNAKineticAttributeSet* AttributeSet = Cast<UNAKineticAttributeSet>( Character->GetAbilitySystemComponent()->GetAttributeSet( UNAKineticAttributeSet::StaticClass() )  ))
+			{
+				AttributeSet->OnAPChanged.AddUObject( this, &UNAKineticComponent::OnAPChanged );
+			}
+		}
 	}
 
 	GrabDistance = GetMinHoldRange();

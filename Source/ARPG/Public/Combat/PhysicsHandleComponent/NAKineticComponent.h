@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayAbilitySpecHandle.h"
+#include "GameplayEffectTypes.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "NAKineticComponent.generated.h"
 
@@ -17,6 +18,8 @@ class ARPG_API UNAKineticComponent : public UPhysicsHandleComponent
 
 	friend class UNAGA_KineticGrab;
 
+	constexpr static float MeshHealthStep = 0.25f;
+	
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Kinetic", meta=( AllowPrivateAccess=true ) )
 	bool bIsGrab = false;
 
@@ -27,6 +30,15 @@ class ARPG_API UNAKineticComponent : public UPhysicsHandleComponent
 	FVector_NetQuantizeNormal ActorForward;
 
 	FGameplayAbilitySpecHandle GrabSpecHandle;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Material", meta=( AllowPrivateAccess=true ) )
+	UMaterialInstance* GreenMaterial;
+	
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Material", meta=( AllowPrivateAccess=true ) )
+	UMaterialInstance* YellowMaterial;
+	
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Material", meta=( AllowPrivateAccess=true ) )
+	UMaterialInstance* RedMaterial;
 
 public:
 	// Sets default values for this component's properties
@@ -55,6 +67,11 @@ public:
 	void ForceUpdateActorForward();
 
 protected:
+	
+	void OnAPChanged( const FOnAttributeChangeData& OnAttributeChangeData );
+
+	void OnAPChanged( float Old, float New );
+
 	// Called when the game starts
 	virtual void BeginPlay() override;
 

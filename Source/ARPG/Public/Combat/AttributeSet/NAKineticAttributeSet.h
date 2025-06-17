@@ -8,6 +8,8 @@
 #include "ARPG/ARPG.h"
 #include "NAKineticAttributeSet.generated.h"
 
+DECLARE_MULTICAST_DELEGATE_TwoParams( FOnKineticAttributeChanged, float, float );
+
 /**
  * 
  */
@@ -17,7 +19,7 @@ class ARPG_API UNAKineticAttributeSet : public UAttributeSet
 	GENERATED_BODY()
 
 	// 버틸 수 있는 시간
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_AP)
 	FGameplayAttributeData AP;
 
 	// 최대 버틸 수 있는 시간
@@ -40,7 +42,15 @@ class ARPG_API UNAKineticAttributeSet : public UAttributeSet
 	UPROPERTY(VisibleAnywhere)
 	FGameplayAttributeData Force;
 
+	UFUNCTION()
+	void OnRep_AP( const FGameplayAttributeData& Old ) const
+	{
+		OnAPChanged.Broadcast( Old.GetCurrentValue(), AP.GetCurrentValue() );
+	}
+
 public:
+	mutable FOnKineticAttributeChanged OnAPChanged;
+
 	ATTRIBUTE_ACCESSORS( UNAKineticAttributeSet, AP );
 	ATTRIBUTE_ACCESSORS( UNAKineticAttributeSet, MaxAP );
 	ATTRIBUTE_ACCESSORS( UNAKineticAttributeSet, Range );
@@ -50,4 +60,6 @@ public:
 
 protected:
 	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };

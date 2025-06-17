@@ -45,7 +45,6 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	
 	SetReplicates( true );
 	SetReplicateMovement( true );
-	RootComponent->SetIsReplicated( true );
 	bAlwaysRelevant = true;
 }
 
@@ -53,7 +52,7 @@ void ANAItemActor::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	ensureAlways(ItemCollision && GetRootComponent() == ItemCollision);
+	//ensureAlways(ItemCollision && GetRootComponent() == ItemCollision);
 }
 
 void ANAItemActor::PostReinitProperties()
@@ -574,6 +573,12 @@ void ANAItemActor::BeginPlay()
 
 	SetReplicates( true );
 
+	// 서버에서만 물리 시뮬레이션을 수행
+	if ( !HasAuthority() )
+	{
+		ItemCollision->SetSimulatePhysics( false );
+	}
+	
 	if (GetItemData())
 	{
 		// 임시: 수량 랜덤

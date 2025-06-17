@@ -3,6 +3,8 @@
 
 #include "Combat/AttributeSet/NAKineticAttributeSet.h"
 
+#include "Net/UnrealNetwork.h"
+
 void UNAKineticAttributeSet::PostGameplayEffectExecute( const FGameplayEffectModCallbackData& Data )
 {
 	Super::PostGameplayEffectExecute( Data );
@@ -16,4 +18,10 @@ void UNAKineticAttributeSet::PostGameplayEffectExecute( const FGameplayEffectMod
 	{
 		SetAP( GetMaxAP() );
 	}
+}
+
+void UNAKineticAttributeSet::GetLifetimeReplicatedProps( TArray<FLifetimeProperty>& OutLifetimeProps ) const
+{
+	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
+	DOREPLIFETIME( UNAKineticAttributeSet, AP );
 }
