@@ -146,11 +146,8 @@ void ANAPlayerState::HandleDead( APlayerState* PlayerState, ECharacterStatus Cha
 		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 		SpawnParameters.Owner = PlayerState->GetPlayerController();
 
-		if ( const APawn* ThisPawn = PlayerState->GetPawn() )
-		{
-			APawn* Spectator = GetWorld()->SpawnActor<ANASpectatorPawn>( ThisPawn->GetActorLocation(), ThisPawn->GetActorRotation(), SpawnParameters );
-			PlayerState->GetPlayerController()->Possess( Spectator );
-		}
+		APawn* Spectator = GetWorld()->SpawnActor<ANASpectatorPawn>( FVector::ZeroVector, FRotator::ZeroRotator, SpawnParameters );
+		PlayerState->GetPlayerController()->Possess( Spectator );
 	}
 }
 

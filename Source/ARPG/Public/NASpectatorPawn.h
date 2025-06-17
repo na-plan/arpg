@@ -4,8 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/SpectatorPawn.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "NASpectatorPawn.generated.h"
 
+class UCameraComponent;
 class ANACharacter;
 
 UCLASS()
@@ -15,13 +17,19 @@ class ARPG_API ANASpectatorPawn : public ASpectatorPawn
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Target, meta = (AllowPrivateAccess = "true"))
 	TWeakObjectPtr<const ANACharacter> TargetPawn;
-	
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta=(AllowPrivateAccess = "true"))
+	UCameraComponent* FollowCamera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta=(AllowPrivateAccess = "true"))
+	USpringArmComponent* CameraBoom;
+
 public:
 	// Sets default values for this pawn's properties
 	ANASpectatorPawn();
 
 protected:
-	void AttachToOtherPlayerImpl( const APawn* Other );
+	void AttachToOtherPlayerImpl( APawn* Other );
 	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -31,7 +39,7 @@ protected:
 	virtual void UnPossessed() override;
 
 	UFUNCTION(Client, Reliable)
-	void Client_AttachToOtherPlayer( const APawn* OtherCharacter );
+	void Client_AttachToOtherPlayer( APawn* OtherCharacter );
 
 public:
 	// Called every frame

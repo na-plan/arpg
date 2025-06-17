@@ -653,6 +653,19 @@ void UNAInventoryWidget::NativeOnFocusChanging(const FWeakWidgetPath& PreviousFo
 	
 	if (bShouldHiddenItemDesc)
 	{
+		if (Item_Desc_Popup)
+		{
+			bReleaseItemDesc = false;
+			PlayAnimationReverse(Item_Desc_Popup);
+		}
+		//Item_Desc_Menu->SetVisibility(ESlateVisibility::Hidden);
+	}
+}
+
+void UNAInventoryWidget::OnItemDescCollapsed()
+{
+	if (Item_Desc_Popup && !bReleaseItemDesc)
+	{
 		Item_Desc_Menu->SetVisibility(ESlateVisibility::Hidden);
 	}
 }
@@ -766,7 +779,19 @@ void UNAInventoryWidget::OnItemSlotFocusReceived(UButton* Button)
 					// 아이템 Desc title에 띄울 아이콘은 일단 보류
 					Item_Desc_Name_Title->SetText(FText::FromString(ItemData->GetItemName()));
 					Item_Desc_Content->SetText(ItemData->GetItemDescription());
-					Item_Desc_Menu->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+					if (!Item_Desc_Menu->IsVisible())
+					{
+						Item_Desc_Menu->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+						if (Item_Desc_Popup)
+						{
+							bReleaseItemDesc = true;
+							PlayAnimationForward(Item_Desc_Popup);
+						}
+					}
+					else
+					{
+						InvalidateLayoutAndVolatility();
+					}
 				}
 			}
 		

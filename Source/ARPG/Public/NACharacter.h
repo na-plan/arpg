@@ -137,14 +137,18 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory Input", meta = (AllowPrivateAccess = "true"))
 	UInputAction* RemoveItemFromInventoryAction;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Input", meta = (AllowPrivateAccess = "true"))
+	FVector_NetQuantizeNormal ReplicatedControlRotation;
+	
 public:
 	ANACharacter();
 	
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 	bool IsZoom() const { return bIsZoom; }
+
+	FRotator GetReplicatedControlRotation() const;
 
 protected:
 	void SetChildActorOwnership( AActor* Actor );
@@ -205,7 +209,7 @@ protected:
 
 	// Toggle the transition between camera view and inventory view 
 	UFUNCTION()
-	void ToggleInventoryCameraView(const bool bEnable, USpringArmComponent* NewBoom, float Overtime);
+	void ToggleInventoryCameraView( bool bEnable, USpringArmComponent* InNewBoom, float Overtime, const FRotator& Rotation );
 
 	UFUNCTION()
 	void OnInventoryCameraEnterFinished();
@@ -229,11 +233,17 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	void SyncAmmoConsumptionWithInventory( const FActiveGameplayEffect& ActiveGameplayEffect );
+
+	virtual void Tick(float DeltaSeconds) override;
 	
 	// To add mapping context
 	virtual void BeginPlay() override;
 
 	virtual void PostNetInit() override;
+
+	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
+
+	bool PredicateControlRotationReplication() const;
 
 	virtual void PossessedBy(AController* NewController) override;
 
