@@ -217,5 +217,34 @@ void UNAGA_KineticGrab::ActivateAbility( const FGameplayAbilitySpecHandle Handle
 void UNAGA_KineticGrab::InputReleased( const FGameplayAbilitySpecHandle Handle,
                                        const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo )
 {
-	EndAbility( Handle, ActorInfo, ActivationInfo, false, false );
+	EndAbility( Handle, ActorInfo, ActivationInfo, true, false );
+}
+
+void UNAGA_KineticGrab::Throw()
+{
+	if ( const FGameplayAbilityActivationInfo& Info = GetCurrentActivationInfoRef();
+		 HasAuthority( &Info ) )
+	{
+		if ( const UNAKineticComponent* Component = GetCurrentActorInfo()->AvatarActor->GetComponentByClass<UNAKineticComponent>() )
+		{
+			if ( Component->bIsGrab )
+			{
+				const float ImpulseForce = Component->GetForce();
+				const FVector ForwardVector = Component->GetActorForward();
+				UPrimitiveComponent* OtherComponent = Component->GetGrabbedComponent();
+
+				// ReleaseComponent가 EndAbility 하면서 먼저 호출되기 때문에 임펄스도 다음 틱에 적용
+				GetWorld()->GetTimerManager().SetTimerForNextTick(
+					[ Weak = TWeakObjectPtr< UPrimitiveComponent >( OtherComponent ), ForwardVector, ImpulseForce ]()
+				{
+					if ( Weak.IsValid )
+					{
+						Weak->AddImpulse( ForwardVector * ImpulseForce, NAME_None, false );	
+					}
+				} );
+			}
+		}
+
+		EndAbility( GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false );
+	}
 }
