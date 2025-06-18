@@ -134,6 +134,7 @@ void AMonsterBase::SetAttributeData(const FDataTableRowHandle& InDataTableRowHan
 		AbilitySystemComponent->SetNumericAttributeBase(UNAAttributeSet::GetHealthAttribute(), Data->Health);
 		AbilitySystemComponent->SetNumericAttributeBase(UNAAttributeSet::GetMovementSpeedAttribute(), Data->MovementSpeed);
 		MovementComponent->MaxSpeed = Data->MovementSpeed;
+		BaseDamage = Data->BaseDamaage;
 	}
 	// Failed
 	else

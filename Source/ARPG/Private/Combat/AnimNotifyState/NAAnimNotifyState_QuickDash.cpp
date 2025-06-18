@@ -150,6 +150,8 @@ void UNAAnimNotifyState_QuickDash::NotifyTick(USkeletalMeshComponent* MeshComp, 
 						check(false);
 						return;
 					}
+
+
 					for (const FOverlapResult& OverlapResult : OverlapResults)
 					{
 						if (const TScriptInterface<IAbilitySystemInterface>& TargetInterface = OverlapResult.GetActor())
@@ -254,34 +256,38 @@ void UNAAnimNotifyState_QuickDash::LaunchTarget(USkeletalMeshComponent* MeshComp
 		const FVector End = Start - FVector(0, 0, -100);
 		FNavLocation NavLocation;
 		FColor LineColor = FColor::Green;
-		bool bOnNavMesh = UNavigationSystemV1::GetCurrent(MeshComp->GetWorld())->ProjectPointToNavigation(
-			Start,
-			NavLocation,
-			FVector(50.f, 50.f, 500.f)
-		);
 
-		// navmesh 가 있을때만 앞으로 돌진하도록 처리
-		if (bOnNavMesh)
+		if (UNavigationSystemV1* NavigationSystemV1 = UNavigationSystemV1::GetCurrent(MeshComp->GetWorld()))
 		{
-			if (UPawnMovementComponent* Movement = OwnerPawn->FindComponentByClass<UPawnMovementComponent>())
+			bool bOnNavMesh = NavigationSystemV1->ProjectPointToNavigation(
+				Start,
+				NavLocation,
+				FVector(50.f, 50.f, 500.f)
+			);
+			// navmesh 가 있을때만 앞으로 돌진하도록 처리
+			if (bOnNavMesh)
 			{
-				FVector FinalVel = LaunchVelocity;
-				const FVector Velocity = Movement->Velocity;
-				if (!bXYOverride)
+				if (UPawnMovementComponent* Movement = OwnerPawn->FindComponentByClass<UPawnMovementComponent>())
 				{
-					FinalVel.X += Velocity.X;
-					FinalVel.Y += Velocity.Y;
+					FVector FinalVel = LaunchVelocity;
+					const FVector Velocity = Movement->Velocity;
+					if (!bXYOverride)
+					{
+						FinalVel.X += Velocity.X;
+						FinalVel.Y += Velocity.Y;
+					}
+					if (!bZOverride)
+					{
+						FinalVel.Z += Velocity.Z;
+					}
+					Movement->Velocity = FinalVel;
 				}
-				if (!bZOverride)
-				{
-					FinalVel.Z += Velocity.Z;
-				}
-				Movement->Velocity = FinalVel;
 			}
-		}
-		else
-		{
-			LineColor = FColor::Red;
+			else
+			{
+				LineColor = FColor::Red;
+			}
+			DrawDebugLine(MeshComp->GetWorld(), Start, End, LineColor, false, 3.f, 0, 5.f);
 		}
 	}
 }

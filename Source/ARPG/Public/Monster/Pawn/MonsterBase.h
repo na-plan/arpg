@@ -80,6 +80,8 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	float GetBaseDamage() { return BaseDamage; }
+
 	//Gas에서 호출하는 함수들은 여기에 사용하는게 좋아보임
 public:
 	FORCEINLINE UAbilitySystemComponent* GetAbilitySystemComponent() const override{ return AbilitySystemComponent; }
@@ -123,7 +125,7 @@ protected:
 	float CheckTimer = 0;
 	float CheckHP = 0;
 	int	SelectedCombo = 0;
-
+	float BaseDamage = 0;
 	//이거 데이터화 시키고 get을 데이터테이블로 보내는게 낫지않나? 싶은데...
 public:
 	//ComboAttack
