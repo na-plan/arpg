@@ -7,6 +7,16 @@
 #include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "NAGameStateBase.generated.h"
 
+
+UENUM()
+enum class EGameMode : uint8
+{
+	Single,
+	CoopMode,
+	Max
+};
+
+
 class ANAPlayerState;
 /**
  * 
@@ -58,4 +68,8 @@ protected:
 	virtual void AddPlayerState(APlayerState* PlayerState) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+protected:
+	EGameMode CurrentGameMode;
+	
 };

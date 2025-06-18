@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "{1F440563-4C78-0B26-1121-1D84DF055472}",
+	"EngineAssociation": "{4692BE94-4634-EB72-0373-AA9B7D903E25}",
 	"Category": "",
 	"Description": "",
 	"Modules": [
@@ -29,6 +29,10 @@
 		},
 		{
 			"Name": "USDImporter",
+			"Enabled": true
+		},
+		{
+			"Name": "OnlineServicesNull",
 			"Enabled": true
 		}
 	]
