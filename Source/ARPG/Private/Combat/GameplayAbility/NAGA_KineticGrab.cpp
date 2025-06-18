@@ -77,7 +77,11 @@ void UNAGA_KineticGrab::EndAbility( const FGameplayAbilitySpecHandle Handle, con
 		if ( Component && Component->bIsGrab )
 		{
 			Component->ReleaseComponent();
-			Component->bIsGrab = false;
+			// 왼클릭이 공격과 겹치기 떄문에 잡기 상태를 한틱 늦게 업데이트
+			GetWorld()->GetTimerManager().SetTimerForNextTick( [ Component ]()
+			{
+				Component->bIsGrab = false;
+			} );
 		}
 
 		if ( APConsumeTask )
