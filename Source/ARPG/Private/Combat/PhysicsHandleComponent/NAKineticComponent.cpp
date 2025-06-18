@@ -34,7 +34,7 @@ UNAKineticComponent::UNAKineticComponent()
 
 	AngularStiffness = 1500.0f;
 	AngularDamping = 200.0f;
-
+	
 	bSoftAngularConstraint = true;
 	bSoftLinearConstraint = true;
 
@@ -157,6 +157,11 @@ void UNAKineticComponent::ForceUpdateActorForward()
 	}
 }
 
+bool UNAKineticComponent::HasGrabbed() const
+{
+	return bIsGrab;
+}
+
 void UNAKineticComponent::BindKineticKeys()
 {
 	if ( const APawn* OwnerPawn = Cast<APawn>( GetOwner() ) )
@@ -165,7 +170,7 @@ void UNAKineticComponent::BindKineticKeys()
 		{
 			if ( UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>( PlayerController->GetLocalPlayer() ) )
 			{
-				Subsystem->AddMappingContext( KineticMappingContext, 0 );
+				Subsystem->AddMappingContext( KineticMappingContext, 2 );
 			}
 		}
 		

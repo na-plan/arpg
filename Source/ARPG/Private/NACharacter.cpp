@@ -316,8 +316,8 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	}
 	
 	// Set up action bindings
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
-		
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	{
 		// Jumping
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
@@ -551,6 +551,11 @@ void ANACharacter::Look(const FInputActionValue& Value)
 
 void ANACharacter::StartLeftMouseAttack()
 {
+	if ( KineticComponent->HasGrabbed() )
+	{
+		return;
+	}
+	
 	if ( !TryAttack( RightHandChildActor->GetChildActor() ) )
 	{
 		if ( DefaultCombatComponent->IsAbleToAttack() && !DefaultCombatComponent->IsAttacking() )
