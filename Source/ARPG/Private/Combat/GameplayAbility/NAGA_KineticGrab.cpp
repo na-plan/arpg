@@ -108,7 +108,7 @@ void UNAGA_KineticGrab::CancelAbility( const FGameplayAbilitySpecHandle Handle,
 
 void UNAGA_KineticGrab::OnAPDepleted()
 {
-	EndAbility( GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), false, false );
+	EndAbility( GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false );
 }
 
 void UNAGA_KineticGrab::ActivateAbility( const FGameplayAbilitySpecHandle Handle,
@@ -200,7 +200,7 @@ void UNAGA_KineticGrab::ActivateAbility( const FGameplayAbilitySpecHandle Handle
 
 		if ( !bSuccess )
 		{
-			EndAbility( Handle, ActorInfo, ActivationInfo, false, true );
+			EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
 		}
 		else
 		{

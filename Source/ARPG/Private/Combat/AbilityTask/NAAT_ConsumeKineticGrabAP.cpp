@@ -33,7 +33,7 @@ void UNAAT_ConsumeKineticGrabAP::TickTask( float DeltaTime )
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("%hs: AP decreases to %f"), __FUNCTION__, AP)
+	//UE_LOG(LogTemp, Log, TEXT("%hs: AP decreases to %f"), __FUNCTION__, AP)
 
 	const FGameplayEffectContextHandle Context = AbilitySystemComponent->MakeEffectContext();
 	const FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec( UNAGE_KineticAP::StaticClass(), 1.f, Context );
