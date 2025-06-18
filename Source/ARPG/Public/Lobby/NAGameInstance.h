@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Interfaces/OnlineSessionInterface.h"
 #include "Engine/GameInstance.h"
-#include "NALobbyGameInstance.generated.h"
+#include "NAGameInstance.generated.h"
 
 /************************************************************************************************
  *
@@ -22,26 +22,35 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionCreateComplete, bool);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionDestroyComplete, bool);
 
 UCLASS()
-class ARPG_API UNALobbyGameInstance : public UGameInstance
+class ARPG_API UNAGameInstance : public UGameInstance
 {
 	GENERATED_BODY()
 
 public:
-	UNALobbyGameInstance();
+	UNAGameInstance();
 
+	virtual void Init() override;
+	
 public:
 	UFUNCTION()
 	void FindSessions();
 	
 	UFUNCTION()
 	void JoinSession(int32 Index);
-
+	
+	UFUNCTION()
+	void JoinSession_Wrapped();
+	
 	UFUNCTION()
 	void CreateSession(FName SessionName, bool bIsLAN);
 
 	UFUNCTION()
 	void DestroySession();
 
+public:
+	void SetReservedIndex(const int32 InIndex) { ReservedSessionIndex = InIndex; }
+	TSharedPtr<FOnlineSessionSearch> GetSessionSearch() const { return SessionSearch; }
+	
 private:
 	void OnFindSessionComplete(bool bWasSuccess);
 	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
@@ -55,8 +64,10 @@ private:
 
 	UPROPERTY()
 	FName MadeSessionName = FName("TestSession");
-
-
+	
+	UPROPERTY()
+	int32 ReservedSessionIndex = 0;
+	
 	// public:
 	// 	FOnSessionSearchComplete OnSessionSearchCompleteDelegate;
 	// 	FOnSessionFound OnSessionFoundCompleteDelegate;

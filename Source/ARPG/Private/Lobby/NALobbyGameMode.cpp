@@ -19,7 +19,7 @@ ANALobbyGameMode::ANALobbyGameMode()
 	PlayerStateClass = ANAPlayerState::StaticClass();
 	GameStateClass = ANAGameStateBase::StaticClass();
 	PlayerControllerClass = ANAPlayerController::StaticClass();
-
+	
 	static ConstructorHelpers::FClassFinder<UUserWidget> widget(TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/00_ProjectNA/01_Blueprint/01_Widget/Lobby/BP_NALobby.BP_NALobby_C'"));
 	if (widget.Succeeded())
 		LobbyWidgetClass = widget.Class;

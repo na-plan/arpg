@@ -3,22 +3,28 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "NAGameInstance.h"
 #include "OnlineSessionSettings.h"
 #include "Blueprint/IUserObjectListEntry.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/Button.h"
+#include "Components/TextBlock.h"
 #include "NASessionListWidget.generated.h"
 
 
+class UNAGameInstance;
+class UButton;
 class UTextBlock;
 class UListView;
 
 UCLASS()
-class UNALobbySessionListEntryData : public UObject
+class UNASessionListEntryData : public UObject
 {
 	GENERATED_BODY()
 
 public:
 	FString SessionName;
+	int32 SessionIndex;
 };
 
 UCLASS()
@@ -27,13 +33,26 @@ class UNASessionListEntry : public UUserWidget, public IUserObjectListEntry
 	GENERATED_BODY()
 
 public:
-
+	
 	virtual void NativeOnListItemObjectSet(UObject* ListItemObject) override
 	{
-		UNALobbySessionListEntryData* Result = Cast<UNALobbySessionListEntryData>(ListItemObject);
+		UNASessionListEntryData* Result = Cast<UNASessionListEntryData>(ListItemObject);
 
-		if (Result) Data = Result;
+		if (!Result) return;
+
+		Data = Result;
+
+		Text_SessionName->SetText(FText::FromString(Data->SessionName));
+		
+		UNAGameInstance* GameInstance = Cast<UNAGameInstance>(GetGameInstance());
+		GameInstance->SetReservedIndex(Data->SessionIndex);
+		Button_Join->OnClicked.AddDynamic(GameInstance,&UNAGameInstance::JoinSession_Wrapped);
 	}
+
+	virtual void NativeDestruct() override
+	{
+		Button_Join->OnClicked.Clear();
+	};
 	
 public:
 	UPROPERTY(meta = (BindWidget))
@@ -43,7 +62,7 @@ public:
 	UTextBlock* Text_SessionName;
 
 protected:
-	UNALobbySessionListEntryData* Data;
+	UNASessionListEntryData* Data;
 };
 
 
@@ -59,8 +78,17 @@ UCLASS()
 class ARPG_API UNASessionListWidget : public UUserWidget
 {
 	GENERATED_BODY()
+public:
+	virtual void NativeConstruct() override;
 
+protected:
+	void RefreshSessionList();
+	
 protected:
 	UPROPERTY(meta = (BindWidget, AllowPrivateAccess = true))
 	UListView* SessionListView;
+
+protected:
+	UNAGameInstance* CachedGameInstance;
+	TSharedPtr<FOnlineSessionSearch> SessionSearch;
 };

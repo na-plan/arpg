@@ -1,14 +1,20 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Lobby/NALobbyGameInstance.h"
+#include "Lobby/NAGameInstance.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSessionSettings.h"
 
 
 
-UNALobbyGameInstance::UNALobbyGameInstance()
+UNAGameInstance::UNAGameInstance()
 {
+}
+
+void UNAGameInstance::Init()
+{
+	Super::Init();
+	
 	// LAN 기반 Subsystem, steam이나 다른 플랫폼이면 ini, 플러그인 추가해야함
 	IOnlineSubsystem* subsystem =IOnlineSubsystem::Get(FName("NULL"));
 	SessionInterface = subsystem->GetSessionInterface();
@@ -23,25 +29,30 @@ UNALobbyGameInstance::UNALobbyGameInstance()
 	}
 }
 
-void UNALobbyGameInstance::FindSessions()
+void UNAGameInstance::FindSessions()
 {
 	if (!SessionInterface.IsValid()) return;
 
 	SessionSearch = MakeShareable(new FOnlineSessionSearch());
 	SessionSearch->bIsLanQuery = true;
 	SessionSearch->MaxSearchResults = 20;
-
+	
 	SessionInterface->FindSessions(0, SessionSearch.ToSharedRef());
 }
 
-void UNALobbyGameInstance::JoinSession(int32 Index)
+void UNAGameInstance::JoinSession(int32 Index)
 {
 	if (!SessionInterface.IsValid() || !SessionSearch.IsValid()) return;
 
 	SessionInterface->JoinSession(0, MadeSessionName, SessionSearch->SearchResults[Index]);
 }
 
-void UNALobbyGameInstance::CreateSession(FName SessionName, bool bIsLAN)
+void UNAGameInstance::JoinSession_Wrapped()
+{
+	JoinSession(ReservedSessionIndex);
+}
+
+void UNAGameInstance::CreateSession(FName SessionName, bool bIsLAN)
 {
 	if (!SessionInterface.IsValid()) return;
 
@@ -54,11 +65,11 @@ void UNALobbyGameInstance::CreateSession(FName SessionName, bool bIsLAN)
 	SessionInterface->CreateSession(0, MadeSessionName, Settings);
 }
 
-void UNALobbyGameInstance::DestroySession()
+void UNAGameInstance::DestroySession()
 {
 }
 
-void UNALobbyGameInstance::OnFindSessionComplete(bool bWasSuccess)
+void UNAGameInstance::OnFindSessionComplete(bool bWasSuccess)
 {
 	if (bWasSuccess && SessionSearch.IsValid())
 	{
@@ -69,7 +80,7 @@ void UNALobbyGameInstance::OnFindSessionComplete(bool bWasSuccess)
 	}
 }
 
-void UNALobbyGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
+void UNAGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
 {
 	FString Str;
 	if (SessionInterface->GetResolvedConnectString(SessionName, Str))
@@ -80,7 +91,7 @@ void UNALobbyGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSessi
 	}
 }
 
-void UNALobbyGameInstance::OnCreateSessionComplete(FName SessionName, bool bWasSuccess)
+void UNAGameInstance::OnCreateSessionComplete(FName SessionName, bool bWasSuccess)
 {
 	if (bWasSuccess)
 	{
@@ -88,6 +99,6 @@ void UNALobbyGameInstance::OnCreateSessionComplete(FName SessionName, bool bWasS
 	}
 }
 
-void UNALobbyGameInstance::OnDestroySessionComplete(FName SessionName, bool bWasSuccess)
+void UNAGameInstance::OnDestroySessionComplete(FName SessionName, bool bWasSuccess)
 {
 }
