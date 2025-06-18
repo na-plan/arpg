@@ -42,9 +42,8 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	ItemWidgetComponent->SetMaterial(0, ItemWidgetMaterial.Object);
 	
 	ItemDataID = NAME_None;
-	
-	SetReplicates( true );
-	SetReplicateMovement( true );
+
+	AActor::SetReplicateMovement( true );
 	bAlwaysRelevant = true;
 }
 
@@ -208,8 +207,9 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	if (!UNAItemEngineSubsystem::Get()
 		|| !UNAItemEngineSubsystem::Get()->IsItemMetaDataInitialized()
 #if WITH_EDITOR
-		|| !UNAItemEngineSubsystem::Get()->IsRegisteredItemMetaClass(GetClass()))
+		|| !UNAItemEngineSubsystem::Get()->IsRegisteredItemMetaClass(GetClass())
 #endif
+		)
 	{
 		return;
 	}
