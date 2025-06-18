@@ -21,10 +21,10 @@ UNAVitalCheckComponent::UNAVitalCheckComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 
 	// 기본 머테리얼 저장
-	FIND_OBJECT( GreenMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_green.MI_health_green'", 0 );
-	FIND_OBJECT( YellowMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_yellow.MI_health_yellow'", 1 );
-	FIND_OBJECT( RedMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_red.MI_health_red'", 2 );
-	FIND_OBJECT( BlankMaterial, "/Script/Engine.Material'/Game/00_ProjectNA/05_Resource/01_Material/Issac/BlankMaterial.BlankMaterial'", 3 );
+	FIND_OBJECT( GreenMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_green.MI_health_green'")
+	FIND_OBJECT( YellowMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_yellow.MI_health_yellow'")
+	FIND_OBJECT( RedMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_red.MI_health_red'")
+	FIND_OBJECT( BlankMaterial, "/Script/Engine.Material'/Game/00_ProjectNA/05_Resource/01_Material/Issac/BlankMaterial.BlankMaterial'")
 }
 
 ECharacterStatus UNAVitalCheckComponent::GetCharacterStatus() const

@@ -34,9 +34,9 @@ class ARPG_API UNAGA_KineticGrab : public UGameplayAbility
 	void OnAPDepleted();
 	
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
-
+	
 	virtual void InputReleased(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) override;
-
+	
 public:
 	static FVector EvaluateActorPosition( const AActor* OriginActor, const UPrimitiveComponent* TargetBoundComponent,
 	                                      const FVector& ForwardVector, float Distance );
@@ -44,4 +44,7 @@ public:
 	static FVector EvaluateActorPosition( const AActor* OriginActor, const FVector& ForwardVector, float MinimumDistance );
 
 	static FVector GetMinimumDistance( const AActor* OriginActor, const UPrimitiveComponent* TargetBoundComponent, const FVector& ForwardVector );
+	
+	UFUNCTION()
+	void Throw();
 };

@@ -5,10 +5,13 @@
 #include "CoreMinimal.h"
 #include "GameplayAbilitySpecHandle.h"
 #include "GameplayEffectTypes.h"
+#include "InputMappingContext.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "NAKineticComponent.generated.h"
 
 
+struct FEnhancedInputActionEventBinding;
+class UInputAction;
 class UNAKineticAttributeSet;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -39,6 +42,26 @@ class ARPG_API UNAKineticComponent : public UPhysicsHandleComponent
 	
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Material", meta=( AllowPrivateAccess=true ) )
 	UMaterialInstance* RedMaterial;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Binding", meta=( AllowPrivateAccess=true ) )
+	UInputAction* GrabAction;
+	
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Binding", meta=( AllowPrivateAccess=true ) )
+	UInputAction* ThrowAction;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Binding", meta=( AllowPrivateAccess=true ) )
+	UInputAction* DistanceAdjustAction;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Binding", meta=( AllowPrivateAccess=true ) )
+	UInputMappingContext* KineticMappingContext;
+
+	FEnhancedInputActionEventBinding* GrabActionBinding;
+
+	FEnhancedInputActionEventBinding* ReleaseActionBinding;
+	
+	FEnhancedInputActionEventBinding* ThrowActionBinding;
+	
+	FEnhancedInputActionEventBinding* DistanceAdjustActionBinding;
 
 public:
 	// Sets default values for this component's properties
@@ -75,7 +98,23 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
+	void BindKineticKeys();
+
+	void UnbindKineticKeys();
+
 	const UNAKineticAttributeSet* GetAttributeSet() const;
+
+	UFUNCTION()
+	void Throw();
+
+	void ThrowImpl() const;
+
+	UFUNCTION( Server, Unreliable )
+	void Server_Throw();
+
+	void AdjustDistance( const FInputActionValue& InputActionValue );
 
 public:
 	// Called every frame

@@ -5,6 +5,8 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
 #include "NACharacter.h"
 #include "Ability/GameInstanceSubsystem/NAAbilityGameInstanceSubsystem.h"
 #include "Combat/AttributeSet/NAKineticAttributeSet.h"
@@ -36,13 +38,22 @@ UNAKineticComponent::UNAKineticComponent()
 	bSoftAngularConstraint = true;
 	bSoftLinearConstraint = true;
 
-	FIND_OBJECT( GreenMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_green.MI_health_green'", 0 );
-	FIND_OBJECT( YellowMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_yellow.MI_health_yellow'", 1 );
-	FIND_OBJECT( RedMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_red.MI_health_red'", 2 );
+	FIND_OBJECT( GreenMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_green.MI_health_green'")
+	FIND_OBJECT( YellowMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_yellow.MI_health_yellow'")
+	FIND_OBJECT( RedMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_red.MI_health_red'")
+	FIND_OBJECT( GrabAction, "/Script/EnhancedInput.InputAction'/Game/00_ProjectNA/01_Blueprint/03_Actions/IA_Kinetic/IA_KineticGrab.IA_KineticGrab'" )
+	FIND_OBJECT( ThrowAction, "/Script/EnhancedInput.InputAction'/Game/00_ProjectNA/01_Blueprint/03_Actions/IA_Kinetic/IA_KineticThrow.IA_KineticThrow'")
+	FIND_OBJECT( DistanceAdjustAction, "/Script/EnhancedInput.InputAction'/Game/00_ProjectNA/01_Blueprint/03_Actions/IA_Kinetic/IA_KineticDistance.IA_KineticDistance'")
+	FIND_OBJECT( KineticMappingContext, "/Script/EnhancedInput.InputMappingContext'/Game/00_ProjectNA/01_Blueprint/02_Inputs/IMC_Kinetic.IMC_Kinetic'")
 }
 
 void UNAKineticComponent::Grab()
 {
+	if ( bIsGrab )
+	{
+		return;
+	}
+	
 	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner() )
 	{
 		Interface->GetAbilitySystemComponent()->AbilityLocalInputPressed( static_cast<int32>( EAbilityInputID::Grab ) );
@@ -146,6 +157,65 @@ void UNAKineticComponent::ForceUpdateActorForward()
 	}
 }
 
+void UNAKineticComponent::BindKineticKeys()
+{
+	if ( const APawn* OwnerPawn = Cast<APawn>( GetOwner() ) )
+	{
+		if ( const APlayerController* PlayerController = Cast<APlayerController>( OwnerPawn->GetController() ) )
+		{
+			if ( UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>( PlayerController->GetLocalPlayer() ) )
+			{
+				Subsystem->AddMappingContext( KineticMappingContext, 0 );
+			}
+		}
+		
+		if ( UEnhancedInputComponent* InputComponent = Cast<UEnhancedInputComponent>( OwnerPawn->InputComponent ) )
+		{
+			GrabActionBinding = &InputComponent->BindAction( GrabAction, ETriggerEvent::Started, this, &UNAKineticComponent::Grab );
+			ReleaseActionBinding = &InputComponent->BindAction( GrabAction, ETriggerEvent::Completed, this, &UNAKineticComponent::Release );
+			ThrowActionBinding = &InputComponent->BindAction( ThrowAction, ETriggerEvent::Started, this, &UNAKineticComponent::Throw );
+			DistanceAdjustActionBinding = &InputComponent->BindAction( ThrowAction, ETriggerEvent::Started, this, &UNAKineticComponent::AdjustDistance );
+		}
+	}
+}
+
+void UNAKineticComponent::UnbindKineticKeys()
+{
+	if ( const APawn* OwnerPawn = Cast<APawn>( GetOwner() ) )
+	{
+		if ( const APlayerController* PlayerController = Cast<APlayerController>( OwnerPawn->GetController() ) )
+		{
+			if ( UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>( PlayerController->GetLocalPlayer() ) )
+			{
+				Subsystem->RemoveMappingContext( KineticMappingContext );
+			}
+		}
+		
+		if ( UEnhancedInputComponent* InputComponent = Cast<UEnhancedInputComponent>( OwnerPawn->InputComponent ) )
+		{
+			if ( GrabActionBinding )
+			{
+				InputComponent->RemoveBinding( *GrabActionBinding );
+				InputComponent->RemoveBinding( *ReleaseActionBinding );
+
+				GrabActionBinding = nullptr;
+				ReleaseActionBinding = nullptr;
+			}
+			if ( ThrowActionBinding )
+			{
+				InputComponent->RemoveBinding( *ThrowActionBinding );
+				ThrowActionBinding = nullptr;
+			}
+
+			if ( DistanceAdjustActionBinding )
+			{
+				InputComponent->RemoveBinding( *DistanceAdjustActionBinding );
+				DistanceAdjustActionBinding = nullptr;
+			}
+		}
+	}
+}
+
 void UNAKineticComponent::OnAPChanged( const FOnAttributeChangeData& OnAttributeChangeData )
 {
 	OnAPChanged( OnAttributeChangeData.OldValue, OnAttributeChangeData.NewValue );
@@ -227,6 +297,75 @@ void UNAKineticComponent::BeginPlay()
 	}
 
 	GrabDistance = GetMinHoldRange();
+
+	if ( const APawn* Pawn = Cast<APawn>( GetOwner() );
+		 Pawn && Pawn->IsLocallyControlled() )
+	{
+		BindKineticKeys();
+	}
+}
+
+void UNAKineticComponent::EndPlay( const EEndPlayReason::Type EndPlayReason )
+{
+	Super::EndPlay( EndPlayReason );
+
+	if ( const APawn* Pawn = Cast<APawn>( GetOwner() );
+		 Pawn && Pawn->IsLocallyControlled() )
+	{
+		UnbindKineticKeys();
+	}
+}
+
+void UNAKineticComponent::Throw()
+{
+	if ( !bIsGrab )
+	{
+		return;
+	}
+	
+	if ( GetOwner()->HasAuthority() )
+	{
+		ThrowImpl();
+	}
+	else
+	{
+		Server_Throw();
+	}
+}
+
+void UNAKineticComponent::ThrowImpl() const
+{
+	if ( GetNetMode() == NM_Client )
+	{
+		return;
+	}
+	
+	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner() )
+	{
+		if ( GrabSpecHandle.IsValid() )
+		{
+			if ( const FGameplayAbilitySpec* Spec =  Interface->GetAbilitySystemComponent()->FindAbilitySpecFromHandle( GrabSpecHandle ) )
+			{
+				for ( UGameplayAbility* Ability : Spec->GetAbilityInstances() )
+				{
+					if ( UNAGA_KineticGrab* GrabInstance = Cast<UNAGA_KineticGrab>( Ability ) )
+					{
+						GrabInstance->Throw();	
+					}
+				}
+			}
+		}
+	}
+}
+
+void UNAKineticComponent::Server_Throw_Implementation()
+{
+	ThrowImpl();
+}
+
+void UNAKineticComponent::AdjustDistance( const FInputActionValue& InputActionValue )
+{
+	
 }
 
 // Called every frame

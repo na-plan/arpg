@@ -26,7 +26,6 @@
 #include "Inventory/Component/NAInventoryComponent.h"
 #include "Item/ItemActor/NAWeapon.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "Weapon/PickableItemActor/NAWeaponAmmoBox.h"
 
 DEFINE_LOG_CATEGORY( LogTemplateCharacter );
@@ -898,22 +897,6 @@ void ANACharacter::UseStasisPackByShortcut(const FInputActionValue& Value)
 	if (GEngine) {
 		FString Log = TEXT("UseStasisPackByShortcut");
 		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Blue, *Log);
-	}
-}
-
-void ANACharacter::KineticGrab()
-{
-	if ( KineticComponent )
-	{
-		KineticComponent->Grab();
-	}
-}
-
-void ANACharacter::KineticRelease()
-{
-	if ( KineticComponent )
-	{
-		KineticComponent->Release();
 	}
 }
 
