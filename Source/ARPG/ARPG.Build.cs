@@ -22,8 +22,9 @@ public class ARPG : ModuleRules
 			"AIModule",
 			"GeometryCollectionEngine",
 			"Niagara",
-			"NetCore"
-		});
+			"NetCore",
+            "NavigationSystem"
+        });
 		
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{

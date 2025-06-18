@@ -207,7 +207,23 @@ void AMonsterBase::OnDie()
 	// Check
 	if (HasAuthority())
 	{
-		Destroy();
+		if (DeathMontage)
+		{
+			if (AbilitySystemComponent->GetCurrentMontage() == DeathMontage)
+			{
+				UAnimMontage* DeathMontageCheck = AbilitySystemComponent->GetCurrentMontage();
+				float CheckLeftTime = AbilitySystemComponent->GetCurrentMontageSectionTimeLeft();
+				if (CheckLeftTime < 0.3f)
+				{
+					Destroy();
+				}
+				//bool bForcheck = true;
+			}
+		}
+		else
+		{
+			Destroy();
+		}
 	}
 }
 
