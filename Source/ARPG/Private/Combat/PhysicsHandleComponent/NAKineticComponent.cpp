@@ -242,15 +242,15 @@ void UNAKineticComponent::OnAPChanged( float Old, float New )
 	
 			UMaterialInstance* TargetMaterial = nullptr;
 
-			if ( FillCount >= 4 )
+			if ( FillCount < 4 && FillCount >= 3 )
 			{
 				TargetMaterial = GreenMaterial;
 			}
-			else if ( FillCount >= 3 )
+			else if ( FillCount < 3 && FillCount >= 2 )
 			{
 				TargetMaterial = YellowMaterial;
 			}
-			else if ( FillCount >= 2 )
+			else
 			{
 				TargetMaterial = RedMaterial;
 			}
@@ -389,7 +389,7 @@ void UNAKineticComponent::TickComponent( float DeltaTime, ELevelTick TickType,
 			{
 				if ( const UNAKineticAttributeSet* AttributeSet = Cast<UNAKineticAttributeSet>( Interface->GetAbilitySystemComponent()->GetAttributeSet( UNAKineticAttributeSet::StaticClass() ) ) )
 				{
-					if ( AttributeSet->GetAP() + DeltaTime < AttributeSet->GetMaxAP() )
+					if ( AttributeSet->GetAP() + (10.f * DeltaTime) < AttributeSet->GetMaxAP() )
 					{
 						const FGameplayEffectContextHandle Context = Interface->GetAbilitySystemComponent()->MakeEffectContext();
 						const FGameplayEffectSpecHandle SpecHandle = Interface->GetAbilitySystemComponent()->MakeOutgoingSpec( UNAGE_KineticAP::StaticClass(), 1.f, Context );
