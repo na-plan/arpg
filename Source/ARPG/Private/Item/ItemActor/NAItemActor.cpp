@@ -65,7 +65,8 @@ void ANAItemActor::PostLoad()
 	Super::PostLoad();
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
-		if (ItemDataID.IsNone() && !GetWorld()->IsPreviewWorld())
+		if (ItemDataID.IsNone() && !GetWorld()->IsPreviewWorld()
+			&& !IsChildActor())
 		{
 			InitItemData();
 		}
@@ -76,8 +77,8 @@ void ANAItemActor::PostActorCreated()
 {
 	Super::PostActorCreated();
 
-	// ChildComponent에 의해 어태치된 경우
-	if (GetParentActor())
+	// ChildActorComponent에 의해 생성된 경우
+	if (IsChildActor())
 	{
 		if (ItemCollision)
 		{
@@ -107,6 +108,94 @@ void ANAItemActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 }
 #endif
 
+EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTableRow* MetaData) const
+{
+	EItemSubobjDirtyFlags DirtyFlags = EItemSubobjDirtyFlags::ISDF_None;
+	
+	UClass* ItemClass = GetClass();
+	if (!ItemClass)
+	{
+		ensure(false);
+		return DirtyFlags;
+	}
+	if (!MetaData)
+	{
+		ensure(false);
+		return DirtyFlags;
+	}
+	
+	if (MetaData->CollisionShape != EItemCollisionShape::ICS_None && bWasItemCollisionCreated)
+	{
+		if (!ItemCollision)
+		{
+			EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
+		}
+		else
+		{
+			switch (MetaData->CollisionShape)
+			{
+			case EItemCollisionShape::ICS_Sphere:
+				if (!ItemCollision->IsA<USphereComponent>())
+				{
+					EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
+				}
+				break;
+		
+			case EItemCollisionShape::ICS_Box:
+				if (!ItemCollision->IsA<UBoxComponent>())
+				{
+					EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
+				}
+				break;
+		
+			case EItemCollisionShape::ICS_Capsule:
+				if (!ItemCollision->IsA<UCapsuleComponent>())
+				{
+					EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
+				}
+				break;
+		
+			default:
+				ensure(false);
+				break;
+			}
+		}
+	}
+	
+	if (MetaData->MeshType != EItemMeshType::IMT_None && bWasItemMeshCreated)
+	{
+		if (!ItemMesh)
+		{
+			EnumAddFlags(DirtyFlags,EItemSubobjDirtyFlags::ISDF_MeshType);
+		}
+		else
+		{
+			switch (MetaData->MeshType)
+			{
+			case EItemMeshType::IMT_Static:
+				if (!ItemMesh->IsA<UStaticMeshComponent>())
+				{
+					EnumAddFlags(DirtyFlags,EItemSubobjDirtyFlags::ISDF_MeshType);
+				}
+				break;
+		
+			case EItemMeshType::IMT_Skeletal:
+				if (!ItemMesh->IsA<USkeletalMeshComponent>())
+				{
+					EnumAddFlags(DirtyFlags,EItemSubobjDirtyFlags::ISDF_MeshType);
+				}
+				break;
+		
+			default:
+				ensure(false);
+				break;
+			}
+		}
+	}
+
+	return DirtyFlags;
+}
+
 void ANAItemActor::OnConstruction(const FTransform& Transform)
 {
  	Super::OnConstruction(Transform);
@@ -125,7 +214,8 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		return;
 	}
 	
-	if (ItemDataID.IsNone() && !GetWorld()->IsPreviewWorld())
+	if (ItemDataID.IsNone() && !GetWorld()->IsPreviewWorld()
+		&& !IsChildActor()) // ChildActorComponent에 의해 생성된 경우: 아이템 데이터 새로 생성 x
 	{
 		InitItemData();
 	}
@@ -365,104 +455,6 @@ void ANAItemActor::OnItemDataInitialized()
 	VerifyInteractableData();
 }
 
-EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTableRow* MetaData) const
-{
-	EItemSubobjDirtyFlags DirtyFlags = EItemSubobjDirtyFlags::ISDF_None;
-	
-	UClass* ItemClass = GetClass();
-	if (!ItemClass)
-	{
-		ensure(false);
-		return DirtyFlags;
-	}
-	if (!MetaData)
-	{
-		ensure(false);
-		return DirtyFlags;
-	}
-	
-	if (MetaData->CollisionShape != EItemCollisionShape::ICS_None && bWasItemCollisionCreated)
-	{
-		if (!ItemCollision)
-		{
-			EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
-		}
-		else
-		{
-			switch (MetaData->CollisionShape)
-			{
-			case EItemCollisionShape::ICS_Sphere:
-				if (!ItemCollision->IsA<USphereComponent>())
-				{
-					EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
-				}
-				break;
-		
-			case EItemCollisionShape::ICS_Box:
-				if (!ItemCollision->IsA<UBoxComponent>())
-				{
-					EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
-				}
-				break;
-		
-			case EItemCollisionShape::ICS_Capsule:
-				if (!ItemCollision->IsA<UCapsuleComponent>())
-				{
-					EnumAddFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape);
-				}
-				break;
-		
-			default:
-				ensure(false);
-				break;
-			}
-		}
-	}
-	
-	if (MetaData->MeshType != EItemMeshType::IMT_None && bWasItemMeshCreated)
-	{
-		if (!ItemMesh)
-		{
-			EnumAddFlags(DirtyFlags,EItemSubobjDirtyFlags::ISDF_MeshType);
-		}
-		else
-		{
-			switch (MetaData->MeshType)
-			{
-			case EItemMeshType::IMT_Static:
-				if (!ItemMesh->IsA<UStaticMeshComponent>())
-				{
-					EnumAddFlags(DirtyFlags,EItemSubobjDirtyFlags::ISDF_MeshType);
-				}
-				break;
-		
-			case EItemMeshType::IMT_Skeletal:
-				if (!ItemMesh->IsA<USkeletalMeshComponent>())
-				{
-					EnumAddFlags(DirtyFlags,EItemSubobjDirtyFlags::ISDF_MeshType);
-				}
-				break;
-		
-			default:
-				ensure(false);
-				break;
-			}
-		}
-	}
-
-	return DirtyFlags;
-}
-
-void ANAItemActor::OnActorBeginOverlap_Impl(AActor* OverlappedActor, AActor* OtherActor)
-{
-	Execute_NotifyInteractableFocusBegin(this, OverlappedActor, OtherActor);
-}
-
-void ANAItemActor::OnActorEndOverlap_Impl(AActor* OverlappedActor, AActor* OtherActor)
-{
-	Execute_NotifyInteractableFocusEnd(this, OverlappedActor, OtherActor);
-}
-
 void ANAItemActor::VerifyInteractableData()
 {
 	if (InteractableInterfaceRef != nullptr)
@@ -479,6 +471,16 @@ void ANAItemActor::VerifyInteractableData()
 	{
 		ensureAlways(false);
 	}
+}
+
+void ANAItemActor::OnActorBeginOverlap_Impl(AActor* OverlappedActor, AActor* OtherActor)
+{
+	Execute_NotifyInteractableFocusBegin(this, OverlappedActor, OtherActor);
+}
+
+void ANAItemActor::OnActorEndOverlap_Impl(AActor* OverlappedActor, AActor* OtherActor)
+{
+	Execute_NotifyInteractableFocusEnd(this, OverlappedActor, OtherActor);
 }
 
 void ANAItemActor::BeginPlay()
@@ -562,7 +564,7 @@ void ANAItemActor::BeginPlay()
 	
 	Super::BeginPlay();
 	
-	if (Execute_CanInteract(this))
+	if (InteractableInterfaceRef)
 	{
 		OnActorBeginOverlap.AddUniqueDynamic(this, &ThisClass::OnActorBeginOverlap_Impl);
 		OnActorEndOverlap.AddUniqueDynamic(this, &ThisClass::OnActorEndOverlap_Impl);
@@ -634,29 +636,67 @@ void ANAItemActor::NotifyInteractableFocusEnd_Implementation(AActor* Interactabl
 	}
 }
 
-void ANAItemActor::BeginInteract_Implementation(AActor* InteractorActor)
+bool ANAItemActor::TryInteract_Implementation(AActor* Interactor)
 {
-	bIsOnInteract = true;
-
-	// @TODO: 상호작용 시작 시 필요한 로직이 있으면 여기에 추가, 상호작용 시작을 알리는 이벤트라고 생각하면 됨
+	if (Execute_BeginInteract(this, Interactor))
+	{
+		SetInteractionPhysicsEnabled(false);
+		if (Execute_ExecuteInteract(this, Interactor))
+		{
+			if (Execute_EndInteract(this, Interactor))
+			{
+				if (!IsUnlimitedInteractable())
+				{
+					SetInteractableCount(GetInteractableCount() - 1);
+				}
+				UE_LOG(LogTemp, Warning, TEXT("[TryInteract]  상호작용 사이클 완료"));
+				SetInteractionPhysicsEnabled(true);
+				return true;
+			}
+		}
+	}
+	
+	SetInteractionPhysicsEnabled(true);
+	return false;
 }
 
-void ANAItemActor::EndInteract_Implementation(AActor* InteractorActor)
+bool ANAItemActor::BeginInteract_Implementation(AActor* InteractorActor)
 {
+	if (!Execute_CanInteract(this)) { return false; }
+	if (!CanPerformInteractionWith(InteractorActor))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BeginInteract]  상호작용 조건 불충분"));
+		return false;
+	}
+	
 	if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(InteractorActor))
 	{
-		bIsOnInteract = false;
-		InteractionComp->OnInteractionEnded(InteractableInterfaceRef);
-		// @TODO: 상호작용 종료 시 필요한 로직이 있으면 여기에 추가, 상호작용 종료를 알리는 이벤트라고 생각하면 됨
+		bIsOnInteract = true;
+		return true;
 	}
+
+	return false;
 }
 
 bool ANAItemActor::ExecuteInteract_Implementation(AActor* InteractorActor)
 {
-	ensureAlwaysMsgf(bIsOnInteract, TEXT("[INAInteractableInterface::ExecuteInteract_Implementation]  bIsOnInteract이 false였음"));
+	ensureAlwaysMsgf(bIsOnInteract, TEXT("[ExecuteInteract_Implementation]  bIsOnInteract이 false였음"));
 	
-	// @TODO: 상호작용 실행에 필요한 로직이 있으면 여기에 추가
-	
+	if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(InteractorActor))
+	{
+		return bIsOnInteract;
+	}
+
+	return false;
+}
+
+bool ANAItemActor::EndInteract_Implementation(AActor* InteractorActor)
+{
+	if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(InteractorActor))
+	{
+		bIsOnInteract = false;
+		return true;
+	}
 	return false;
 }
 
@@ -665,10 +705,12 @@ bool ANAItemActor::IsOnInteract_Implementation() const
 	return bIsOnInteract;
 }
 
-void ANAItemActor::DisableOverlapDuringInteraction(AActor* Interactor)
+void ANAItemActor::SetInteractionPhysicsEnabled(const bool bEnabled)
 {
-	if (Execute_IsOnInteract(this))
+	if (!bEnabled)
 	{
+		ensureAlways(Execute_IsOnInteract(this));
+		
 		if (ItemCollision)
 		{
 			ItemCollision->SetSimulatePhysics(false);
@@ -682,40 +724,111 @@ void ANAItemActor::DisableOverlapDuringInteraction(AActor* Interactor)
 			TriggerSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			TriggerSphere->Deactivate();
 		}
-		if (ItemWidgetComponent)
+		if (ItemWidgetComponent->IsVisible())
 		{
-			ItemWidgetComponent->SetVisibility(false);
-			ItemWidgetComponent->Deactivate();
+			ItemWidgetComponent->CollapseItemWidgetPopup();
+		}
+	}
+	else
+	{
+		if (ItemCollision)
+		{
+			ItemCollision->SetSimulatePhysics(true);
+			ItemCollision->SetGenerateOverlapEvents(true);
+			ItemCollision->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+			ItemCollision->Activate();
+		}
+		if (TriggerSphere)
+		{
+			TriggerSphere->SetGenerateOverlapEvents(true);
+			TriggerSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+			TriggerSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
+			TriggerSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+			TriggerSphere->Activate();
 		}
 	}
 }
 
-// bool ANAItemActor::TryGetInteractableData(FNAInteractableData& OutData) const
-// {
-// 	if (UNAItemData* ItemData = GetItemData())
-// 	{
-// 		return ItemData->GetInteractableData(OutData);
-// 	}
-// 	return false;
-// }
+bool ANAItemActor::TryGetInteractableData(FNAInteractableData& OutData) const
+{
+	if (UNAItemData* ItemData = GetItemData())
+	{
+		return ItemData->GetInteractableData(OutData);
+	}
+	return false;
+}
 
-// bool ANAItemActor::HasInteractionDelay() const
-// {
-// 	FNAInteractableData Data;
-// 	if (GetItemData() && GetItemData()->GetInteractableData(Data))
-// 	{
-// 		return Data.InteractionDelayTime > 0.f;
-// 	}
-// 	return false;
-// }
+bool ANAItemActor::HasInteractionDelay() const
+{
+	FNAInteractableData Data;
+	if (GetItemData() && GetItemData()->GetInteractableData(Data))
+	{
+		return Data.InteractionDelayTime > 0.f;
+	}
+	return false;
+}
 
-// float ANAItemActor::GetInteractionDelay() const
-// {
-// 	FNAInteractableData Data;
-// 	if (GetItemData() && GetItemData()->GetInteractableData(Data))
-// 	{
-// 		return Data.InteractionDelayTime;
-// 	}
-// 	return 0.f;
-// }
+float ANAItemActor::GetInteractionDelay() const
+{
+	FNAInteractableData Data;
+	if (GetItemData() && GetItemData()->GetInteractableData(Data))
+	{
+		return Data.InteractionDelayTime;
+	}
+	return 0.f;
+}
 
+bool ANAItemActor::IsAttachedAndPendingUse() const
+{
+	return bIsAttachedAndPendingUse && IsChildActor();
+}
+
+void ANAItemActor::SetAttachedAndPendingUse(bool bNewState)
+{
+	if (bNewState && !IsChildActor())
+	{
+		ensureAlways(false);
+		return;
+	}
+	
+	bIsAttachedAndPendingUse = bNewState;
+}
+
+bool ANAItemActor::IsUnlimitedInteractable() const
+{
+	FNAInteractableData Data;
+	if (TryGetInteractableData(Data))
+	{
+		return Data.bIsUnlimitedInteractable;
+	}
+	return false;
+}
+
+int32 ANAItemActor::GetInteractableCount() const
+{
+	FNAInteractableData Data;
+	if (TryGetInteractableData(Data))
+	{
+		return Data.InteractableCount;
+	}
+	return -1;
+}
+
+void ANAItemActor::SetInteractableCount(int32 NewCount)
+{
+	FNAInteractableData Data;
+	if (TryGetInteractableData(Data))
+	{
+		Data.InteractableCount = NewCount;
+	}
+}
+
+bool ANAItemActor::CanPerformInteractionWith(AActor* Interactor) const
+{
+	FNAInteractableData Data;
+	if (TryGetInteractableData(Data))
+	{
+		return Interactor && Data.InteractableType != ENAInteractableType::None;
+	}
+	return Interactor ? true : false;
+}

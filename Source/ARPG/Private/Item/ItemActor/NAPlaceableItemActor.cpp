@@ -1,5 +1,7 @@
 #include "Item/ItemActor/NAPlaceableItemActor.h"
 
+#include "Components/ShapeComponent.h"
+
 ANAPlaceableItemActor::ANAPlaceableItemActor(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer
 		.DoNotCreateDefaultSubobject(TEXT("ItemMesh(Static)")))
@@ -10,15 +12,6 @@ ANAPlaceableItemActor::ANAPlaceableItemActor(const FObjectInitializer& ObjectIni
 void ANAPlaceableItemActor::PostInitProperties()
 {
 	Super::PostInitProperties();
-
-	for (UActorComponent* It : GetComponents().Array())
-	{
-		if (It->GetName().StartsWith(TEXT("ItemRootShape"))
-			|| It->GetName().StartsWith(TEXT("ItemMesh")))
-		{
-			It->DestroyComponent();
-		}
-	}
 }
 
 void ANAPlaceableItemActor::PostRegisterAllComponents()
@@ -29,23 +22,16 @@ void ANAPlaceableItemActor::PostRegisterAllComponents()
 void ANAPlaceableItemActor::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
+
+	if (ItemCollision)
+	{
+		ItemCollision->SetSimulatePhysics(false);
+	}
 }
 
 void ANAPlaceableItemActor::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-}
-
-void ANAPlaceableItemActor::BeginInteract_Implementation(AActor* Interactor)
-{
-	Super::BeginInteract_Implementation(Interactor);
-	// 상호작용 시작 그리고 실제 실행 대기 ( 레버 당기는 시간, 활성화 대기 시간... )
-}
-
-void ANAPlaceableItemActor::EndInteract_Implementation(AActor* Interactor)
-{
-	Super::EndInteract_Implementation(Interactor);
-	// 상호작용이 끝난 후 처리
 }
 
 bool ANAPlaceableItemActor::ExecuteInteract_Implementation(AActor* Interactor)
@@ -60,6 +46,24 @@ bool ANAPlaceableItemActor::ExecuteInteract_Implementation(AActor* Interactor)
 	}
 	return true;
 }
+
+bool ANAPlaceableItemActor::BeginInteract_Implementation(AActor* Interactor)
+{
+	return Super::BeginInteract_Implementation(Interactor);
+	// 상호작용 시작 그리고 실제 실행 대기 ( 레버 당기는 시간, 활성화 대기 시간... )
+}
+
+bool ANAPlaceableItemActor::EndInteract_Implementation(AActor* Interactor)
+{
+	return Super::EndInteract_Implementation(Interactor);
+	// 상호작용이 끝난 후 처리
+}
+
+void ANAPlaceableItemActor::SetInteractionPhysicsEnabled(const bool bEnabled)
+{
+	// PlaceableActor는 아무것도 안함
+}
+
 
 void ANAPlaceableItemActor::BeginPlay()
 {

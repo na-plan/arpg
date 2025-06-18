@@ -23,6 +23,7 @@
 
 #include "Interaction/NAInteractionComponent.h"
 #include "Inventory/Component/NAInventoryComponent.h"
+#include "Item/ItemActor/NAWeapon.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Weapon/PickableItemActor/NAWeaponAmmoBox.h"
 
@@ -284,7 +285,7 @@ void ANACharacter::Server_BeginInteraction_Implementation()
 {
 	if (InteractionComponent)
 	{
-		InteractionComponent->StartInteraction();
+		InteractionComponent->ToggleInteraction();
 	}
 }
 
@@ -339,6 +340,8 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(StasisPackShortcutAction, ETriggerEvent::Started, this, &ANACharacter::UseStasisPackByShortcut);
 
 		EnhancedInputComponent->BindAction(RightMouseAttackAction, ETriggerEvent::Started, this, &ANACharacter::Zoom);
+		
+		EnhancedInputComponent->BindAction(ToggleWeaponEquippedAction, ETriggerEvent::Started, this, &ANACharacter::ToggleWeaponEquipped);
 	}
 	else
 	{
@@ -624,7 +627,7 @@ void ANACharacter::TryInteract()
 {
 	if (ensure(InteractionComponent != nullptr))
 	{
-		// if (!InteractionComponent->HasPendingUseItem())
+		// if (!InteractionComponent->HasPendingInteractable())
 		// {
 		 	if ( !HasAuthority() )
 		 	{
@@ -632,7 +635,7 @@ void ANACharacter::TryInteract()
 		 	}
 		 	else
 		 	{
-		 		InteractionComponent->StartInteraction();	
+		 		InteractionComponent->ToggleInteraction();	
 		 	}
 		// }
 		// else
@@ -692,6 +695,54 @@ void ANACharacter::ToggleInventoryWidget()
 	}
 }
 
+void ANACharacter::ToggleWeaponEquipped(const FInputActionValue& Value)
+{
+	if (!RightHandChildActor || !LeftHandChildActor || !InventoryComponent)
+		return;
+
+	ANAWeapon* WeaponToUnequip_Right = Cast<ANAWeapon>(RightHandChildActor->GetChildActor());
+	ANAWeapon* WeaponToUnequip_Left = Cast<ANAWeapon>(LeftHandChildActor->GetChildActor());
+	const bool bShouldUnequipWeapon = WeaponToUnequip_Right || WeaponToUnequip_Left;
+	
+	if (bShouldUnequipWeapon)
+	{
+		// 무기 장착만 해제, 인벤토리에서 무기를 드랍하지 않음
+		if (WeaponToUnequip_Right)
+		{
+			RightHandChildActor->DestroyChildActor();
+			RightHandChildActor->SetChildActorClass(nullptr);
+		}
+		if (WeaponToUnequip_Left)
+		{
+			LeftHandChildActor->DestroyChildActor();
+			LeftHandChildActor->SetChildActorClass(nullptr);
+		}
+	}
+	else
+	{
+		// 무기 어태치, 인벤토리에 소지된 무기가 있다면, 가장 작은 넘버의 슬롯에 적재된 무기로 장착 시도
+		UNAItemData* WeaponToEquip = InventoryComponent->FindSameClassItem(ANAWeapon::StaticClass());
+		if (WeaponToEquip)
+		{
+			UClass* WeaponClass = WeaponToEquip->GetItemActorClass();
+			if (!RightHandChildActor->GetChildActor())
+			{
+				RightHandChildActor->SetChildActorClass(WeaponClass);
+				ANAWeapon* NewlyEquippedWeapon = CastChecked<ANAWeapon>(RightHandChildActor->GetChildActor());
+				ANAItemActor::AssignItemDataToChildActor(WeaponToEquip, NewlyEquippedWeapon);
+				return;
+			}
+			if (!LeftHandChildActor->GetChildActor())
+			{
+				LeftHandChildActor->SetChildActorClass(WeaponClass);
+				ANAWeapon* NewlyEquippedWeapon = CastChecked<ANAWeapon>(LeftHandChildActor->GetChildActor());
+				ANAItemActor::AssignItemDataToChildActor(WeaponToEquip, NewlyEquippedWeapon);
+				return;
+			}
+		}
+	}
+}
+
 void ANACharacter::RotateSpringArmForInventory(bool bExpand, float Overtime)
 {
 	if (!ensure(InventoryComponent != nullptr && InventoryWidgetBoom != nullptr)) return;
@@ -744,10 +795,9 @@ void ANACharacter::ToggleInventoryCameraView(const bool bEnable, USpringArmCompo
 	}
 	// 인벤토리 연출 순서: 인벤 위젯 회전 -> 카메라 앵글 변경(한 프레임 뒤에서)
 	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda(
-		[Rotation, this, InNewBoom, Overtime, CallbackFunc]()
+		[this, Rotation,InNewBoom, Overtime, CallbackFunc]()
 		{
 			// 1) 목표 위치/회전 계산 (NewBoom의 월드 위치/회전 등)
-			FollowCamera->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
 			FollowCamera->AttachToComponent(InNewBoom, FAttachmentTransformRules::KeepWorldTransform,
 											USpringArmComponent::SocketName);
 			FVector TargetLocation = FVector::ZeroVector;
@@ -785,7 +835,7 @@ void ANACharacter::OnInventoryCameraEnterFinished()
 }
 void ANACharacter::OnInventoryCameraExitFinished()
 {
-	// 회전 컨트롤 세팅 바뀔때 약간 끊겨서 한 프레임 뒤에서 세팅 변경
+	// 회전 컨트롤 세팅 바뀔때 약간 끊겨서 다음 프레임 틱에서 세팅 변경
 	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([this]()
 	{
 		bIsExpandingInventoryWidget = false;
@@ -807,6 +857,7 @@ void ANACharacter::SelectInventorySlot(const FInputActionValue& Value)
 	// }
 	if (InventoryComponent)
 	{
+		// @TODO: 인벤토리에서 '선택' 액션 구현하기
 		InventoryComponent->SelectInventorySlotButton();
 	}
 }

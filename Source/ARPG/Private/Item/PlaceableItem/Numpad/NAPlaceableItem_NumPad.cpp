@@ -37,21 +37,25 @@ void ANAPlaceableItem_NumPad::PostInitializeComponents()
 	Super::PostInitializeComponents();
 }
 
-void ANAPlaceableItem_NumPad::BeginInteract_Implementation(AActor* Interactor)
+bool ANAPlaceableItem_NumPad::BeginInteract_Implementation(AActor* Interactor)
 {
-	Super::BeginInteract_Implementation(Interactor);
+	if (Super::BeginInteract_Implementation(Interactor))
+	{
+		// UNAWorldEventHandler::GetInstance()->RegisterEvent(TEXT("Test"), [this]()
+		// {
+		// 	ExecuteInteract_Wrapped();
+		// });
 
-	// UNAWorldEventHandler::GetInstance()->RegisterEvent(TEXT("Test"), [this]()
-	// {
-	// 	ExecuteInteract_Wrapped();
-	// });
+		CachedWidget->SetVisibility(ESlateVisibility::Visible);
+		return true;
+	}
 
-	CachedWidget->SetVisibility(ESlateVisibility::Visible);
+	return false;
 }
 
-void ANAPlaceableItem_NumPad::EndInteract_Implementation(AActor* Interactor)
+bool ANAPlaceableItem_NumPad::EndInteract_Implementation(AActor* Interactor)
 {
-	Super::EndInteract_Implementation(Interactor);
+	return Super::EndInteract_Implementation(Interactor);
 
 	//UNAWorldEventHandler::GetInstance()->UnRegisterEvent(TEXT("Test"));
 }

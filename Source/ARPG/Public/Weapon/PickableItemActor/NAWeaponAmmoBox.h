@@ -30,7 +30,7 @@ protected:
 
 	virtual bool ExecuteInteract_Implementation(AActor* InteractorActor) override;
 
-	virtual void EndInteract_Implementation(AActor* InteractorActor) override;
+	virtual bool EndInteract_Implementation(AActor* InteractorActor) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	

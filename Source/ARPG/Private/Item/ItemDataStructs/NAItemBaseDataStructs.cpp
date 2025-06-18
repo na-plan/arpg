@@ -1,6 +1,7 @@
 #include "Item/ItemDataStructs/NAItemBaseDataStructs.h"
 #include "Item/ItemActor/NAWeapon.h"
 #include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
+#include "Item/ItemActor/NAPlaceableItemActor.h"
 #include "Misc/StringUtils.h"
 
 FNAItemBaseTableRow::FNAItemBaseTableRow(UClass* InItemClass)
@@ -25,7 +26,7 @@ void FNAItemBaseTableRow::OnDataTableChanged(const UDataTable* InDataTable, cons
 			&& UNAItemEngineSubsystem::Get()->IsItemMetaDataInitialized())
 		{
 			UClass* ItemActorClass = ItemRowStruct->ItemClass.Get();
-			if (ensure(ItemActorClass))
+			if (ItemActorClass)
 			{
 				if (!UNAItemEngineSubsystem::Get()->IsRegisteredItemMetaClass(ItemActorClass))
 				{
@@ -74,6 +75,12 @@ void FNAItemBaseTableRow::OnDataTableChanged(const UDataTable* InDataTable, cons
 			FString EnumStr = FStringUtils::EnumToDisplayString(InteractableData.InteractableType);
 			EnumStr = FStringUtils::InsertSpacesBeforeUppercaseSmart(EnumStr);
 			InteractableData.InteractionName = FText::FromString(EnumStr);
+		}
+
+		if (ItemClass && ItemClass->IsChildOf<ANAPlaceableItemActor>())
+		{
+			InteractableData.bIsUnlimitedInteractable = true;
+			InteractableData.InteractableCount = 0;
 		}
 	}
 }
