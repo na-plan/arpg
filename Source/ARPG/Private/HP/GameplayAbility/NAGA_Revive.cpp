@@ -7,14 +7,11 @@
 #include "NACharacter.h"
 #include "Ability/AttributeSet/NAAttributeSet.h"
 #include "Ability/GameAbilityTask/NAAT_WaitPlayerViewport.h"
-#include "GameFramework/GameStateBase.h"
 #include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
 #include "HP/GameplayEffect/NAGE_Dead.h"
-#include "HP/GameplayEffect/NAGE_Heal.h"
 #include "HP/GameplayEffect/NAGE_Helping.h"
 #include "HP/GameplayEffect/NAGE_Revive.h"
-#include "Net/UnrealNetwork.h"
 
 void UNAGA_Revive::OnReviveSucceeded()
 {
