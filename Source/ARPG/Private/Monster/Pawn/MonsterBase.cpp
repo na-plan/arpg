@@ -134,6 +134,7 @@ void AMonsterBase::SetAttributeData(const FDataTableRowHandle& InDataTableRowHan
 		AbilitySystemComponent->SetNumericAttributeBase(UNAAttributeSet::GetHealthAttribute(), Data->Health);
 		AbilitySystemComponent->SetNumericAttributeBase(UNAAttributeSet::GetMovementSpeedAttribute(), Data->MovementSpeed);
 		MovementComponent->MaxSpeed = Data->MovementSpeed;
+		BaseDamage = Data->BaseDamaage;
 	}
 	// Failed
 	else
@@ -207,7 +208,23 @@ void AMonsterBase::OnDie()
 	// Check
 	if (HasAuthority())
 	{
-		Destroy();
+		if (DeathMontage)
+		{
+			if (AbilitySystemComponent->GetCurrentMontage() == DeathMontage)
+			{
+				UAnimMontage* DeathMontageCheck = AbilitySystemComponent->GetCurrentMontage();
+				float CheckLeftTime = AbilitySystemComponent->GetCurrentMontageSectionTimeLeft();
+				if (CheckLeftTime < 0.3f)
+				{
+					Destroy();
+				}
+				//bool bForcheck = true;
+			}
+		}
+		else
+		{
+			Destroy();
+		}
 	}
 }
 

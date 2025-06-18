@@ -10,6 +10,7 @@
 #include "HP/GameplayEffect/NAGE_Damage.h"
 #include "NACharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "NavigationSystem.h"
 
 
 void UNAAnimNotifyState_QuickDash::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration, const FAnimNotifyEventReference& EventReference)
@@ -149,6 +150,8 @@ void UNAAnimNotifyState_QuickDash::NotifyTick(USkeletalMeshComponent* MeshComp, 
 						check(false);
 						return;
 					}
+
+
 					for (const FOverlapResult& OverlapResult : OverlapResults)
 					{
 						if (const TScriptInterface<IAbilitySystemInterface>& TargetInterface = OverlapResult.GetActor())
@@ -245,21 +248,46 @@ void UNAAnimNotifyState_QuickDash::LaunchTarget(USkeletalMeshComponent* MeshComp
 {
 	if (APawn* OwnerPawn = Cast<APawn>(MeshComp->GetOwner()))
 	{
-		if (UPawnMovementComponent* Movement = OwnerPawn->FindComponentByClass<UPawnMovementComponent>())
-		{
-			FVector FinalVel = LaunchVelocity;
-			const FVector Velocity = Movement->Velocity;
+		// Nav mesh 검사 과정
+		const FNavAgentProperties& AgentProps = OwnerPawn->GetNavAgentPropertiesRef();
+		const float SearchRad = AgentProps.AgentRadius * 2.f;
+		FVector ForwardVec = MeshComp->GetOwner()->GetActorForwardVector();
+		const FVector Start = OwnerPawn->GetActorLocation() + ForwardVec * SearchRad;
+		const FVector End = Start - FVector(0, 0, -100);
+		FNavLocation NavLocation;
+		FColor LineColor = FColor::Green;
 
-			if (!bXYOverride)
+		if (UNavigationSystemV1* NavigationSystemV1 = UNavigationSystemV1::GetCurrent(MeshComp->GetWorld()))
+		{
+			bool bOnNavMesh = NavigationSystemV1->ProjectPointToNavigation(
+				Start,
+				NavLocation,
+				FVector(50.f, 50.f, 500.f)
+			);
+			// navmesh 가 있을때만 앞으로 돌진하도록 처리
+			if (bOnNavMesh)
 			{
-				FinalVel.X += Velocity.X;
-				FinalVel.Y += Velocity.Y;
+				if (UPawnMovementComponent* Movement = OwnerPawn->FindComponentByClass<UPawnMovementComponent>())
+				{
+					FVector FinalVel = LaunchVelocity;
+					const FVector Velocity = Movement->Velocity;
+					if (!bXYOverride)
+					{
+						FinalVel.X += Velocity.X;
+						FinalVel.Y += Velocity.Y;
+					}
+					if (!bZOverride)
+					{
+						FinalVel.Z += Velocity.Z;
+					}
+					Movement->Velocity = FinalVel;
+				}
 			}
-			if (!bZOverride)
+			else
 			{
-				FinalVel.Z += Velocity.Z;
+				LineColor = FColor::Red;
 			}
-			Movement->Velocity = FinalVel;
+			DrawDebugLine(MeshComp->GetWorld(), Start, End, LineColor, false, 3.f, 0, 5.f);
 		}
 	}
 }

@@ -23,7 +23,9 @@ public:
 	float MaxHealth = 0;
 	UPROPERTY(EditAnywhere, Category = "Pawn|Status")
 	float MovementSpeed = 0;
-
+	//양수로 해야 나중에 데미지로 마이너스됨
+	UPROPERTY(EditAnywhere, Category = "Pawn|Status")
+	float BaseDamaage = 10;
 	//Own 해야할것들 ->  drop 할 아이템
 	
 };
