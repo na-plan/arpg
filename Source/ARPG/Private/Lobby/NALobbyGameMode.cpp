@@ -30,11 +30,17 @@ void ANALobbyGameMode::BeginPlay()
 	Super::BeginPlay();
 
 	ACineCameraActor* Cam = nullptr;
+	UDirectionalLightComponent* LightComp = nullptr;
 	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
 	{
 		if (It->GetName().Contains(TEXT("CineCameraActor")))
 		{
 			Cam = Cast<ACineCameraActor>(*It);
+		}
+
+		if (It->GetName().Contains(TEXT("DirectionalLight")))
+		{
+			LightComp = It->GetComponentByClass<UDirectionalLightComponent>();
 		}
 	}
 	

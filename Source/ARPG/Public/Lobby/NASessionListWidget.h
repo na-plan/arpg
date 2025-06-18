@@ -24,6 +24,7 @@ class UNASessionListEntryData : public UObject
 
 public:
 	FString SessionName;
+	FString TravelAddress;
 	int32 SessionIndex;
 };
 
@@ -41,14 +42,14 @@ public:
 		if (!Result) return;
 
 		Data = Result;
-
+		
 		Text_SessionName->SetText(FText::FromString(Data->SessionName));
 		
 		UNAGameInstance* GameInstance = Cast<UNAGameInstance>(GetGameInstance());
 		GameInstance->SetReservedIndex(Data->SessionIndex);
 		Button_Join->OnClicked.AddDynamic(GameInstance,&UNAGameInstance::JoinSession_Wrapped);
 	}
-
+	
 	virtual void NativeDestruct() override
 	{
 		Button_Join->OnClicked.Clear();

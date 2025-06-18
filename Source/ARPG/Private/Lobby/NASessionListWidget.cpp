@@ -11,7 +11,10 @@ void UNASessionListWidget::NativeConstruct()
 	Super::NativeConstruct();
 
 	CachedGameInstance = Cast<UNAGameInstance>(GetGameInstance());
-	
+
+	if (!CachedGameInstance) return;
+
+	RefreshSessionList();
 }
 
 void UNASessionListWidget::RefreshSessionList()

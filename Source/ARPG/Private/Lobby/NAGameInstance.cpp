@@ -32,7 +32,7 @@ void UNAGameInstance::Init()
 void UNAGameInstance::FindSessions()
 {
 	if (!SessionInterface.IsValid()) return;
-
+	
 	SessionSearch = MakeShareable(new FOnlineSessionSearch());
 	SessionSearch->bIsLanQuery = true;
 	SessionSearch->MaxSearchResults = 20;
