@@ -24,17 +24,20 @@ void UNAAT_ConsumeKineticGrabAP::TickTask( float DeltaTime )
 	Super::TickTask( DeltaTime );
 
 	const UNAKineticAttributeSet* AttributeSet = Cast<UNAKineticAttributeSet>( AbilitySystemComponent->GetAttributeSet( UNAKineticAttributeSet::StaticClass() ) );
-
-	if ( const float AP = AttributeSet->GetAP() - DeltaTime;
-		 AP <= 0.f )
+	const float Decrease = -(10.f * DeltaTime);
+	const float AP = AttributeSet->GetAP() + Decrease;
+	
+	if ( AP <= 0.f )
 	{
 		OnAPDepleted.Broadcast();
-		EndTask();
+		return;
 	}
+
+	UE_LOG(LogTemp, Log, TEXT("%hs: AP decreases to %f"), __FUNCTION__, AP)
 
 	const FGameplayEffectContextHandle Context = AbilitySystemComponent->MakeEffectContext();
 	const FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec( UNAGE_KineticAP::StaticClass(), 1.f, Context );
-	SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( "Data.KineticAP" ), -(10.f * DeltaTime) );
+	SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( "Data.KineticAP" ),  Decrease);
 	const FActiveGameplayEffectHandle Handle = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf( *SpecHandle.Data.Get() );
 	check( Handle.WasSuccessfullyApplied() );
 }
