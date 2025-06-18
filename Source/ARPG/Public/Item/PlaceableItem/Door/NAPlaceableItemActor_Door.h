@@ -42,6 +42,13 @@ private:
 	void InitInteraction(AActor* Interactor);
 
 	void ActiveDoor();
+
+	void ToggleDoor();
+
+	UFUNCTION()
+	void OnDoorOpeningFinished();
+	UFUNCTION()
+	void OnDoorClosingFinished();
 	
 public:
 	// Called every frame
@@ -66,7 +73,7 @@ protected:
 	EDoorType DoorType;
 
 	UPROPERTY(EditAnywhere)
-	double MoveDist = 300.0;
+	double MoveDist = 200.0;
 	
 	UPROPERTY()
 	float Duration = 1.5f;
@@ -78,14 +85,23 @@ protected:
 	FTransform PivotTF;
 	
 	UPROPERTY()
-	FTransform OriginTF1;
+	FTransform OriginTF1_Local;
 
 	UPROPERTY()
-	FTransform OriginTF2;
+	FTransform OriginTF2_Local;
 
 	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = true))
 	bool bIsLocked = false;
 	
 	// Delegate
 	FOnTickInteraction TickInteraction;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	uint8 bIsOpened : 1 = false;
+
+	UPROPERTY()
+	FTransform DestTF1_Local = FTransform::Identity;
+
+	UPROPERTY()
+	FTransform DestTF2_Local = FTransform::Identity;
 };

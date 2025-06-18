@@ -62,6 +62,8 @@ bool ANAPlaceableItemActor::EndInteract_Implementation(AActor* Interactor)
 void ANAPlaceableItemActor::SetInteractionPhysicsEnabled(const bool bEnabled)
 {
 	// PlaceableActor는 아무것도 안함
+	UE_LOG(LogTemp, Warning, TEXT(
+		"[ANAPlaceableItemActor::SetInteractionPhysicsEnabled]  Placeable Item Actor는 아무것도 안하고 스루"));
 }
 
 
