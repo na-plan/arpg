@@ -76,7 +76,10 @@ void UNAGA_KineticGrab::EndAbility( const FGameplayAbilitySpecHandle Handle, con
 
 		if ( Component && Component->bIsGrab )
 		{
+			UPrimitiveComponent* Grabbed = Component->GetGrabbedComponent();
 			Component->ReleaseComponent();
+			Grabbed->WakeAllRigidBodies();
+			
 			// 왼클릭이 공격과 겹치기 떄문에 잡기 상태를 한틱 늦게 업데이트
 			GetWorld()->GetTimerManager().SetTimerForNextTick( [ Component ]()
 			{
@@ -184,7 +187,7 @@ void UNAGA_KineticGrab::ActivateAbility( const FGameplayAbilitySpecHandle Handle
 						Component->GetActorForward(),
 						Component->GetGrabDistance()
 					),
-					Hit.GetComponent()->GetComponentRotation()
+					Component->GetActorForward().Rotation()
 				);
 
 				UE_LOG(LogTemp, Log, TEXT("%hs: Grabbing %s"), __FUNCTION__, *GetNameSafe( Hit.GetActor() ) )
@@ -232,16 +235,7 @@ void UNAGA_KineticGrab::Throw()
 				const float ImpulseForce = Component->GetForce();
 				const FVector ForwardVector = Component->GetActorForward();
 				UPrimitiveComponent* OtherComponent = Component->GetGrabbedComponent();
-
-				// ReleaseComponent가 EndAbility 하면서 먼저 호출되기 때문에 임펄스도 다음 틱에 적용
-				GetWorld()->GetTimerManager().SetTimerForNextTick(
-					[ Weak = TWeakObjectPtr< UPrimitiveComponent >( OtherComponent ), ForwardVector, ImpulseForce ]()
-				{
-					if ( Weak.IsValid )
-					{
-						Weak->AddImpulse( ForwardVector * ImpulseForce, NAME_None, false );	
-					}
-				} );
+				OtherComponent->AddImpulse( ForwardVector * ImpulseForce );
 			}
 		}
 

@@ -24,22 +24,23 @@ void UNAAT_MoveActorTo::Activate()
 	{
 		PreviousResponse = TargetBoundComponent->GetCollisionResponseToChannel( ECC_Pawn );
 		TargetBoundComponent->SetCollisionResponseToChannel( ECC_Pawn, ECR_Ignore );
-		Mass = TargetBoundComponent->GetMass();
 		// 무거운 물체도 가볍게 움직일 수 있도록...
-		TargetBoundComponent->SetMassOverrideInKg( NAME_None, Mass / 10.f, true );
+		TargetBoundComponent->SetMassOverrideInKg( NAME_None, TargetBoundComponent->GetMass() / 10.f, true );
 		if ( OriginActor.IsValid() )
 		{
 			TargetBoundComponent->IgnoreActorWhenMoving( OriginActor.Get(), true );
 		}
 
-		if ( const UNAKineticComponent* Component = OriginActor->GetComponentByClass<UNAKineticComponent>() )
+		AccumulatedQuat = FQuat::Identity;
+
+		if ( const UNAKineticComponent* KineticComponent = OriginActor->GetComponentByClass<UNAKineticComponent>() )
 		{
-			OriginForwardQuat = Component->GetActorForward().ToOrientationQuat();	
+			PreviousOriginForwardQuat = KineticComponent->GetActorForward().ToOrientationQuat();
 		}
 	}
 }
 
-UNAAT_MoveActorTo::UNAAT_MoveActorTo(): Mass( 0.f ), PreviousResponse( ECR_MAX )
+UNAAT_MoveActorTo::UNAAT_MoveActorTo(): PreviousResponse( ECR_MAX )
 {
 	bTickingTask = true;
 }
@@ -66,19 +67,16 @@ void UNAAT_MoveActorTo::TickTask( float DeltaTime )
 
 			// 오일러 방식으로 계산할 경우 짐벌락이 발생함!
 			// 쿼터니언으로 두 각도의 차이를 계산함 (PQ_I * CQ)
-			const FQuat RotationDelta = OriginForwardQuat.Inverse() * KineticComponent->GetActorForward().ToOrientationQuat();
+			const FQuat RotationDelta = PreviousOriginForwardQuat.Inverse() * KineticComponent->GetActorForward().ToOrientationQuat();
 			
-			// Physics Handle Component를 사용하면 Lerp가 자동으로 적용됨
-			//const FVector& Lerped = FMath::VInterpTo( TargetActor->GetActorLocation(), TargetPosition, DeltaTime, 10.f );
-
 			FVector ObjectLocation;
 			FRotator ObjectRotation;
 			KineticComponent->GetTargetLocationAndRotation( ObjectLocation, ObjectRotation );
 
+			// PhysicsHandleComponent - 처음 그랩한 회전값을 기준으로 상대 회전 변환됨
 			// 현재 회전각 값과 합성하여 새로운 다음 각도를 계산함
-			// 델타타임은 PhysicsHandleComponent 내부에서 보간하면서 적용됨
-			const FQuat CurrentQuat ( ObjectRotation );
-			const FRotator NewRotation = ( CurrentQuat * RotationDelta ).Rotator();
+			AccumulatedQuat *= RotationDelta;
+			const FQuat NewRotation = FMath::QInterpTo( ObjectRotation.Quaternion(), AccumulatedQuat, DeltaTime, 10.f );
 
 			FVector TargetPosition = UNAGA_KineticGrab::EvaluateActorPosition
 			(
@@ -87,6 +85,7 @@ void UNAAT_MoveActorTo::TickTask( float DeltaTime )
 				KineticComponent->GetActorForward(),
 				KineticComponent->GetGrabDistance()
 			);
+			TargetPosition = FMath::VInterpTo( ObjectLocation, TargetPosition, DeltaTime, 10.f );
 
 			if ( GetWorld()->LineTraceSingleByChannel( Hit, OriginActor->GetActorLocation(), TargetPosition, ECC_Visibility, Params ) )
 			{
@@ -95,10 +94,13 @@ void UNAAT_MoveActorTo::TickTask( float DeltaTime )
 			}
 			
 			KineticComponent->SetTargetLocation( TargetPosition );
-			KineticComponent->SetTargetRotation( NewRotation );
+			KineticComponent->SetTargetRotation( NewRotation.Rotator() );
+
+			const FRotator OriginForwardRotation = FMath::RInterpTo( OriginActor->GetActorRotation(), KineticComponent->GetActorForward().Rotation(), DeltaTime, 10.f );
+			OriginActor->SetActorRotation( OriginForwardRotation );
 
 			// 다음 연산에서 차이를 계산하기 위해 현재 회전값을 저장
-			OriginForwardQuat = KineticComponent->GetActorForward().ToOrientationQuat();
+			PreviousOriginForwardQuat = KineticComponent->GetActorForward().ToOrientationQuat();
 		}
 	}
 }
@@ -111,6 +113,6 @@ void UNAAT_MoveActorTo::OnDestroy( bool bInOwnerFinished )
 	{
 		TargetBoundComponent->SetCollisionResponseToChannel( ECC_Pawn, PreviousResponse );
 		TargetBoundComponent->IgnoreActorWhenMoving( OriginActor.Get(), false );
-		TargetBoundComponent->SetMassOverrideInKg( NAME_None, Mass, true );
+		TargetBoundComponent->SetMassOverrideInKg( NAME_None, 0.f, false );
 	}
 }
