@@ -4,24 +4,27 @@
 #include "Combat/GameplayAbility/NAGA_KineticGrab.h"
 
 #include "AbilitySystemComponent.h"
-#include "NACharacter.h"
 #include "Combat/AbilityTask/NAAT_ConsumeKineticGrabAP.h"
 #include "Combat/AbilityTask/NAAT_MoveActorTo.h"
 #include "Combat/AttributeSet/NAKineticAttributeSet.h"
 #include "ARPG/Public/Combat/PhysicsHandleComponent/NAKineticComponent.h"
 
-FVector UNAGA_KineticGrab::EvaluateActorPosition( const AActor* OriginActor, const UPrimitiveComponent* TargetBoundComponent, const FVector& ForwardVector, float Distance )
+FVector UNAGA_KineticGrab::EvaluateActorPosition(
+	const AActor* OriginActor,
+	const UPrimitiveComponent* TargetBoundComponent,
+	const FVector& OriginForwardVector,
+	float Distance )
 {
-	const FVector ShouldDistanced = GetMinimumDistance( OriginActor, TargetBoundComponent, ForwardVector ) + ( ForwardVector * Distance );
+	const FVector ShouldDistanced = GetMinimumDistance( OriginActor, TargetBoundComponent, OriginForwardVector ) + ( OriginForwardVector * Distance );
 	const FVector OriginPosition = OriginActor->GetActorLocation();
 	const FVector TargetPosition = OriginPosition + ShouldDistanced;
 
 	return TargetPosition;
 }
 
-FVector UNAGA_KineticGrab::EvaluateActorPosition( const AActor* OriginActor, const FVector& ForwardVector, const float MinimumDistance )
+FVector UNAGA_KineticGrab::EvaluateActorPosition( const AActor* OriginActor, const FVector& OriginForwardVector, const float MinimumDistance )
 {
-	const FVector ShouldDistanced = ForwardVector * MinimumDistance;
+	const FVector ShouldDistanced = OriginForwardVector * MinimumDistance;
 	const FVector OriginPosition = OriginActor->GetActorLocation();
 	const FVector TargetPosition = OriginPosition + ShouldDistanced;
 
@@ -38,8 +41,7 @@ FVector UNAGA_KineticGrab::GetMinimumDistance( const AActor* OriginActor,
 
 	const FVector OriginDimensionToForward = OriginDimension * ForwardVector;
 	const FVector TargetDimensionToForward = TargetDimension * ForwardVector;
-
-	return TargetDimensionToForward + OriginDimensionToForward;
+	return OriginDimensionToForward + TargetDimensionToForward;
 }
 
 bool UNAGA_KineticGrab::CommitAbility( const FGameplayAbilitySpecHandle Handle,

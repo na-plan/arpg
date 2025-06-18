@@ -39,9 +39,9 @@ class ARPG_API UNAGA_KineticGrab : public UGameplayAbility
 	
 public:
 	static FVector EvaluateActorPosition( const AActor* OriginActor, const UPrimitiveComponent* TargetBoundComponent,
-	                                      const FVector& ForwardVector, float Distance );
+	                                      const FVector& OriginForwardVector, float Distance );
 
-	static FVector EvaluateActorPosition( const AActor* OriginActor, const FVector& ForwardVector, float MinimumDistance );
+	static FVector EvaluateActorPosition( const AActor* OriginActor, const FVector& OriginForwardVector, float MinimumDistance );
 
 	static FVector GetMinimumDistance( const AActor* OriginActor, const UPrimitiveComponent* TargetBoundComponent, const FVector& ForwardVector );
 	

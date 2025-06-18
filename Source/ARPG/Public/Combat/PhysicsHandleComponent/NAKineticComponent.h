@@ -89,6 +89,8 @@ public:
 	
 	void ForceUpdateActorForward();
 
+	bool HasGrabbed() const;
+
 protected:
 	
 	void OnAPChanged( const FOnAttributeChangeData& OnAttributeChangeData );

@@ -15,10 +15,8 @@ class ARPG_API UNAAT_MoveActorTo : public UAbilityTask
 	GENERATED_BODY()
 
 	float Mass;
-
-	FVector TargetForwardVector;
 	
-	FVector OriginForwardVector;
+	FQuat OriginForwardQuat;
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Ability|Tasks", meta = (AllowPrivateAccess = "true") )
 	TWeakObjectPtr<AActor> OriginActor;

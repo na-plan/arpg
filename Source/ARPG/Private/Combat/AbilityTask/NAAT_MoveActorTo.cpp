@@ -32,10 +32,9 @@ void UNAAT_MoveActorTo::Activate()
 			TargetBoundComponent->IgnoreActorWhenMoving( OriginActor.Get(), true );
 		}
 
-		TargetForwardVector = TargetBoundComponent->GetForwardVector();
 		if ( const UNAKineticComponent* Component = OriginActor->GetComponentByClass<UNAKineticComponent>() )
 		{
-			OriginForwardVector = Component->GetActorForward();	
+			OriginForwardQuat = Component->GetActorForward().ToOrientationQuat();	
 		}
 	}
 }
@@ -65,17 +64,21 @@ void UNAAT_MoveActorTo::TickTask( float DeltaTime )
 			Params.AddIgnoredActors( OriginChildActors );
 			Params.AddIgnoredActors( TargetChildActors );
 
-			const FRotator RotationDelta = (KineticComponent->GetActorForward() - OriginForwardVector).Rotation();
-			const FRotator TargetDelta = RotationDelta.RotateVector( FVector::ForwardVector ).Rotation();
+			// 오일러 방식으로 계산할 경우 짐벌락이 발생함!
+			// 쿼터니언으로 두 각도의 차이를 계산함 (PQ_I * CQ)
+			const FQuat RotationDelta = OriginForwardQuat.Inverse() * KineticComponent->GetActorForward().ToOrientationQuat();
 			
 			// Physics Handle Component를 사용하면 Lerp가 자동으로 적용됨
 			//const FVector& Lerped = FMath::VInterpTo( TargetActor->GetActorLocation(), TargetPosition, DeltaTime, 10.f );
 
-			FVector TargetLocation;
-			FRotator TargetRotation;
-			KineticComponent->GetTargetLocationAndRotation( TargetLocation, TargetRotation );
+			FVector ObjectLocation;
+			FRotator ObjectRotation;
+			KineticComponent->GetTargetLocationAndRotation( ObjectLocation, ObjectRotation );
 
-			const FRotator NewRotation = TargetRotation + TargetDelta * DeltaTime;
+			// 현재 회전각 값과 합성하여 새로운 다음 각도를 계산함
+			// 델타타임은 PhysicsHandleComponent 내부에서 보간하면서 적용됨
+			const FQuat CurrentQuat ( ObjectRotation );
+			const FRotator NewRotation = ( CurrentQuat * RotationDelta ).Rotator();
 
 			FVector TargetPosition = UNAGA_KineticGrab::EvaluateActorPosition
 			(
@@ -90,13 +93,12 @@ void UNAAT_MoveActorTo::TickTask( float DeltaTime )
 				Ability->CancelAbility( GetAbilitySpecHandle(), Ability->GetCurrentActorInfo(), Ability->GetCurrentActivationInfo(), false );
 				return;
 			}
-
+			
 			KineticComponent->SetTargetLocation( TargetPosition );
 			KineticComponent->SetTargetRotation( NewRotation );
-			//UE_LOG( LogTemp, Log, TEXT("%s"), *TargetPosition.ToString() );
-			
-			TargetForwardVector = TargetBoundComponent->GetForwardVector();
-			OriginForwardVector = KineticComponent->GetActorForward();
+
+			// 다음 연산에서 차이를 계산하기 위해 현재 회전값을 저장
+			OriginForwardQuat = KineticComponent->GetActorForward().ToOrientationQuat();
 		}
 	}
 }
@@ -109,6 +111,6 @@ void UNAAT_MoveActorTo::OnDestroy( bool bInOwnerFinished )
 	{
 		TargetBoundComponent->SetCollisionResponseToChannel( ECC_Pawn, PreviousResponse );
 		TargetBoundComponent->IgnoreActorWhenMoving( OriginActor.Get(), false );
-		TargetBoundComponent->SetMassOverrideInKg( NAME_None, 0.f, false );
+		TargetBoundComponent->SetMassOverrideInKg( NAME_None, Mass, true );
 	}
 }
