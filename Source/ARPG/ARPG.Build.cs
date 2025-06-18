@@ -22,12 +22,14 @@ public class ARPG : ModuleRules
 			"AIModule",
 			"GeometryCollectionEngine",
 			"Niagara",
-			"NetCore"
+			"NetCore",
+			"OnlineSubsystem",
+			"OnlineSubsystemUtils"
 		});
 		
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			"Slate", "SlateCore"
+			"Slate", "SlateCore", "CinematicCamera"
 		});
 
 		if (Target.bBuildEditor)

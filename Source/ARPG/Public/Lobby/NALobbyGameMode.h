@@ -18,10 +18,13 @@ class ARPG_API ANALobbyGameMode : public AGameModeBase
 public:
 	ANALobbyGameMode();
 
-protected:
-	void ChangeLevel(UObject* WorldContext, FString LevelName);
+public:
+	virtual void BeginPlay() override;
 	
 protected:
+	UPROPERTY(EditAnywhere, meta = (BindWidget, AllowPrivateAccess = true))
+	TSubclassOf<UUserWidget> LobbyWidgetClass;
+	
 	UPROPERTY()
 	UNALobbyWidget* LobbyWidget;
 };

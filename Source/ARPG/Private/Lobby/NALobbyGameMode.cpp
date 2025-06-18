@@ -3,10 +3,14 @@
 
 #include "Lobby/NALobbyGameMode.h"
 
+#include "CineCameraActor.h"
 #include "NAGameStateBase.h"
 #include "NAPlayerController.h"
 #include "NAPlayerState.h"
+#include "Components/Widget.h"
+#include "Item/ItemActor/NAItemActor.h"
 #include "Kismet/GameplayStatics.h"
+#include "Lobby/NALobbyWidget.h"
 
 ANALobbyGameMode::ANALobbyGameMode()
 {
@@ -15,15 +19,49 @@ ANALobbyGameMode::ANALobbyGameMode()
 	PlayerStateClass = ANAPlayerState::StaticClass();
 	GameStateClass = ANAGameStateBase::StaticClass();
 	PlayerControllerClass = ANAPlayerController::StaticClass();
-	
-	
+
+	static ConstructorHelpers::FClassFinder<UUserWidget> widget(TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/00_ProjectNA/01_Blueprint/01_Widget/Lobby/BP_NALobby.BP_NALobby_C'"));
+	if (widget.Succeeded())
+		LobbyWidgetClass = widget.Class;
 }
 
-void ANALobbyGameMode::ChangeLevel(UObject* WorldContext, FString LevelName)
+void ANALobbyGameMode::BeginPlay()
 {
-	UGameplayStatics::OpenLevel(WorldContext, FName(LevelName));
+	Super::BeginPlay();
 
+	ACineCameraActor* Cam = nullptr;
+	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+	{
+		if (It->GetName().Contains(TEXT("CineCameraActor")))
+		{
+			Cam = Cast<ACineCameraActor>(*It);
+		}
+	}
+	
+	APlayerController* Controller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	Controller->bShowMouseCursor = true;
+	Controller->SetViewTarget(Cam);
 
-	// 멀티
-	//GetWorld()->ServerTravel(LevelName + TEXT("?listen"));;
+	UUserWidget* instance = CreateWidget<UUserWidget>(GetWorld(), LobbyWidgetClass);
+	instance->AddToViewport();
+	LobbyWidget = Cast<UNALobbyWidget>(instance);
+
+	
 }
+//
+// void ANALobbyGameMode::OnClick_SingleMode()
+// {
+// 	ChangeLevel(GetWorld(),TEXT("/Script/Engine.World'/Game/00_ProjectNA/02_Level/Level_NATestLevel.Level_NATestLevel'"));
+// }
+//
+// void ANALobbyGameMode::OnClick_CoopMode()
+// {
+// }
+// void ANALobbyGameMode::ChangeLevel(UObject* WorldContext, FString LevelName)
+// {
+// 	UGameplayStatics::OpenLevel(WorldContext, FName(LevelName));
+//
+// 	
+// 	// 멀티
+// 	//GetWorld()->ServerTravel(LevelName + TEXT("?listen"));;
+// }
