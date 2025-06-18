@@ -16,6 +16,7 @@
 #include "NAPlayerState.h"
 #include "ARPG/ARPG.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
+#include "../Public/Combat/PhysicsHandleComponent/NAKineticComponent.h"
 #include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "HP/GameplayAbility/NAGA_Revive.h"
 #include "HP/WidgetComponent/NAReviveWidgetComponent.h"
@@ -154,10 +155,10 @@ ANACharacter::ANACharacter()
 
 	VitalCheckComponent = CreateDefaultSubobject<UNAVitalCheckComponent>(TEXT("VitalCheckComponent"));
 	ReviveWidget = CreateDefaultSubobject<UNAReviveWidgetComponent>( TEXT("ReviveWidgetComponent") );
+	KineticComponent = CreateDefaultSubobject<UNAKineticComponent>( TEXT("KineticComponent") );
 
 	ApplyAttachments();
 	
-	GetMesh()->SetIsReplicated( true );
 	bReplicates = true;
 	ACharacter::SetReplicateMovement( true );
 
@@ -165,7 +166,10 @@ ANACharacter::ANACharacter()
 	DefaultCombatComponent->SetNetAddressable();
 	LeftHandChildActor->SetNetAddressable();
 	RightHandChildActor->SetNetAddressable();
-
+	KineticComponent->SetNetAddressable();
+	
+	GetMesh()->SetIsReplicated( true );
+	KineticComponent->SetIsReplicated( true );
 	LeftHandChildActor->SetIsReplicated( true );
 	RightHandChildActor->SetIsReplicated( true );
 }
@@ -206,6 +210,7 @@ void ANACharacter::BeginPlay()
 	{
 		LeftHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
 		RightHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
+		KineticComponent->ToggleGrabAbility( true );
 	}
 
 	if ( GetController() == GetWorld()->GetFirstPlayerController() )
@@ -311,8 +316,8 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	}
 	
 	// Set up action bindings
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
-		
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	{
 		// Jumping
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
@@ -546,6 +551,11 @@ void ANACharacter::Look(const FInputActionValue& Value)
 
 void ANACharacter::StartLeftMouseAttack()
 {
+	if ( KineticComponent->HasGrabbed() )
+	{
+		return;
+	}
+	
 	if ( !TryAttack( RightHandChildActor->GetChildActor() ) )
 	{
 		if ( DefaultCombatComponent->IsAbleToAttack() && !DefaultCombatComponent->IsAttacking() )
@@ -921,8 +931,9 @@ void ANACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME( ANACharacter, LeftHandChildActor );
 	DOREPLIFETIME( ANACharacter, RightHandChildActor );
 	DOREPLIFETIME( ANACharacter, bIsZoom);
-	DOREPLIFETIME_CONDITION( ANACharacter, InteractionComponent, COND_OwnerOnly )
-	DOREPLIFETIME_CONDITION( ANACharacter, ReplicatedControlRotation, COND_Custom )
+	DOREPLIFETIME_CONDITION( ANACharacter, InteractionComponent, COND_OwnerOnly );
+	DOREPLIFETIME_CONDITION( ANACharacter, ReplicatedControlRotation, COND_Custom );
+	DOREPLIFETIME( ANACharacter, KineticComponent );
 }
 
 void ANACharacter::SyncAmmoConsumptionWithInventory( const FActiveGameplayEffect& ActiveGameplayEffect )
