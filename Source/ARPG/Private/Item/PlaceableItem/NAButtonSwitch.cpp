@@ -29,14 +29,14 @@ void ANAButtonSwitch::PostInitializeComponents()
 	Super::PostInitializeComponents();
 }
 
-void ANAButtonSwitch::BeginInteract_Implementation(AActor* Interactor)
+bool ANAButtonSwitch::BeginInteract_Implementation(AActor* Interactor)
 {
-	Super::BeginInteract_Implementation(Interactor);
+	return Super::BeginInteract_Implementation(Interactor);
 }
 
-void ANAButtonSwitch::EndInteract_Implementation(AActor* Interactor)
+bool ANAButtonSwitch::EndInteract_Implementation(AActor* Interactor)
 {
-	Super::EndInteract_Implementation(Interactor);
+	return Super::EndInteract_Implementation(Interactor);
 }
 
 bool ANAButtonSwitch::ExecuteInteract_Implementation(AActor* Interactor)

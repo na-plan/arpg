@@ -28,6 +28,7 @@ ANAPlaceableItemActor_Door::ANAPlaceableItemActor_Door(const FObjectInitializer&
 		if (ItemWidgetComponent)
 		{
 			ItemWidgetComponent->SetupAttachment(ItemCollision);
+			ItemWidgetComponent->SetRelativeLocation(FVector(-80.f, 0.f, 0.f));
 		}
 	}
 }
@@ -47,24 +48,30 @@ void ANAPlaceableItemActor_Door::PostInitializeComponents()
 	Super::PostInitializeComponents();
 }
 
-void ANAPlaceableItemActor_Door::BeginInteract_Implementation(AActor* Interactor)
+bool ANAPlaceableItemActor_Door::BeginInteract_Implementation(AActor* Interactor)
 {
-	Super::BeginInteract_Implementation(Interactor);
-
-	if (ItemWidgetComponent && ItemWidgetComponent->IsVisible())
+	if (Super::BeginInteract_Implementation(Interactor))
 	{
-		ItemWidgetComponent->CollapseItemWidgetPopup();
+		if (ItemWidgetComponent && ItemWidgetComponent->IsVisible())
+		{
+			ItemWidgetComponent->CollapseItemWidgetPopup();
+		}
+		InitInteraction(Interactor);
+		TickInteraction.BindUObject(this, &ThisClass::ExecuteInteract_Implementation);
+		return true;
 	}
-	InitInteraction(Interactor);
-	TickInteraction.BindUObject(this, &ThisClass::ExecuteInteract_Implementation);
+	return false;
 }
 
-void ANAPlaceableItemActor_Door::EndInteract_Implementation(AActor* Interactor)
+bool ANAPlaceableItemActor_Door::EndInteract_Implementation(AActor* Interactor)
 {
-	Super::EndInteract_Implementation(Interactor);
-
-	InitInteraction(nullptr);
-	TickInteraction.Unbind();
+	if (Super::EndInteract_Implementation(Interactor))
+	{
+		InitInteraction(nullptr);
+		TickInteraction.Unbind();
+		return true;
+	}
+	return false;
 }
 
 bool ANAPlaceableItemActor_Door::ExecuteInteract_Implementation(AActor* Interactor)

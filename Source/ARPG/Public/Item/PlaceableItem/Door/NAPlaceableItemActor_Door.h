@@ -30,27 +30,27 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void PostInitializeComponents() override;
 
-	//======================================================================================================================
-	// Interactable Interface Implements
-	//======================================================================================================================
-public:
-	virtual void BeginInteract_Implementation(AActor* Interactor) override;
-	virtual void EndInteract_Implementation(AActor* Interactor) override;
-	virtual	bool ExecuteInteract_Implementation(AActor* Interactor) override;
-
+//======================================================================================================================
+// Interactable Interface Implements
+//======================================================================================================================
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	virtual bool BeginInteract_Implementation(AActor* Interactor) override;
+	virtual	bool ExecuteInteract_Implementation(AActor* Interactor) override;
+	virtual bool EndInteract_Implementation(AActor* Interactor) override;
 	
-public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
 private:
 	void InitInteraction(AActor* Interactor);
 
 	void ActiveDoor();
 	
+public:
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
+
+protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+
 protected:
 	UPROPERTY()
 	AActor* CurrentInteractingActor = nullptr;

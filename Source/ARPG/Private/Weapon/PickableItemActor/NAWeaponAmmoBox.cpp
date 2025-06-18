@@ -65,9 +65,9 @@ bool ANAWeaponAmmoBox::ExecuteInteract_Implementation( AActor* InteractorActor )
 	return bResult;
 }
 
-void ANAWeaponAmmoBox::EndInteract_Implementation( AActor* InteractorActor )
+bool ANAWeaponAmmoBox::EndInteract_Implementation( AActor* InteractorActor )
 {
-	Super::EndInteract_Implementation( InteractorActor );
+	return Super::EndInteract_Implementation( InteractorActor );
 }
 
 void ANAWeaponAmmoBox::GetLifetimeReplicatedProps( TArray<FLifetimeProperty>& OutLifetimeProps ) const
