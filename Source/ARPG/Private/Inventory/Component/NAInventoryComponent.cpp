@@ -317,7 +317,7 @@ void UNAInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 	// ...
 }
 
-// 일단 슬롯 한 칸에 들어있는 아이템 한 번에 전부 삭제
+// @TODO: (임시) 인벤토리 슬롯 한 칸에 담긴 아이템 전부 삭제
 void UNAInventoryComponent::RemoveItemAtInventorySlot()
 {
 	if (!GetInventoryWidget()) return;
@@ -362,6 +362,7 @@ void UNAInventoryComponent::UseMedPackByShortcut(AActor* User)
 			return static_cast<uint8>(GradeA) > static_cast<uint8>(GradeB);
 		}
 
+		// @TODO: 같은 등급 슬롯들을 슬롯 넘버의 오름차순으로 따라 정렬
 		return static_cast<uint8>(GradeA) == static_cast<uint8>(GradeB);
 	});
 
@@ -432,8 +433,8 @@ int32 UNAInventoryComponent::TryAddItem(UNAItemData* ItemToAdd)
 	}
 
 	// 반환값을 OriginalQuantity – ActualAmountAdded 형태로 계산
-	if (Result.OperationResult == ENAItemAddStatus::IAR_AddedAll ||
-		Result.OperationResult == ENAItemAddStatus::IAR_AddedPartial)
+	if (Result.OperationResult == ENAItemAddStatus::IAS_AddedAll ||
+		Result.OperationResult == ENAItemAddStatus::IAS_AddedPartial)
 	{
 		// 성공(전부 혹은 일부 추가)이므로 정렬 실행
 		SortInvenSlotItems();
@@ -969,79 +970,76 @@ bool UNAInventoryComponent::IsValidForNonStackable(UNAItemData* InputItem, FStri
 
 UNAItemData* UNAInventoryComponent::FindSameClassItem(const UClass* ItemClass) const
 {
-	if (ItemClass)
-	{
-		if (ItemClass->IsChildOf<ANAWeapon>())
-		{
-			for (const auto& Pair : InvenSlotContents)
-			{
-				if (!Pair.Value.IsValid())
-				{
-					continue;
-				}
+	if (!ItemClass) return nullptr;
 
-				if (Pair.Value->GetItemActorClass()->IsChildOf( ItemClass ))
-				{
-					return Pair.Value.Get();
-				}
+	const TMap<FName, TWeakObjectPtr<UNAItemData>>* SlotMap = nullptr;
+
+	if (ItemClass->IsChildOf<ANAWeapon>())
+	{
+		SlotMap = &WeaponSlotContents;
+	}
+	else
+	{
+		SlotMap = &InvenSlotContents;
+	}
+
+	int32 MinSlotNum = INT_MAX;
+	UNAItemData* Result = nullptr;
+
+	for (const auto& Pair : *SlotMap)
+	{
+		if (!Pair.Value.IsValid())
+			continue;
+
+		if (Pair.Value->GetItemActorClass()->IsChildOf(ItemClass))
+		{
+			int32 SlotNum = ExtractSlotNumber(Pair.Key);
+			if (SlotNum < MinSlotNum)
+			{
+				MinSlotNum = SlotNum;
+				Result = Pair.Value.Get();
 			}
 		}
-		else
-		{
-			for (const auto& Pair : InvenSlotContents)
-			{
-				if (!Pair.Value.IsValid())
-				{
-					continue;
-				}
-
-				if (Pair.Value->GetItemActorClass()->IsChildOf( ItemClass ))
-				{
-					return Pair.Value.Get();
-				}
-			}	
-		}
 	}
-	return nullptr;
+
+	return Result;
 }
 
 bool UNAInventoryComponent::FindSameClassItems( const UClass* ItemClass, TArray<UNAItemData*>& OutItems ) const
 {
 	OutItems.Empty();
-	
-	if (ItemClass)
+	if (!ItemClass) return true;
+
+	const TMap<FName, TWeakObjectPtr<UNAItemData>>* SlotMap = nullptr;
+
+	if (ItemClass->IsChildOf<ANAWeapon>())
+		SlotMap = &WeaponSlotContents;
+	else
+		SlotMap = &InvenSlotContents;
+
+	// 임시로 (슬롯번호, 아이템) 쌍을 담음
+	TArray<TPair<int32, UNAItemData*>> TempPairs;
+
+	for (const auto& Pair : *SlotMap)
 	{
-		if (ItemClass->IsChildOf<ANAWeapon>())
-		{
-			for (const auto& Pair : InvenSlotContents)
-			{
-				if (!Pair.Value.IsValid())
-				{
-					continue;
-				}
+		if (!Pair.Value.IsValid())
+			continue;
 
-				if ( Pair.Value->GetItemActorClass()->IsChildOf( ItemClass ) )
-				{
-					OutItems.Emplace( Pair.Value.Get() );
-				}
-			}
-		}
-		else
+		if (Pair.Value->GetItemActorClass()->IsChildOf(ItemClass))
 		{
-			for (const auto& Pair : InvenSlotContents)
-			{
-				if (!Pair.Value.IsValid())
-				{
-					continue;
-				}
-
-				if ( Pair.Value->GetItemActorClass()->IsChildOf( ItemClass ) )
-				{
-					OutItems.Emplace( Pair.Value.Get() );
-				}
-			}	
+			int32 SlotNum = ExtractSlotNumber(Pair.Key);
+			TempPairs.Emplace(SlotNum, Pair.Value.Get());
 		}
 	}
+
+	// 슬롯 번호 오름차순 정렬
+	TempPairs.Sort([](const TPair<int32, UNAItemData*>& A, const TPair<int32, UNAItemData*>& B) {
+		return A.Key < B.Key;
+	});
+
+	// 정렬된 아이템만 추출
+	for (const auto& Pair : TempPairs)
+		OutItems.Add(Pair.Value);
 
 	return OutItems.IsEmpty();
 }

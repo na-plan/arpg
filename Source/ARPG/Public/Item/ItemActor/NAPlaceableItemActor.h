@@ -15,15 +15,17 @@ public:
 	virtual void PostRegisterAllComponents() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void PostInitializeComponents() override;
+	
+protected:
+	virtual void BeginPlay() override;
 
 //======================================================================================================================
 // Interactable Interface Implements
 //======================================================================================================================
-public:
-	virtual void BeginInteract_Implementation(AActor* Interactor) override;
-	virtual void EndInteract_Implementation(AActor* Interactor) override;
-	virtual bool ExecuteInteract_Implementation(AActor* Interactor) override;
-
 protected:
-	virtual void BeginPlay() override;
+	virtual bool BeginInteract_Implementation(AActor* Interactor) override;
+	virtual bool ExecuteInteract_Implementation(AActor* Interactor) override;
+	virtual bool EndInteract_Implementation(AActor* Interactor) override;
+	
+	virtual void SetInteractionPhysicsEnabled(const bool bEnabled) override;
 };

@@ -28,16 +28,25 @@ public:
 	FNAInteractableData()
 		: InteractableType(ENAInteractableType::None),
 		InteractionName(FText::GetEmpty()),
-		InteractionDuration(0.f)
+		InteractionDelayTime(0.f),
+		InteractableCount(0),
+		bIsUnlimitedInteractable(false)
 	{
 	}
 
-	UPROPERTY(EditInstanceOnly, Category = "Item Interactable Data")
+	UPROPERTY(EditAnywhere, Category = "Item Interactable Data")
 	ENAInteractableType InteractableType;
 
-	UPROPERTY(VisibleInstanceOnly, Category = "Item Interactable Data")
+	UPROPERTY(VisibleAnywhere, Category = "Item Interactable Data")
 	FText InteractionName;
 
-	UPROPERTY(EditInstanceOnly, Category = "Item Interactable Data", meta=(ClampMin="0.0"))
-	float InteractionDuration;
+	UPROPERTY(EditAnywhere, Category = "Item Interactable Data", meta=(ClampMin="0.0"))
+	float InteractionDelayTime;
+
+	// 상호작용 가능한 횟: 단발성이면 1
+	UPROPERTY(EditAnywhere, Category = "Item Interactable Data", meta=(ClampMin="0"))
+	int32 InteractableCount;
+
+	UPROPERTY(EditAnywhere, Category = "Item Interactable Data", meta=(ClampMin="0"))
+	uint8 bIsUnlimitedInteractable : 1;
 };

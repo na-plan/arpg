@@ -74,5 +74,7 @@ protected:
 	// 플레이어 또는 NPC의 에셋
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_PossessAssetName)
 	FName PossessAssetName = NAME_None;
-	
+
+	UPROPERTY(Replicated)
+	FName PlayerName;
 };
