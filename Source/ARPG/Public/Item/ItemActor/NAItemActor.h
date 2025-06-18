@@ -52,24 +52,78 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item Actor")
 	bool HasValidItemID() const;
 
-	static void TransferItemDataToDuplicatedActor(ANAItemActor* OldItemActor, ANAItemActor* NewDuplicated)
+	static void MigrateItemStateFromChildActor(ANAItemActor* SourceChildActor, ANAItemActor* TargetActor)
 	{
-		if ( UNAItemEngineSubsystem::Get() && OldItemActor && NewDuplicated)
+		if ( UNAItemEngineSubsystem::Get() && SourceChildActor && TargetActor)
 		{
-			if (UNAItemEngineSubsystem::Get()->DestroyRuntimeItemData(NewDuplicated->ItemDataID))
+			if (ensureAlwaysMsgf(SourceChildActor->IsChildActor() && SourceChildActor->GetItemData()
+				&& !TargetActor->IsChildActor() && TargetActor->GetItemData(),
+				TEXT(
+					"[MigrateItemStateFromChildActor]  ")))
 			{
-				NewDuplicated->ItemDataID = OldItemActor->ItemDataID;
-				if (OldItemActor->InteractableInterfaceRef && NewDuplicated->InteractableInterfaceRef)
+				if (UNAItemEngineSubsystem::Get()->DestroyRuntimeItemData(TargetActor->ItemDataID))
 				{
-					INAInteractableInterface::TransferInteractableStateToDuplicatedActor(
-						OldItemActor->InteractableInterfaceRef
-						, NewDuplicated->InteractableInterfaceRef); // 어우 길어
-				}
+					TargetActor->ItemDataID = SourceChildActor->ItemDataID;
+					if (SourceChildActor->InteractableInterfaceRef && TargetActor->InteractableInterfaceRef)
+					{
+						INAInteractableInterface::TransferInteractableStateToChildActor(
+							SourceChildActor->InteractableInterfaceRef
+							, TargetActor->InteractableInterfaceRef);
+					}
 
-				OldItemActor->ItemDataID = NAME_None;
-				OldItemActor->Destroy();
+					if (UChildActorComponent* ChildActorComponent =
+						Cast<UChildActorComponent>(SourceChildActor->GetParentComponent()))
+					{
+						SourceChildActor->ItemDataID = NAME_None;
+						ChildActorComponent->DestroyChildActor();
+						ChildActorComponent->SetChildActorClass(nullptr);
+					}
+				}
 			}
 		}
+	}
+
+	static void MigrateItemStateToChildActor(ANAItemActor* SourceActor, ANAItemActor* TargetChildActor)
+	{
+		if (SourceActor && TargetChildActor)
+		{
+			if (ensureAlwaysMsgf(!SourceActor->IsChildActor() && SourceActor->GetItemData()
+				&& TargetChildActor->IsChildActor() && !TargetChildActor->GetItemData(),
+				TEXT(
+					"[MigrateItemStateToChildActor]  ChildActorComponent에 의해 생성된 아이템 액터에 새로 생성된 아이템 데이터가 있었음")))
+			{
+				TargetChildActor->ItemDataID = SourceActor->ItemDataID;
+				if (SourceActor->InteractableInterfaceRef && TargetChildActor->InteractableInterfaceRef)
+				{
+					INAInteractableInterface::TransferInteractableStateToChildActor(
+						SourceActor->InteractableInterfaceRef
+						, TargetChildActor->InteractableInterfaceRef);
+				}
+
+				SourceActor->ItemDataID = NAME_None;
+				SourceActor->Destroy();
+			}
+		}
+	}
+
+	static void AssignItemDataToChildActor(UNAItemData* ItemData, ANAItemActor* TargetChildActor)
+	{
+		if (ItemData && !ItemData->GetItemID().IsNone() && TargetChildActor)
+		{
+			ensureAlwaysMsgf(TargetChildActor->IsChildActor() && !TargetChildActor->GetItemData(),
+				TEXT(
+					"[AssignItemDataToChildActor]  ChildActorComponent에 의해 생성된 아이템 액터에는 새로 생성된 아이템 데이터가 있었음"));
+			if (TargetChildActor->IsChildActor() && !TargetChildActor->GetItemData())
+			{
+				TargetChildActor->ItemDataID = ItemData->GetItemID();
+				TargetChildActor->VerifyInteractableData();
+			}
+		}
+	}
+
+	TScriptInterface<INAInteractableInterface> GetInteractableInterface() const
+	{
+		return InteractableInterfaceRef;
 	}
 	
 protected:
@@ -122,21 +176,30 @@ public:
 	virtual bool CanInteract_Implementation() const override;
 	virtual void NotifyInteractableFocusBegin_Implementation(AActor* InteractableActor, AActor* InteractorActor) override;
 	virtual void NotifyInteractableFocusEnd_Implementation(AActor* InteractableActor, AActor* InteractorActor) override;
-
-	virtual void BeginInteract_Implementation(AActor* Interactor) override;
-	virtual void EndInteract_Implementation(AActor* Interactor) override;
-	virtual bool ExecuteInteract_Implementation(AActor* Interactor) override;
-
+	
 	virtual bool IsOnInteract_Implementation() const override;
 	
-	virtual void DisableOverlapDuringInteraction(AActor* Interactor) override;
-	// virtual bool TryGetInteractableData(FNAInteractableData& OutData) const override final;
-	// virtual bool HasInteractionDelay() const override final;
-	// virtual float GetInteractionDelay() const override final;
-	// virtual TScriptInterface<INAInteractableInterface> GetInteractableInterface() const override final
-	// {
-	// 	return InteractableInterfaceRef;
-	// }
+	virtual bool TryGetInteractableData(FNAInteractableData& OutData) const override final;
+	virtual bool HasInteractionDelay() const override final;
+	virtual float GetInteractionDelay() const override final;
+	
+	virtual bool IsAttachedAndPendingUse() const override;
+	virtual void SetAttachedAndPendingUse(bool bNewState) override;
+
+	virtual bool IsUnlimitedInteractable() const override final;
+	virtual int32 GetInteractableCount() const override final;
+	virtual void SetInteractableCount(int32 NewCount) override final;
+	
+	virtual bool CanPerformInteractionWith(AActor* Interactor) const;
+
+	virtual bool TryInteract_Implementation(AActor* Interactor) override final;
+	
+protected:
+	virtual bool BeginInteract_Implementation(AActor* Interactor) override;
+	virtual bool ExecuteInteract_Implementation(AActor* Interactor) override;
+	virtual bool EndInteract_Implementation(AActor* Interactor) override;
+	
+	virtual void SetInteractionPhysicsEnabled(const bool bEnabled) override;
 
 protected:
 	/** 자기 자신(this)이 구현한 인터페이스를 보관 */

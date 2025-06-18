@@ -23,47 +23,6 @@ FNAWeaponSlotWidgets::FNAWeaponSlotWidgets(UButton* Button, UImage* Icon)
 {
 }
 
-// 슬롯 ID에서 번호 추출 헬퍼 함수
-// @param	SlotID: xxx_00 형식을 전제
-int32 ExtractSlotNumber(const FName& SlotID)
-{
-	const FString SlotStr = SlotID.ToString();
-	int32 UnderscoreIndex = INDEX_NONE;
-	if (SlotStr.FindLastChar(TEXT('_'), UnderscoreIndex))
-	{
-		const FString NumberStr = SlotStr.Mid(UnderscoreIndex + 1);
-		if (NumberStr.IsNumeric())
-		{
-			return FCString::Atoi(*NumberStr);
-		}
-		else
-		{
-			// 숫자가 아님: 예외 케이스
-			ensureAlwaysMsgf(false, TEXT("[ExtractSlotNumber] 잘못된 SlotID(숫자 아님): %s"), *SlotStr);
-			return INT_MAX;
-		}
-	}
-	else
-	{
-		// 언더바 없음: 예외 케이스
-		ensureAlwaysMsgf(false, TEXT("[ExtractSlotNumber] 언더바 없는 SlotID: %s"), *SlotStr);
-		return INT_MAX;
-	}
-}
-
-bool ConvertIndexToInvenGrid(int32 Index, int32& OutRow, int32& OutCol)
-{
-	constexpr int32 NumCols = InventoryColumnCount;
-	constexpr int32 MaxIndex = MaxInventorySlotCount - 1;
-	if (!ensureAlwaysMsgf(Index >= 0 && Index <= MaxIndex, TEXT("Index out of range: %d"), Index))
-	{
-		return false;
-	}
-	OutRow = Index / NumCols;
-	OutCol = Index % NumCols;
-	return true;
-}
-
 bool UNAInventoryWidget::ParseSlotIDToInvenGrid(const FName& SlotID, int32& OutRow, int32& OutCol) const
 {
 	if (SlotID.IsNone()) return false;
@@ -485,6 +444,7 @@ void UNAInventoryWidget::ReleaseInventoryWidget()
 	
 	OwningInventoryComponent->SetVisibility(true);
 	OwningInventoryComponent->SetWindowVisibility(EWindowVisibility::Visible);
+	SetIsEnabled(true);
 	SetVisibility(ESlateVisibility::HitTestInvisible);
 	PlayAnimationForward(Widget_Appear);
 }
@@ -514,7 +474,6 @@ void UNAInventoryWidget::OnInventoryWidgetReleased()
 		// }
 		
 		OwningInventoryComponent->SetWindowFocusable(true);
-		SetIsEnabled(true);
 		if (!LastFocusedSlotButton.IsValid())
 		{
 			Weapon_00->SetKeyboardFocus();	
@@ -534,7 +493,6 @@ void UNAInventoryWidget::CollapseInventoryWidget()
 	
 	UWidgetBlueprintLibrary::SetInputMode_GameOnly(GetOwningPlayer(), false);
 	OwningInventoryComponent->SetWindowFocusable(false);
-	SetIsEnabled(false);
 	PlayAnimationReverse(Widget_Appear, 1.3f);
 }
 
@@ -546,6 +504,7 @@ void UNAInventoryWidget::OnInventoryWidgetCollapsed()
 	if (!bReleaseInventoryWidget)
 	{
 		SetVisibility(ESlateVisibility::Hidden);
+		SetIsEnabled(false);
 		OwningInventoryComponent->SetWindowVisibility(EWindowVisibility::SelfHitTestInvisible);
 		OwningInventoryComponent->SetVisibility(false);
 	}

@@ -109,6 +109,10 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	/* Grab */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
 	UInputAction* GrabAction;
+
+	/* Equip/UnequipWeapon*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
+	UInputAction* ToggleWeaponEquippedAction;
 	
 	/* Interaction Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
@@ -202,6 +206,9 @@ protected:
 	bool CanToggleInventoryWidget() const;
 	UFUNCTION()
 	void ToggleInventoryWidget();
+
+	UFUNCTION()
+	void ToggleWeaponEquipped(const FInputActionValue& Value);
 
 	// Rotate Inventory Widget
 	UFUNCTION()
