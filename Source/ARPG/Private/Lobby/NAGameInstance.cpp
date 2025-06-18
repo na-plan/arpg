@@ -52,12 +52,12 @@ void UNAGameInstance::JoinSession_Wrapped()
 	JoinSession(ReservedSessionIndex);
 }
 
-void UNAGameInstance::CreateSession(FName SessionName, bool bIsLAN)
+void UNAGameInstance::CreateSession(FName SessionName, bool bIsLAN = true)
 {
 	if (!SessionInterface.IsValid()) return;
 
 	FOnlineSessionSettings Settings;
-	Settings.bIsLANMatch = true;
+	Settings.bIsLANMatch = bIsLAN;
 	Settings.NumPublicConnections = 2;
 	Settings.bShouldAdvertise = true;
 	MadeSessionName = SessionName;

@@ -7,7 +7,7 @@
 #include "NAGameStateBase.h"
 #include "NAPlayerController.h"
 #include "NAPlayerState.h"
-#include "Components/Widget.h"
+#include "Components/DirectionalLightComponent.h"
 #include "Item/ItemActor/NAItemActor.h"
 #include "Kismet/GameplayStatics.h"
 #include "Lobby/NALobbyWidget.h"

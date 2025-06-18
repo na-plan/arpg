@@ -4,6 +4,7 @@
 #include "Lobby/NASessionListWidget.h"
 
 #include "Components/ListView.h"
+#include "GameFramework/PlayerState.h"
 #include "Lobby/NAGameInstance.h"
 
 void UNASessionListWidget::NativeConstruct()
@@ -14,7 +15,20 @@ void UNASessionListWidget::NativeConstruct()
 
 	if (!CachedGameInstance) return;
 
+	Button_CreateSession->OnClicked.AddDynamic(this,&ThisClass::OnClick_CreateSession);
+	Button_StartGame->OnClicked.AddDynamic(this, &ThisClass::OnClick_StartGame);
+
 	RefreshSessionList();
+}
+
+void UNASessionListWidget::OnClick_CreateSession()
+{
+	CreateSession();
+}
+
+void UNASessionListWidget::OnClick_StartGame()
+{
+	//GetWorld()->ServerTravel();
 }
 
 void UNASessionListWidget::RefreshSessionList()
@@ -33,5 +47,14 @@ void UNASessionListWidget::RefreshSessionList()
 
 		SessionListView->AddItem(Cast<UObject>(&Data));
 	}
-	
+
+	if (!GetWorld()->IsNetMode(NM_ListenServer))
+		Button_StartGame->SetVisibility(ESlateVisibility::Hidden);
+}
+
+void UNASessionListWidget::CreateSession()
+{
+	auto SessionName = GetOwningPlayerState()->SessionName;
+	CachedGameInstance->CreateSession(FName(SessionName), true);
+	RefreshSessionList();
 }

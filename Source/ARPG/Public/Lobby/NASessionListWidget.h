@@ -82,13 +82,27 @@ class ARPG_API UNASessionListWidget : public UUserWidget
 public:
 	virtual void NativeConstruct() override;
 
+public:
+	UFUNCTION()
+	void OnClick_CreateSession();
+
+	UFUNCTION()
+	void OnClick_StartGame();
+	
 protected:
 	void RefreshSessionList();
+	void CreateSession();
 	
 protected:
 	UPROPERTY(meta = (BindWidget, AllowPrivateAccess = true))
 	UListView* SessionListView;
 
+	UPROPERTY(meta = (BindWidget, AllowPrivateAccess = true))
+	UButton* Button_CreateSession;
+	
+	UPROPERTY(meta = (BindWidget, AllowPrivateAccess = true))
+	UButton* Button_StartGame;
+	
 protected:
 	UNAGameInstance* CachedGameInstance;
 	TSharedPtr<FOnlineSessionSearch> SessionSearch;
