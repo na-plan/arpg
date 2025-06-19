@@ -110,7 +110,8 @@ enum class EAbilityInputID : uint8
 {
 	None,
 	Revive,
-	Grab
+	Grab,
+	KineticGrab
 };
 
 struct FObjectPropertyUtility

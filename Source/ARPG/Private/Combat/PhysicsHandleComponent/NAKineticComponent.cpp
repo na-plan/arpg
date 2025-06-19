@@ -12,6 +12,7 @@
 #include "Combat/AttributeSet/NAKineticAttributeSet.h"
 #include "Combat/GameplayAbility/NAGA_KineticGrab.h"
 #include "Combat/GameplayEffect/NAGE_KineticAP.h"
+#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
 // Sets default values for this component's properties
@@ -118,9 +119,14 @@ float UNAKineticComponent::GetGrabDistance() const
 	return GrabDistance;
 }
 
-FVector_NetQuantizeNormal UNAKineticComponent::GetActorForward() const
+FVector_NetQuantizeNormal UNAKineticComponent::GetControlForward() const
 {
-	return ActorForward;
+	if ( const APawn* Pawn = Cast<APawn>( GetOwner() ) )
+	{
+		return Pawn->GetControlRotation().Vector();
+	}
+
+	return FVector_NetQuantizeNormal::ZeroVector;
 }
 
 void UNAKineticComponent::ToggleGrabAbility( const bool bFlag )
@@ -131,7 +137,7 @@ void UNAKineticComponent::ToggleGrabAbility( const bool bFlag )
 		{
 			if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner() )
 			{
-				const FGameplayAbilitySpec Spec( UNAGA_KineticGrab::StaticClass(), 1.f, static_cast<int32>( EAbilityInputID::Grab ) );
+				const FGameplayAbilitySpec Spec( UNAGA_KineticGrab::StaticClass(), 1.f, static_cast<int32>( EAbilityInputID::KineticGrab ) );
 				GrabSpecHandle = Interface->GetAbilitySystemComponent()->GiveAbility( Spec );
 			}	
 		}
@@ -146,78 +152,27 @@ void UNAKineticComponent::ToggleGrabAbility( const bool bFlag )
 	}
 }
 
-void UNAKineticComponent::ForceUpdateActorForward()
-{
-	if ( const APawn* OwnerPawn = Cast<APawn>( GetOwner() ) )
-	{
-		if ( const APlayerController* PlayerController = Cast<APlayerController>( OwnerPawn->GetController() ) )
-		{
-			ActorForward = PlayerController->GetControlRotation().Vector();
-		}
-	}
-}
-
 bool UNAKineticComponent::HasGrabbed() const
 {
 	return bIsGrab;
 }
 
-void UNAKineticComponent::BindKineticKeys()
+void UNAKineticComponent::SetOwningController( APlayerController* PlayerController )
 {
-	if ( const APawn* OwnerPawn = Cast<APawn>( GetOwner() ) )
+	if ( OwningController.IsValid() )
 	{
-		if ( const APlayerController* PlayerController = Cast<APlayerController>( OwnerPawn->GetController() ) )
-		{
-			if ( UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>( PlayerController->GetLocalPlayer() ) )
-			{
-				Subsystem->AddMappingContext( KineticMappingContext, 2 );
-			}
-		}
-		
-		if ( UEnhancedInputComponent* InputComponent = Cast<UEnhancedInputComponent>( OwnerPawn->InputComponent ) )
-		{
-			GrabActionBinding = &InputComponent->BindAction( GrabAction, ETriggerEvent::Started, this, &UNAKineticComponent::Grab );
-			ReleaseActionBinding = &InputComponent->BindAction( GrabAction, ETriggerEvent::Completed, this, &UNAKineticComponent::Release );
-			ThrowActionBinding = &InputComponent->BindAction( ThrowAction, ETriggerEvent::Started, this, &UNAKineticComponent::Throw );
-			DistanceAdjustActionBinding = &InputComponent->BindAction( ThrowAction, ETriggerEvent::Started, this, &UNAKineticComponent::AdjustDistance );
-		}
+		UnbindKineticKeys();
 	}
+
+	OwningController = PlayerController;
+	BindKineticKeys();
 }
 
-void UNAKineticComponent::UnbindKineticKeys()
+void UNAKineticComponent::ForceUpdateControlForward()
 {
 	if ( const APawn* OwnerPawn = Cast<APawn>( GetOwner() ) )
 	{
-		if ( const APlayerController* PlayerController = Cast<APlayerController>( OwnerPawn->GetController() ) )
-		{
-			if ( UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>( PlayerController->GetLocalPlayer() ) )
-			{
-				Subsystem->RemoveMappingContext( KineticMappingContext );
-			}
-		}
-		
-		if ( UEnhancedInputComponent* InputComponent = Cast<UEnhancedInputComponent>( OwnerPawn->InputComponent ) )
-		{
-			if ( GrabActionBinding )
-			{
-				InputComponent->RemoveBinding( *GrabActionBinding );
-				InputComponent->RemoveBinding( *ReleaseActionBinding );
-
-				GrabActionBinding = nullptr;
-				ReleaseActionBinding = nullptr;
-			}
-			if ( ThrowActionBinding )
-			{
-				InputComponent->RemoveBinding( *ThrowActionBinding );
-				ThrowActionBinding = nullptr;
-			}
-
-			if ( DistanceAdjustActionBinding )
-			{
-				InputComponent->RemoveBinding( *DistanceAdjustActionBinding );
-				DistanceAdjustActionBinding = nullptr;
-			}
-		}
+		ControlForward = OwnerPawn->GetControlRotation().Vector();
 	}
 }
 
@@ -264,6 +219,40 @@ void UNAKineticComponent::OnAPChanged( float Old, float New )
 	}
 }
 
+void UNAKineticComponent::UnbindKineticKeys()
+{
+	if ( OwningController.IsValid() )
+	{
+		if ( UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>( OwningController->GetLocalPlayer() ) )
+		{
+			Subsystem->RemoveMappingContext( KineticMappingContext );
+		}
+	}
+	
+	if ( UEnhancedInputComponent* InputComponent = Cast<UEnhancedInputComponent>( OwningController->InputComponent ) )
+	{
+		if ( GrabActionBinding )
+		{
+			InputComponent->RemoveBinding( *GrabActionBinding );
+			InputComponent->RemoveBinding( *ReleaseActionBinding );
+
+			GrabActionBinding = nullptr;
+			ReleaseActionBinding = nullptr;
+		}
+		if ( ThrowActionBinding )
+		{
+			InputComponent->RemoveBinding( *ThrowActionBinding );
+			ThrowActionBinding = nullptr;
+		}
+
+		if ( DistanceAdjustActionBinding )
+		{
+			InputComponent->RemoveBinding( *DistanceAdjustActionBinding );
+			DistanceAdjustActionBinding = nullptr;
+		}
+	}
+}
+
 const UNAKineticAttributeSet* UNAKineticComponent::GetAttributeSet() const
 {
 	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner() )
@@ -302,22 +291,40 @@ void UNAKineticComponent::BeginPlay()
 	}
 
 	GrabDistance = GetMinHoldRange();
-
-	if ( const APawn* Pawn = Cast<APawn>( GetOwner() );
-		 Pawn && Pawn->IsLocallyControlled() )
-	{
-		BindKineticKeys();
-	}
 }
 
 void UNAKineticComponent::EndPlay( const EEndPlayReason::Type EndPlayReason )
 {
 	Super::EndPlay( EndPlayReason );
 
+	if ( GetOwner()->HasAuthority() )
+	{
+		ToggleGrabAbility( false );
+	}
+
 	if ( const APawn* Pawn = Cast<APawn>( GetOwner() );
-		 Pawn && Pawn->IsLocallyControlled() )
+		 Pawn && OwningController.IsValid() && Pawn->IsLocallyControlled() )
 	{
 		UnbindKineticKeys();
+	}
+}
+
+void UNAKineticComponent::BindKineticKeys()
+{
+	if ( OwningController.IsValid() )
+	{
+		if ( UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>( OwningController->GetLocalPlayer() ) )
+		{
+			Subsystem->AddMappingContext( KineticMappingContext, 2 );
+		}
+	}
+	
+	if ( UEnhancedInputComponent* InputComponent = Cast<UEnhancedInputComponent>( OwningController->InputComponent ) )
+	{
+		GrabActionBinding = &InputComponent->BindAction( GrabAction, ETriggerEvent::Started, this, &UNAKineticComponent::Grab );
+		ReleaseActionBinding = &InputComponent->BindAction( GrabAction, ETriggerEvent::Completed, this, &UNAKineticComponent::Release );
+		ThrowActionBinding = &InputComponent->BindAction( ThrowAction, ETriggerEvent::Started, this, &UNAKineticComponent::Throw );
+		DistanceAdjustActionBinding = &InputComponent->BindAction( DistanceAdjustAction, ETriggerEvent::Started, this, &UNAKineticComponent::AdjustDistance );
 	}
 }
 
@@ -368,9 +375,36 @@ void UNAKineticComponent::Server_Throw_Implementation()
 	ThrowImpl();
 }
 
+void UNAKineticComponent::AdjustDistanceImpl( const float Magnitude )
+{
+	const float DeltaValue = Magnitude * 1000.f * UGameplayStatics::GetWorldDeltaSeconds( GetWorld() );
+	const float MinValue = GetMinHoldRange();
+	const float MaxValue = GetMaxHoldRange();
+	
+	GrabDistance = FMath::Clamp( GrabDistance + DeltaValue , MinValue, MaxValue );
+	UE_LOG( LogTemp, Log, TEXT("%hs: Grab distance updated to %f"), __FUNCTION__, GrabDistance )
+}
+
+bool UNAKineticComponent::Server_AdjustDistance_Validate( const float Magnitude )
+{
+	return Magnitude != 0 && Magnitude >= -1.f && Magnitude <= 1.f;
+}
+
+void UNAKineticComponent::Server_AdjustDistance_Implementation( float Magnitude )
+{
+	AdjustDistanceImpl( Magnitude );
+}
+
 void UNAKineticComponent::AdjustDistance( const FInputActionValue& InputActionValue )
 {
-	
+	if ( GetOwner()->HasAuthority() )
+	{
+		AdjustDistanceImpl( FMath::Clamp(  InputActionValue.GetMagnitude(), -1, 1 ) );
+	}
+	else
+	{
+		Server_AdjustDistance( FMath::Clamp(  InputActionValue.GetMagnitude(), -1, 1 ) );
+	}
 }
 
 // Called every frame
@@ -402,15 +436,13 @@ void UNAKineticComponent::TickComponent( float DeltaTime, ELevelTick TickType,
 		}
 		else
 		{
-			if ( const APawn* OwnerPawn = Cast<APawn>( GetOwner() ) )
+			if ( const APawn* Pawn = Cast<APawn>( GetOwner() ) )
 			{
-				if ( const APlayerController* PlayerController = Cast<APlayerController>( OwnerPawn->GetController() ) )
-				{
-					ActorForward = PlayerController->GetControlRotation().Vector();
-				}
+				ControlForward = Pawn->GetControlRotation().Vector();
 			}
 		}
 	}
+	
 }
 
 void UNAKineticComponent::GetLifetimeReplicatedProps( TArray<FLifetimeProperty>& OutLifetimeProps ) const

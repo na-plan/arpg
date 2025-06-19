@@ -8,6 +8,7 @@
 #include "NACharacter.h"
 #include "NAPlayerState.h"
 #include "ARPG/ARPG.h"
+#include "Combat/PhysicsHandleComponent/NAKineticComponent.h"
 
 
 ANAPlayerController::ANAPlayerController()
@@ -32,6 +33,11 @@ void ANAPlayerController::OnPossess(APawn* InPawn)
 void ANAPlayerController::AcknowledgePossession(APawn* P)
 {
 	Super::AcknowledgePossession(P);
+
+	if ( UNAKineticComponent* KineticComponent = P->GetComponentByClass<UNAKineticComponent>() )
+	{
+		KineticComponent->SetOwningController( this );
+	}
 }
 
 void ANAPlayerController::OnRep_PlayerState()

@@ -262,6 +262,9 @@ protected:
 	UFUNCTION( Server, Reliable )
 	void Server_RequestReviveAbility();
 
+	UFUNCTION( Server, Reliable )
+	void Server_RequestKineticGrabAbility();
+
 	UFUNCTION( Server, Unreliable )
 	void Server_BeginInteraction();
 

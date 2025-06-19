@@ -8,13 +8,14 @@
 
 DEFINE_LOG_CATEGORY(LogAssetGameInstance);
 
+/*
 void UNAAssetGameInstanceSubsystem::OnActorSpawned(AActor* InActor) const
 {
 	FetchAsset(InActor);
 }
 
 void UNAAssetGameInstanceSubsystem::OnPreWorldInitialization(UWorld* InWorld,
-	const FWorldInitializationValues /*WorldInitializationValues*/)
+	const FWorldInitializationValues WorldInitializationValues)
 {
 	// 월드에 대해 구독, 게임월드 만을 대상으로 (-에디터)
 	if (InWorld && InWorld->IsGameWorld())
@@ -25,13 +26,14 @@ void UNAAssetGameInstanceSubsystem::OnPreWorldInitialization(UWorld* InWorld,
 	}
 }
 
-void UNAAssetGameInstanceSubsystem::OnPostWorldCleanup(UWorld* World, bool /*bArg*/, bool /*bCond*/)
+void UNAAssetGameInstanceSubsystem::OnPostWorldCleanup(UWorld* World, bool bArg, bool bCond)
 {
 	if ( OnAssetSpawnedDelegate.IsValid() && World->IsGameWorld() )
 	{
 		World->RemoveOnActorSpawnedHandler(OnAssetSpawnedDelegate);
 	}
 }
+*/
 
 void UNAAssetGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -48,8 +50,8 @@ void UNAAssetGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collect
 	}
 
 	// 월드의 Actor 스폰을 잡기 위해서
-	FWorldDelegates::OnPreWorldInitialization.AddUObject(this, &UNAAssetGameInstanceSubsystem::OnPreWorldInitialization);
-	FWorldDelegates::OnPostWorldCleanup.AddUObject(this, &UNAAssetGameInstanceSubsystem::OnPostWorldCleanup);
+	// FWorldDelegates::OnPreWorldInitialization.AddUObject(this, &UNAAssetGameInstanceSubsystem::OnPreWorldInitialization);
+	// FWorldDelegates::OnPostWorldCleanup.AddUObject(this, &UNAAssetGameInstanceSubsystem::OnPostWorldCleanup);
 }
 
 void UNAAssetGameInstanceSubsystem::FetchAsset(UObject* InActor) const

@@ -31,11 +31,10 @@ void UNAAT_MoveActorTo::Activate()
 			TargetBoundComponent->IgnoreActorWhenMoving( OriginActor.Get(), true );
 		}
 
-		AccumulatedQuat = FQuat::Identity;
-
 		if ( const UNAKineticComponent* KineticComponent = OriginActor->GetComponentByClass<UNAKineticComponent>() )
 		{
-			PreviousOriginForwardQuat = KineticComponent->GetActorForward().ToOrientationQuat();
+			PreviousOriginForwardQuat = KineticComponent->GetControlForward().ToOrientationQuat();
+			AccumulatedQuat = PreviousOriginForwardQuat;
 		}
 	}
 }
@@ -67,7 +66,7 @@ void UNAAT_MoveActorTo::TickTask( float DeltaTime )
 
 			// 오일러 방식으로 계산할 경우 짐벌락이 발생함!
 			// 쿼터니언으로 두 각도의 차이를 계산함 (PQ_I * CQ)
-			const FQuat RotationDelta = PreviousOriginForwardQuat.Inverse() * KineticComponent->GetActorForward().ToOrientationQuat();
+			const FQuat RotationDelta = PreviousOriginForwardQuat.Inverse() * KineticComponent->GetControlForward().ToOrientationQuat();
 			
 			FVector ObjectLocation;
 			FRotator ObjectRotation;
@@ -82,7 +81,7 @@ void UNAAT_MoveActorTo::TickTask( float DeltaTime )
 			(
 				OriginActor.Get(),
 				TargetBoundComponent.Get(),
-				KineticComponent->GetActorForward(),
+				KineticComponent->GetControlForward(),
 				KineticComponent->GetGrabDistance()
 			);
 			TargetPosition = FMath::VInterpTo( ObjectLocation, TargetPosition, DeltaTime, 10.f );
@@ -96,11 +95,8 @@ void UNAAT_MoveActorTo::TickTask( float DeltaTime )
 			KineticComponent->SetTargetLocation( TargetPosition );
 			KineticComponent->SetTargetRotation( NewRotation.Rotator() );
 
-			const FRotator OriginForwardRotation = FMath::RInterpTo( OriginActor->GetActorRotation(), KineticComponent->GetActorForward().Rotation(), DeltaTime, 10.f );
-			OriginActor->SetActorRotation( OriginForwardRotation );
-
 			// 다음 연산에서 차이를 계산하기 위해 현재 회전값을 저장
-			PreviousOriginForwardQuat = KineticComponent->GetActorForward().ToOrientationQuat();
+			PreviousOriginForwardQuat = KineticComponent->GetControlForward().ToOrientationQuat();
 		}
 	}
 }
