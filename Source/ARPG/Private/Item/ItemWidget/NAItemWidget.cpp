@@ -32,12 +32,7 @@ void UNAItemWidget::ReleaseItemWidget()
 	if (!OwningItemWidgetComponent.IsValid()) return;
 	
 	bReleaseItemWidget = true;
-	if (Interaction_Name && bIsToggleAction)
-	{
-		SwapToggleActionText(ToggleActionText);
-		Interaction_Name->SetText(FText::FromString(ToggleActionText));
-		
-	}
+	
 	if (Widget_Appear)
 	{
 		PlayAnimationForward(Widget_Appear, 1.5f);
@@ -91,19 +86,13 @@ void UNAItemWidget::OnItemWidgetCollapsed()
 		OwningItemWidgetComponent->SetVisibility(false);
 		OwningItemWidgetComponent->Deactivate();
 	}
-	
 }
 
-void UNAItemWidget::SwapToggleActionText(FString& ToggleActionStr) const
+void UNAItemWidget::SetInteractionNameText(const FString& NewString) const
 {
-	if (ToggleActionStr == TEXT("Toggle") || ToggleActionStr == TEXT("Close"))
-	{
-		ToggleActionStr = TEXT("Open");
-	}
-	else 
-	{
-		ToggleActionStr = TEXT("Close");
-	}
+	if (NewString.IsEmpty()) return;
+
+	Interaction_Name->SetText(FText::FromString(NewString));
 }
 
 void UNAItemWidget::InitItemWidget(UNAItemWidgetComponent* OwningComp, UNAItemData* ItemData)
@@ -132,15 +121,7 @@ void UNAItemWidget::InitItemWidget(UNAItemWidgetComponent* OwningComp, UNAItemDa
 		FNAInteractableData InteractableData;
 		if (ItemData->GetInteractableData(InteractableData))
 		{
-			if (InteractableData.InteractableType == ENAInteractableType::Toggle)
-			{
-				bIsToggleAction = true;
-				ToggleActionText = TEXT("Toggle");
-			}
-			else
-			{
-				Interaction_Name->SetText(InteractableData.InteractionName);
-			}
+			Interaction_Name->SetText(InteractableData.InteractionName);
 		}
 	}
 }

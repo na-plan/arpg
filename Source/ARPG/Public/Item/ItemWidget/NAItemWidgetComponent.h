@@ -34,6 +34,8 @@ public:
 	void CollapseItemWidgetPopup();
 
 	class UNAItemWidget* GetItemWidget() const;
+
+	void SetItemInteractionName(const FString& NewString) const;
 	
 protected:
 	uint8 bFaceCamera : 1 = false;

@@ -125,6 +125,9 @@ public:
 	{
 		return InteractableInterfaceRef;
 	}
+
+	virtual void ReleaseItemWidgetComponent();
+	virtual void CollapseItemWidgetComponent();
 	
 protected:
 	// OnItemDataInitialized: BP 확장 가능

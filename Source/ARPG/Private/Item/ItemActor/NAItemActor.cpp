@@ -414,22 +414,25 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		}
 	}
 
-	// 트랜스폼 및 콜리전, 피직스 등등 설정 여기에
-	if (ItemCollision)
+	if (!IsChildActor())
 	{
-		ItemCollision->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-		ItemCollision->SetCollisionProfileName(TEXT("BlockAllDynamic"));
-		ItemCollision->SetSimulatePhysics( true );
-		ItemCollision->SetIsReplicated( true );
-	}
-	if ( ItemMesh )
-	{
-		ItemMesh->SetCollisionEnabled( ECollisionEnabled::NoCollision );
-		ItemMesh->SetSimulatePhysics( false );
-		ItemMesh->SetGenerateOverlapEvents(false);
-	}
+		// 트랜스폼 및 콜리전, 피직스 등등 설정 여기에
+		if (ItemCollision)
+		{
+			ItemCollision->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			ItemCollision->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+			ItemCollision->SetSimulatePhysics( true );
+			ItemCollision->SetIsReplicated( true );
+		}
+		if ( ItemMesh )
+		{
+			ItemMesh->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+			ItemMesh->SetSimulatePhysics( false );
+			ItemMesh->SetGenerateOverlapEvents(false);
+		}
 	
-	GetRootComponent()->SetWorldTransform(PreviousTransform);
+		GetRootComponent()->SetWorldTransform(PreviousTransform);
+	}
 }
 
 void ANAItemActor::Destroyed()
@@ -437,10 +440,7 @@ void ANAItemActor::Destroyed()
 	Super::Destroyed();
 
 	if (!HasActorBegunPlay()) return;
-	if (ItemWidgetComponent && ItemWidgetComponent->IsVisible())
-	{
-		ItemWidgetComponent->CollapseItemWidgetPopup();
-	}
+	CollapseItemWidgetComponent();
 }
 
 void ANAItemActor::InitItemData()
@@ -454,6 +454,22 @@ void ANAItemActor::InitItemData()
 	{
 		ItemDataID = NewItemData->GetItemID();
 		OnItemDataInitialized();
+	}
+}
+
+void ANAItemActor::ReleaseItemWidgetComponent()
+{
+	if (ItemWidgetComponent && !ItemWidgetComponent->IsVisible())
+	{
+		ItemWidgetComponent->ReleaseItemWidgetPopup();
+	}
+}
+
+void ANAItemActor::CollapseItemWidgetComponent()
+{
+	if (ItemWidgetComponent && ItemWidgetComponent->IsVisible())
+	{
+		ItemWidgetComponent->CollapseItemWidgetPopup();
 	}
 }
 
@@ -631,9 +647,9 @@ void ANAItemActor::NotifyInteractableFocusBegin_Implementation(AActor* Interacta
 	if (UNAInteractionComponent* InteractionComp = GetInteractionComponent(InteractorActor))
 	{
 		bIsFocused = InteractionComp->OnInteractableFound(this);
-		if (bIsFocused && ItemWidgetComponent && !ItemWidgetComponent->IsVisible())
+		if (bIsFocused)
 		{
-			ItemWidgetComponent->ReleaseItemWidgetPopup();
+			ReleaseItemWidgetComponent();
 		}
 	}
 }
@@ -643,10 +659,9 @@ void ANAItemActor::NotifyInteractableFocusEnd_Implementation(AActor* Interactabl
 	if (UNAInteractionComponent* InteractionComp = GetInteractionComponent(InteractorActor))
 	{
 		bIsFocused = !InteractionComp->OnInteractableLost(this);
-		if (!bIsFocused && !IsPendingKillPending()
-			&& ItemWidgetComponent && ItemWidgetComponent->IsVisible())
+		if (!bIsFocused && !IsPendingKillPending())
 		{
-			ItemWidgetComponent->CollapseItemWidgetPopup();
+			CollapseItemWidgetComponent();
 		}
 	}
 }
@@ -790,7 +805,7 @@ bool ANAItemActor::CanPerformInteractionWith(AActor* Interactor) const
 	if (TryGetInteractableData(Data))
 	{
 		bCanPerform = bCanPerform && Data.InteractableType != ENAInteractableType::None;
-		if (Data.bIsUnlimitedInteractable)
+		if (!Data.bIsUnlimitedInteractable)
 		{
 			bCanPerform = bCanPerform && Data.InteractableCount > 0;
 		}
