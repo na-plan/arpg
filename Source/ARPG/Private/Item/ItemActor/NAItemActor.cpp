@@ -588,7 +588,11 @@ void ANAItemActor::BeginPlay()
 			RemoveInstanceComponent(OwnedSceneComp);
 		}
 	}
-	GetRootComponent()->SetWorldTransform(PreviousTransform);
+
+	if (!IsChildActor())
+	{
+		GetRootComponent()->SetWorldTransform(PreviousTransform);
+	}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	Super::BeginPlay();
@@ -607,7 +611,7 @@ void ANAItemActor::BeginPlay()
 		ItemCollision->SetSimulatePhysics( false );
 	}
 	
-	if (GetItemData())
+	if (HasValidItemID())
 	{
 		// 임시: 수량 랜덤
 		if (GetItemData()->IsStackableItem())

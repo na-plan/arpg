@@ -69,8 +69,7 @@ struct FNAItemAddResult
 	}
 };
 
-//DECLARE_MULTICAST_DELEGATE_OneParam(FOnItemAdded, FItemAddResult);
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnInventoryUpdated, UNAInventoryComponent*);
+//DECLARE_MULTICAST_DELEGATE_OneParam(FOnInventoryUpdated, UNAInventoryComponent*);
 
 class UNAItemData;
 class UButton;
@@ -130,12 +129,19 @@ public:
 
 	void RemoveItemAtInventorySlot();
 	
-// 단축키 자동 사용 //////////////////////////////////////////////////////////////////////////////////////////////////////
+// 인벤토리 기능 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	void UseMedPackByShortcut(AActor* User);
+	void UseMedPackAutomatically(AActor* User);
+	void UseStasisPackAutomatically(AActor* User);
 
+	UNAItemData* SelectNextWeapon(int32 Direction) const;
+	void SetEquippedWeaponIndex(const UNAItemData* EquippedWeapon);
+protected:
+	// -1: 장착 중인 무기 없음
+	int32 EquippedWeaponIndex = -1;
 	
-// 아이템 수량 데이터 관리 ////////////////////////////////////////////////////////////////////////////////////////////////
+// 아이템 수량 데이터 관리 //////////////////////////////////////////////////////////////////////////////////////////////////
+public:
 	/** 
 	 * 새로운 아이템을 빈 슬롯에 등록 or 원래 있던 아이템과 동일한 종류면 기존 슬롯을 먼저 메꾸고
 	 * @return add에 성공하고 남은 아이템 수량. 0이면 전부 추가, 0보다 크면 부분 추가, -1이면 전부 추가 실패
@@ -198,7 +204,7 @@ private:
 	bool HandleRemoveItem(const FName& SlotID);
 
 public:
-	// 아이템 수량 관리를 위한 유틸 함수 //////////////////////////////////////////////////////////////////////////////////////////
+// 아이템 수량 관리를 위한 유틸 함수 //////////////////////////////////////////////////////////////////////////////////////////
 
 	bool IsValidSlotID(const FName& SlotID) const
 	{
@@ -266,7 +272,7 @@ public:
 	*/
 	bool IsAtFullCapacity() const;
 
-	// 아이템 정렬 & 인벤토리 위젯 /////////////////////////////////////////////////////////////////////////////////////////////	
+// 아이템 정렬 & 인벤토리 위젯 //////////////////////////////////////////////////////////////////////////////////////////////	
 
 	// 인벤토리 슬롯 정렬 및 위젯 redraw 요청
 	// 무기 슬롯은 정렬 대상 x, 하지만 이 함수에서 무기 슬롯 redraw 요청까지 다함
@@ -275,7 +281,7 @@ public:
 	//UFUNCTION(BlueprintCallable, Category = "Inventory Component")
 	//void SplitExistingStack(UNAItemData* ItemToSplit, const int32 AmountToSplit);
 
-	// Getters & Setters ///////////////////////////////////////////////////////////////////////////////////////////////////
+// Getters & Setters ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
 	TArray<UNAItemData*> GetInventoryContents() const;

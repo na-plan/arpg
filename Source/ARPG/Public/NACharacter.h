@@ -218,6 +218,9 @@ protected:
 	UFUNCTION()
 	void ToggleWeaponEquipped(const FInputActionValue& Value);
 
+	class ANAItemActor* EquipWeapon(class UNAItemData* WeaponToEquip);
+	bool UnequipWeapon();
+
 	// Rotate Inventory Widget
 	UFUNCTION()
 	void RotateSpringArmForInventory(bool bExpand, float Overtime);
@@ -239,6 +242,8 @@ protected:
 	void UseStasisPackByShortcut(const FInputActionValue& Value);
 
 	void SelectWeaponByMouseWheel(const FInputActionValue& Value);
+	float LastWheelInputTime = 0.f;
+	const float InputDebounceDelay = 0.18f;
 	
 protected:
 	void TryRevive();
