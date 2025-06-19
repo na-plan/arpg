@@ -3,16 +3,38 @@
 
 #include "ARPG/Public/NAPlayerController.h"
 
-#include "AbilitySystemComponent.h"
-#include "AbilitySystemInterface.h"
-#include "NACharacter.h"
-#include "NAPlayerState.h"
-#include "ARPG/ARPG.h"
+#include "NAGameStateBase.h"
 #include "Combat/PhysicsHandleComponent/NAKineticComponent.h"
 
 
 ANAPlayerController::ANAPlayerController()
 {
+}
+
+void ANAPlayerController::Server_VoteForRestart_Implementation( APlayerState* InPlayerState, const bool bValue )
+{
+	if ( ANAGameStateBase* GameStateBase = Cast<ANAGameStateBase>( GetWorld()->GetGameState() ) )
+	{
+		GameStateBase->VoteForRestart( InPlayerState, bValue );
+	}
+}
+
+bool ANAPlayerController::Server_VoteForRestart_Validate( APlayerState* InPlayerState, const bool bValue )
+{
+	if ( const ANAGameStateBase* GameStateBase = Cast<ANAGameStateBase>( GetWorld()->GetGameState() ) )
+	{
+		return GameStateBase->PlayerArray.Find( InPlayerState ) && GameStateBase->IsFailed();
+	}
+
+	return false;
+}
+
+void ANAPlayerController::Multi_RemoveFailedWidget_Implementation()
+{
+	if ( ANAGameStateBase* GameStateBase = Cast<ANAGameStateBase>( GetWorld()->GetGameState() ) )
+	{
+		GameStateBase->RemoveFailedWidget();
+	}
 }
 
 void ANAPlayerController::BeginPlay()

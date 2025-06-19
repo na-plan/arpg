@@ -16,6 +16,12 @@ class ARPG_API ANAPlayerController : public APlayerController
 
 public:
 	ANAPlayerController();
+
+	UFUNCTION( Server, Unreliable, WithValidation )
+	void Server_VoteForRestart( APlayerState* InPlayerState, const bool bValue );
+
+	UFUNCTION( NetMulticast, Reliable )
+	void Multi_RemoveFailedWidget();
 	
 protected:
 	virtual void BeginPlay() override;

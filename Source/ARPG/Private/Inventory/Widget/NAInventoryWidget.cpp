@@ -9,6 +9,7 @@
 #include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Widgets/SViewport.h"
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Overlay.h"
