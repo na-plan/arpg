@@ -27,42 +27,38 @@ void ANAWeaponAmmoBox::BeginPlay()
 	ensure( AmmoEffectType );
 }
 
-bool ANAWeaponAmmoBox::ExecuteInteract_Implementation( AActor* InteractorActor )
+void ANAWeaponAmmoBox::OnFullyAddedToInventoryBeforeDestroy_Impl( AActor* Interactor )
 {
-	bool bResult = Super::ExecuteInteract_Implementation( InteractorActor );
-
-	if ( bResult )
+	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = Interactor )
 	{
-		if ( const TScriptInterface<IAbilitySystemInterface>& Interface = InteractorActor )
+		bool bResult = true;
+		
+		// 총알 갯수만큼 반복해서 이펙트를 적용을 시도하고
+		for ( int32 i = 0; i < AmmoCount; ++i )
 		{
-			// 총알 갯수만큼 반복해서 이펙트를 적용을 시도하고
-			for ( int32 i = 0; i < AmmoCount; ++i )
-			{
-				if ( !bResult )
-				{
-					break;
-				}
-				
-				const FGameplayEffectContextHandle& EffectContext = Interface->GetAbilitySystemComponent()->MakeEffectContext();
-				const FActiveGameplayEffectHandle& ActiveHandle = Interface->GetAbilitySystemComponent()->ApplyGameplayEffectToSelf( AmmoEffectType.GetDefaultObject(), 1.f, EffectContext );
-				bResult &= ActiveHandle.IsValid();
-				bResult &= ActiveHandle.WasSuccessfullyApplied();
-			}
-
-			// 만약 하나라도 실패하면 다시 원상복귀
 			if ( !bResult )
 			{
-				const FInheritedTagContainer& Container = Cast<UAssetTagsGameplayEffectComponent>( AmmoEffectType.GetDefaultObject()->FindComponent( UAssetTagsGameplayEffectComponent::StaticClass() ) )->GetConfiguredAssetTagChanges();
-				Interface->GetAbilitySystemComponent()->RemoveActiveEffectsWithAppliedTags( Container.Added );
+				break;
 			}
+				
+			const FGameplayEffectContextHandle& EffectContext = Interface->GetAbilitySystemComponent()->MakeEffectContext();
+			const FActiveGameplayEffectHandle& ActiveHandle = Interface->GetAbilitySystemComponent()->ApplyGameplayEffectToSelf( AmmoEffectType.GetDefaultObject(), 1.f, EffectContext );
+			bResult &= ActiveHandle.IsValid();
+			bResult &= ActiveHandle.WasSuccessfullyApplied();
 		}
-		else
+
+		// 만약 하나라도 실패하면 다시 원상복귀
+		if ( !bResult )
 		{
-			bResult = false;
+			const FInheritedTagContainer& Container = Cast<UAssetTagsGameplayEffectComponent>( AmmoEffectType.GetDefaultObject()->FindComponent( UAssetTagsGameplayEffectComponent::StaticClass() ) )->GetConfiguredAssetTagChanges();
+			Interface->GetAbilitySystemComponent()->RemoveActiveEffectsWithAppliedTags( Container.Added );
 		}
 	}
-	
-	return bResult;
+}
+
+bool ANAWeaponAmmoBox::BeginInteract_Implementation( AActor* InteractorActor )
+{
+	return Super::BeginInteract_Implementation( InteractorActor );
 }
 
 bool ANAWeaponAmmoBox::EndInteract_Implementation( AActor* InteractorActor )
