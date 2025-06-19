@@ -23,9 +23,16 @@ class UNASessionListEntryData : public UObject
 	GENERATED_BODY()
 
 public:
+	UNASessionListEntryData()
+	{
+		SessionName = SearchResult->GetSessionIdStr();
+	}
+		
+public:
 	FString SessionName;
 	FString TravelAddress;
 	int32 SessionIndex;
+	FOnlineSessionSearchResult* SearchResult;
 };
 
 UCLASS()
@@ -44,16 +51,22 @@ public:
 		Data = Result;
 		
 		Text_SessionName->SetText(FText::FromString(Data->SessionName));
-		
-		UNAGameInstance* GameInstance = Cast<UNAGameInstance>(GetGameInstance());
-		GameInstance->SetReservedIndex(Data->SessionIndex);
-		Button_Join->OnClicked.AddDynamic(GameInstance,&UNAGameInstance::JoinSession_Wrapped);
+		Button_Join->OnClicked.AddDynamic(this, &ThisClass::OnClick_Join);
 	}
 	
 	virtual void NativeDestruct() override
 	{
 		Button_Join->OnClicked.Clear();
 	};
+	
+public:
+	UFUNCTION()
+	void OnClick_Join()
+	{
+		UNAGameInstance* GameInstance = Cast<UNAGameInstance>(GetGameInstance());
+		GameInstance->SetReservedIndex(Data->SessionIndex);
+		//GameInstance->JoinSession(*Data->SearchResult);
+	}
 	
 public:
 	UPROPERTY(meta = (BindWidget))
@@ -88,6 +101,12 @@ public:
 
 	UFUNCTION()
 	void OnClick_StartGame();
+
+	UFUNCTION()
+	void OnClick_Return();
+
+	UFUNCTION()
+	void OnClick_Refresh();
 	
 protected:
 	void RefreshSessionList();
@@ -102,6 +121,12 @@ protected:
 	
 	UPROPERTY(meta = (BindWidget, AllowPrivateAccess = true))
 	UButton* Button_StartGame;
+
+	UPROPERTY(meta = (BindWidget, AllowPrivateAccess = true))
+	UButton* Button_Return;
+
+	UPROPERTY(meta = (BindWidget, AllowPrivateAccess = true))
+	UButton* Button_Refresh;
 	
 protected:
 	UNAGameInstance* CachedGameInstance;

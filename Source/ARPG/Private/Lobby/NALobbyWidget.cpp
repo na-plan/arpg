@@ -19,8 +19,10 @@ void UNALobbyWidget::NativeConstruct()
 
 	Button_SingleMode->OnClicked.AddDynamic(this, &ThisClass::OnClick_SingleMode);
 	Button_CoopMode->OnClicked.AddDynamic(this, &ThisClass::OnClick_CoopMode);
-
-	SessionListWidget->SetVisibility(ESlateVisibility::Hidden);
+	if (GetWorld()->IsNetMode(NM_ListenServer))
+		SessionListWidget->SetVisibility(ESlateVisibility::Visible);
+	else
+		SessionListWidget->SetVisibility(ESlateVisibility::Hidden);
 }
 
 void UNALobbyWidget::OnClick_SingleMode()

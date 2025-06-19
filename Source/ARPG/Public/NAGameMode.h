@@ -16,7 +16,7 @@ public:
 	
 	virtual APawn* SpawnDefaultPawnAtTransform_Implementation(AController* NewPlayer, const FTransform& SpawnTransform) override;
 
-	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
+	//virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
 };
 
 

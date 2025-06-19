@@ -20,11 +20,4 @@ public:
 
 public:
 	virtual void BeginPlay() override;
-	
-protected:
-	UPROPERTY(EditAnywhere, meta = (BindWidget, AllowPrivateAccess = true))
-	TSubclassOf<UUserWidget> LobbyWidgetClass;
-	
-	UPROPERTY()
-	UNALobbyWidget* LobbyWidget;
 };

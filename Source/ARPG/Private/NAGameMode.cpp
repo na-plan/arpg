@@ -50,22 +50,22 @@ APawn* ANAGameMode::SpawnDefaultPawnAtTransform_Implementation(AController* NewP
 	
 	return ResultPawn;
 }
-
-AActor* ANAGameMode::ChoosePlayerStart_Implementation(AController* Player)
-{
-	// temp 에디터 시작시 player01로 고정
-	
-	TArray<AActor*> FoundActors;
-	UGameplayStatics::GetAllActorsOfClass(this, APlayerStart::StaticClass(), FoundActors);
-
-	if (FoundActors.Num() == 0)
-		return Super::ChoosePlayerStart_Implementation(Player);
-
-	int32 Index = 0;
-
-	// if (Player && Player->PlayerState)
-	// 	Index = Player->PlayerState->GetPlayerId();
-
-	// int32 ChosenIndex = FMath::Clamp(Index, 0, FoundActors.Num() - 1);
-	return FoundActors[Index];
-}
+//
+// AActor* ANAGameMode::ChoosePlayerStart_Implementation(AController* Player)
+// {
+// 	// temp 에디터 시작시 player01로 고정
+// 	
+// 	TArray<AActor*> FoundActors;
+// 	UGameplayStatics::GetAllActorsOfClass(this, APlayerStart::StaticClass(), FoundActors);
+//
+// 	if (FoundActors.Num() == 0)
+// 		return Super::ChoosePlayerStart_Implementation(Player);
+//
+// 	int32 Index = 0;
+//
+// 	// if (Player && Player->PlayerState)
+// 	// 	Index = Player->PlayerState->GetPlayerId();
+//
+// 	// int32 ChosenIndex = FMath::Clamp(Index, 0, FoundActors.Num() - 1);
+// 	return FoundActors[Index];
+// }

@@ -16,7 +16,7 @@
  */
 
 DECLARE_MULTICAST_DELEGATE(FOnSessionSearchComplete);
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionFound, const FOnlineSessionSearchResult&);
+DECLARE_MULTICAST_DELEGATE(FOnSessionFound);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionJoinComplete, EOnJoinSessionCompleteResult::Type);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionCreateComplete, bool);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionDestroyComplete, bool);
@@ -40,6 +40,8 @@ public:
 	
 	UFUNCTION()
 	void JoinSession_Wrapped();
+
+	//void JoinSession(class FOnlineSessionSearchResult* InResult);
 	
 	UFUNCTION()
 	void CreateSession(FName SessionName, bool bIsLAN);
@@ -47,6 +49,12 @@ public:
 	UFUNCTION()
 	void DestroySession();
 
+	UFUNCTION()
+	void StartSession(FName SessionName);
+
+	UFUNCTION()
+	void StartSession_Wrapped();
+	
 public:
 	void SetReservedIndex(const int32 InIndex) { ReservedSessionIndex = InIndex; }
 	TSharedPtr<FOnlineSessionSearch> GetSessionSearch() const { return SessionSearch; }
@@ -56,6 +64,7 @@ private:
 	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
 	void OnCreateSessionComplete(FName SessionName, bool bWasSuccess);
 	void OnDestroySessionComplete(FName SessionName, bool bWasSuccess);
+	void OnStartSessionComplete(FName SessionName, bool bWasSuccess);
 	
 private:
 	IOnlineSessionPtr SessionInterface;
@@ -67,7 +76,9 @@ private:
 	
 	UPROPERTY()
 	int32 ReservedSessionIndex = 0;
-	
+
+public:
+	FOnSessionFound OnSessionFound;
 	// public:
 	// 	FOnSessionSearchComplete OnSessionSearchCompleteDelegate;
 	// 	FOnSessionFound OnSessionFoundCompleteDelegate;
