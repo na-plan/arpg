@@ -98,6 +98,7 @@ public:
 	void SetSelectSkillMontage(UAnimMontage* SelectSkillMontage) { CurrentSkillMontage = SelectSkillMontage; }
 	UAnimMontage* GetSelectSkillMontage() const { return CurrentSkillMontage; }
 	UAnimMontage* GetDeathMontage() const { return DeathMontage; }
+	UAnimMontage* GetSuplexedMontage() const { return SuplexedMontage; }
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = Gameplay, meta = (AllowPrivateAccess = "true"))
@@ -140,6 +141,8 @@ public:
 	UAnimMontage* CurrentSkillMontage;
 	UPROPERTY(EditAnywhere)
 	UAnimMontage* DeathMontage;
+	UPROPERTY(EditAnywhere)
+	UAnimMontage* SuplexedMontage;
 
 	UPROPERTY(EditAnywhere, meta = (RowType = "/Script/ARPG.OwnSkillTable"))
 	FDataTableRowHandle OwnSkills;

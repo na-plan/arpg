@@ -13,6 +13,7 @@
 #include "Monster/Ability/GameplayAbility/GA_Spawning.h"
 #include "Monster/Ability/GameplayAbility/GA_UseSkill.h"
 #include "Monster/Ability/GameplayAbility/NAGA_Death.h"
+#include "Ability/GameplayAbility/NAGA_Suplexed.h"
 #include "GameplayEffectExtension.h"
 
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
@@ -119,6 +120,7 @@ void AMonsterBase::BeginPlay()
 		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_Spawning::StaticClass(), 1, 0));
 		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_UseSkill::StaticClass(), 1, 0));
 		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UNAGA_Death::StaticClass(), 1, 0));
+		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UNAGA_Suplexed::StaticClass(), 1, 0));
 	}
 
 }
@@ -208,9 +210,10 @@ void AMonsterBase::OnDie()
 	// Check
 	if (HasAuthority())
 	{
-		if (DeathMontage)
+		if (DeathMontage || SuplexedMontage)
 		{
-			if (AbilitySystemComponent->GetCurrentMontage() == DeathMontage)
+			UAnimMontage* CurrentMontage = AbilitySystemComponent->GetCurrentMontage();
+			if (AbilitySystemComponent->GetCurrentMontage() == DeathMontage || AbilitySystemComponent->GetCurrentMontage() == SuplexedMontage)
 			{
 				UAnimMontage* DeathMontageCheck = AbilitySystemComponent->GetCurrentMontage();
 				float CheckLeftTime = AbilitySystemComponent->GetCurrentMontageSectionTimeLeft();

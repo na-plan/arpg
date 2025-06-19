@@ -265,6 +265,9 @@ protected:
 	UFUNCTION( Server, Unreliable )
 	void Server_BeginInteraction();
 
+	UFUNCTION( Server, Reliable)
+	void Server_RequestSuplexAbility();
+
 protected:
 	virtual UChildActorComponent* GetLeftHandChildActorComponent() const override { return LeftHandChildActor; }
 	virtual UChildActorComponent* GetRightHandChildActorComponent() const override { return RightHandChildActor; }
