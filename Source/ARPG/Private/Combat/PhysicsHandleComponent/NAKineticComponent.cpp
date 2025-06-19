@@ -57,7 +57,7 @@ void UNAKineticComponent::Grab()
 	
 	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner() )
 	{
-		Interface->GetAbilitySystemComponent()->AbilityLocalInputPressed( static_cast<int32>( EAbilityInputID::Grab ) );
+		Interface->GetAbilitySystemComponent()->AbilityLocalInputPressed( static_cast<int32>( EAbilityInputID::KineticGrab ) );
 	}
 }
 
@@ -70,7 +70,7 @@ void UNAKineticComponent::Release()
 	
 	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner() )
 	{
-		Interface->GetAbilitySystemComponent()->AbilityLocalInputReleased( static_cast<int32>( EAbilityInputID::Grab ) );
+		Interface->GetAbilitySystemComponent()->AbilityLocalInputReleased( static_cast<int32>( EAbilityInputID::KineticGrab ) );
 	}
 }
 

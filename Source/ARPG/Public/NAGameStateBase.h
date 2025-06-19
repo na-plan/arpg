@@ -4,9 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameStateBase.h"
-#include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "NAGameStateBase.generated.h"
 
+class UWidgetComponent;
+DECLARE_DYNAMIC_DELEGATE( FOnMissionRestartVotePassed );
 
 UENUM()
 enum class EGameMode : uint8
@@ -38,6 +39,12 @@ class ARPG_API ANAGameStateBase : public AGameStateBase
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Widget", meta = (AllowPrivateAccess = "true"))
 	UWidgetComponent* FailedWidgetComponent;
 
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_RestartVoteArray, Category = "Widget", meta = (AllowPrivateAccess = "true") )
+	TArray<bool> RestartVoteArray;
+
+	UPROPERTY()
+	TSubclassOf<UUserWidget> FailedWidgetClass;
+
 	UFUNCTION()
 	void HandleRevive( APlayerState* PlayerState, ECharacterStatus CharacterStatus );
 
@@ -47,25 +54,42 @@ class ARPG_API ANAGameStateBase : public AGameStateBase
 	UFUNCTION()
 	void HandleDead( APlayerState* PlayerState, ECharacterStatus CharacterStatus );
 
+	void UpdateMissionFailedWidget() const;
+	
+	UFUNCTION()
+	void OnRep_RestartVoteArray() const;
+
 	UFUNCTION()
 	void OnRep_Failed();
 	
 	void ShowFailedWidget() const;
 
 	void RestartRound() const;
-	
+
+	UFUNCTION()
 	void CheckAndHandleFailed();
 	
 public:
+	
+	FOnMissionRestartVotePassed OnMissionRestartVotePassed;
+	
 	ANAGameStateBase();
 	
 	bool HasAnyoneDead() const;
+
+	bool IsFailed() const;
+
+	void RemoveFailedWidget();
+	
+	void VoteForRestart( APlayerState* PlayerState, bool bValue );
 
 protected:
 	virtual void BeginPlay() override;
 	
 	// PlayerState를 추가하기 전에 플레이어의 캐릭터를 부여
 	virtual void AddPlayerState(APlayerState* PlayerState) override;
+
+	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
