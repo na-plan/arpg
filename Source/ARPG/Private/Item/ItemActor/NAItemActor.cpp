@@ -42,9 +42,8 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	ItemWidgetComponent->SetMaterial(0, ItemWidgetMaterial.Object);
 	
 	ItemDataID = NAME_None;
-	
-	SetReplicates( true );
-	SetReplicateMovement( true );
+
+	AActor::SetReplicateMovement( true );
 	bAlwaysRelevant = true;
 }
 
@@ -97,6 +96,12 @@ void ANAItemActor::PostActorCreated()
 		{
 			ItemWidgetComponent->SetVisibility(false);
 			ItemWidgetComponent->Deactivate();
+		}
+		if (ItemMesh)
+		{
+			ItemMesh->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+			ItemMesh->SetSimulatePhysics( false );
+			ItemMesh->SetGenerateOverlapEvents(false);
 		}
 	}
 }
@@ -208,8 +213,9 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	if (!UNAItemEngineSubsystem::Get()
 		|| !UNAItemEngineSubsystem::Get()->IsItemMetaDataInitialized()
 #if WITH_EDITOR
-		|| !UNAItemEngineSubsystem::Get()->IsRegisteredItemMetaClass(GetClass()))
+		|| !UNAItemEngineSubsystem::Get()->IsRegisteredItemMetaClass(GetClass())
 #endif
+		)
 	{
 		return;
 	}
@@ -622,7 +628,7 @@ bool ANAItemActor::CanInteract_Implementation() const
 
 void ANAItemActor::NotifyInteractableFocusBegin_Implementation(AActor* InteractableActor, AActor* InteractorActor)
 {
-	if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(InteractorActor))
+	if (UNAInteractionComponent* InteractionComp = GetInteractionComponent(InteractorActor))
 	{
 		bIsFocused = InteractionComp->OnInteractableFound(this);
 		if (bIsFocused && ItemWidgetComponent && !ItemWidgetComponent->IsVisible())
@@ -634,7 +640,7 @@ void ANAItemActor::NotifyInteractableFocusBegin_Implementation(AActor* Interacta
 
 void ANAItemActor::NotifyInteractableFocusEnd_Implementation(AActor* InteractableActor, AActor* InteractorActor)
 {
-	if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(InteractorActor))
+	if (UNAInteractionComponent* InteractionComp = GetInteractionComponent(InteractorActor))
 	{
 		bIsFocused = !InteractionComp->OnInteractableLost(this);
 		if (!bIsFocused && !IsPendingKillPending()
@@ -647,9 +653,11 @@ void ANAItemActor::NotifyInteractableFocusEnd_Implementation(AActor* Interactabl
 
 bool ANAItemActor::TryInteract_Implementation(AActor* Interactor)
 {
+	bIsOnInteract = true;
+	SetInteractionPhysicsEnabled(false);
+	
 	if (Execute_BeginInteract(this, Interactor))
 	{
-		SetInteractionPhysicsEnabled(false);
 		if (Execute_ExecuteInteract(this, Interactor))
 		{
 			if (Execute_EndInteract(this, Interactor))
@@ -658,14 +666,18 @@ bool ANAItemActor::TryInteract_Implementation(AActor* Interactor)
 				{
 					SetInteractableCount(GetInteractableCount() - 1);
 				}
+				
 				UE_LOG(LogTemp, Warning, TEXT("[TryInteract]  상호작용 사이클 완료"));
 				SetInteractionPhysicsEnabled(true);
+				bIsOnInteract = false;
 				return true;
 			}
 		}
 	}
-	
+
+	UE_LOG(LogTemp, Warning, TEXT("[TryInteract]  상호작용 사이클 중단"));
 	SetInteractionPhysicsEnabled(true);
+	bIsOnInteract = false;
 	return false;
 }
 
@@ -677,85 +689,23 @@ bool ANAItemActor::BeginInteract_Implementation(AActor* InteractorActor)
 		UE_LOG(LogTemp, Warning, TEXT("[BeginInteract]  상호작용 조건 불충분"));
 		return false;
 	}
-	
-	if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(InteractorActor))
-	{
-		bIsOnInteract = true;
-		return true;
-	}
-
-	return false;
+	return bIsOnInteract;
 }
 
 bool ANAItemActor::ExecuteInteract_Implementation(AActor* InteractorActor)
 {
 	ensureAlwaysMsgf(bIsOnInteract, TEXT("[ExecuteInteract_Implementation]  bIsOnInteract이 false였음"));
-	
-	if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(InteractorActor))
-	{
-		return bIsOnInteract;
-	}
-
-	return false;
+	return bIsOnInteract;
 }
 
 bool ANAItemActor::EndInteract_Implementation(AActor* InteractorActor)
 {
-	if (UNAInteractionComponent* InteractionComp = TryGetInteractionComponent(InteractorActor))
-	{
-		bIsOnInteract = false;
-		return true;
-	}
-	return false;
+	return bIsOnInteract;
 }
 
 bool ANAItemActor::IsOnInteract_Implementation() const
 {
 	return bIsOnInteract;
-}
-
-void ANAItemActor::SetInteractionPhysicsEnabled(const bool bEnabled)
-{
-	if (!bEnabled)
-	{
-		ensureAlways(Execute_IsOnInteract(this));
-		
-		if (ItemCollision)
-		{
-			ItemCollision->SetSimulatePhysics(false);
-			ItemCollision->SetGenerateOverlapEvents(false);
-			ItemCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			ItemCollision->Deactivate();
-		}
-		if (TriggerSphere)
-		{
-			TriggerSphere->SetGenerateOverlapEvents(false);
-			TriggerSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			TriggerSphere->Deactivate();
-		}
-		if (ItemWidgetComponent->IsVisible())
-		{
-			ItemWidgetComponent->CollapseItemWidgetPopup();
-		}
-	}
-	else
-	{
-		if (ItemCollision)
-		{
-			ItemCollision->SetSimulatePhysics(true);
-			ItemCollision->SetGenerateOverlapEvents(true);
-			ItemCollision->SetCollisionProfileName(TEXT("BlockAllDynamic"));
-			ItemCollision->Activate();
-		}
-		if (TriggerSphere)
-		{
-			TriggerSphere->SetGenerateOverlapEvents(true);
-			TriggerSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-			TriggerSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
-			TriggerSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-			TriggerSphere->Activate();
-		}
-	}
 }
 
 bool ANAItemActor::TryGetInteractableData(FNAInteractableData& OutData) const
@@ -834,10 +784,17 @@ void ANAItemActor::SetInteractableCount(int32 NewCount)
 
 bool ANAItemActor::CanPerformInteractionWith(AActor* Interactor) const
 {
+	bool bCanPerform = Interactor && GetInteractionComponent(Interactor);
+	
 	FNAInteractableData Data;
 	if (TryGetInteractableData(Data))
 	{
-		return Interactor && Data.InteractableType != ENAInteractableType::None;
+		bCanPerform = bCanPerform && Data.InteractableType != ENAInteractableType::None;
+		if (Data.bIsUnlimitedInteractable)
+		{
+			bCanPerform = bCanPerform && Data.InteractableCount > 0;
+		}
+		return bCanPerform;
 	}
-	return Interactor ? true : false;
+	return bCanPerform;
 }

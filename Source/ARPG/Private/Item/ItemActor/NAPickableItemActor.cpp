@@ -2,6 +2,7 @@
 
 #include "Components/SphereComponent.h"
 #include "Interaction/NAInteractionComponent.h"
+#include "Item/ItemWidget/NAItemWidgetComponent.h"
 
 ANAPickableItemActor::ANAPickableItemActor(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
@@ -63,11 +64,55 @@ bool ANAPickableItemActor::CanInteract_Implementation() const
 	return Super::CanInteract_Implementation() && PickupMode != EPickupMode::PM_None;
 }
 
+void ANAPickableItemActor::SetInteractionPhysicsEnabled(const bool bEnabled)
+{
+	if (!ensureAlways(Execute_IsOnInteract(this))) return;
+	
+	if (!bEnabled)
+	{
+		if (ItemCollision)
+		{
+			ItemCollision->SetSimulatePhysics(false);
+			ItemCollision->SetGenerateOverlapEvents(false);
+			ItemCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			ItemCollision->Deactivate();
+		}
+		if (TriggerSphere)
+		{
+			TriggerSphere->SetGenerateOverlapEvents(false);
+			TriggerSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			TriggerSphere->Deactivate();
+		}
+		if (ItemWidgetComponent->IsVisible())
+		{
+			ItemWidgetComponent->CollapseItemWidgetPopup();
+		}
+	}
+	else
+	{
+		if (ItemCollision)
+		{
+			ItemCollision->SetSimulatePhysics(true);
+			ItemCollision->SetGenerateOverlapEvents(true);
+			ItemCollision->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+			ItemCollision->Activate();
+		}
+		if (TriggerSphere)
+		{
+			TriggerSphere->SetGenerateOverlapEvents(true);
+			TriggerSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+			TriggerSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
+			TriggerSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+			TriggerSphere->Activate();
+		}
+	}
+}
+
 // void ANAPickableItemActor::EndInteract_Implementation(AActor* Interactor)
 // {
 // 	Super::EndInteract_Implementation(Interactor);
 // 	
-// 	UNAInteractionComponent* InteractComp = TryGetInteractionComponent(Interactor);
+// 	UNAInteractionComponent* InteractComp = GetInteractionComponent(Interactor);
 // 	if (!ensureAlways(IsValid(InteractComp))) return;
 // 	
 // 	// 아이템 드랍?

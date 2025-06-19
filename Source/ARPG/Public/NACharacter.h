@@ -204,7 +204,7 @@ protected:
 
 	// Interaction Input
 	UFUNCTION()
-	void TryInteract();
+	void TryInteraction();
 
 	// Inventory Widget Release/Collapse
 	uint8 bIsExpandingInventoryWidget : 1 = false;

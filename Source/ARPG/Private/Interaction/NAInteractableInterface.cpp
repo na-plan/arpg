@@ -7,9 +7,9 @@
 
 // Add default functionality here for any INAInteractionInterface functions that are not pure virtual.
 
-UNAInteractionComponent* INAInteractableInterface::TryGetInteractionComponent(AActor* InActor)
+UNAInteractionComponent* INAInteractableInterface::GetInteractionComponent(AActor* Interactor) const
 {
 	UNAInteractionComponent* InteractionComp = nullptr;
-	InteractionComp = InActor->FindComponentByClass<UNAInteractionComponent>();
+	InteractionComp = Interactor->FindComponentByClass<UNAInteractionComponent>();
 	return InteractionComp;
 }
