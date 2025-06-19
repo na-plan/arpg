@@ -190,7 +190,7 @@ public:
 	virtual int32 GetInteractableCount() const override final;
 	virtual void SetInteractableCount(int32 NewCount) override final;
 	
-	virtual bool CanPerformInteractionWith(AActor* Interactor) const;
+	virtual bool CanPerformInteractionWith(AActor* Interactor) const override;
 
 	virtual bool TryInteract_Implementation(AActor* Interactor) override final;
 	
@@ -198,8 +198,6 @@ protected:
 	virtual bool BeginInteract_Implementation(AActor* Interactor) override;
 	virtual bool ExecuteInteract_Implementation(AActor* Interactor) override;
 	virtual bool EndInteract_Implementation(AActor* Interactor) override;
-	
-	virtual void SetInteractionPhysicsEnabled(const bool bEnabled) override;
 
 protected:
 	/** 자기 자신(this)이 구현한 인터페이스를 보관 */

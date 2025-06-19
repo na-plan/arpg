@@ -96,7 +96,7 @@ protected:
 // c++에서만 호출 가능한 일반 메서드
 //====================================================================================================================================
 protected:
-	class UNAInteractionComponent* TryGetInteractionComponent(AActor* InActor);
+	class UNAInteractionComponent* GetInteractionComponent(AActor* Interactor) const;
 
 	static void TransferInteractableStateToChildActor(TScriptInterface<INAInteractableInterface> SourceActor,
 		TScriptInterface<INAInteractableInterface> TargetChildActor)

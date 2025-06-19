@@ -334,7 +334,7 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction( ReviveAction, ETriggerEvent::Started, this, &ANACharacter::TryRevive );
 		EnhancedInputComponent->BindAction( ReviveAction, ETriggerEvent::Completed, this, &ANACharacter::StopRevive );
 		// Interact
-		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ANACharacter::TryInteract);
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ANACharacter::TryInteraction);
 		// Toggle Inventory
 		EnhancedInputComponent->BindAction(ToggleInventoryAction, ETriggerEvent::Started, this, &ANACharacter::ToggleInventoryWidget);
 
@@ -633,32 +633,18 @@ bool ANACharacter::ServerSetZoom_Validate(bool bZoom)
 }
 
 
-void ANACharacter::TryInteract()
+void ANACharacter::TryInteraction()
 {
 	if (ensure(InteractionComponent != nullptr))
 	{
-		// if (!InteractionComponent->HasPendingInteractable())
-		// {
-		 	if ( !HasAuthority() )
-		 	{
-		 		Server_BeginInteraction();
-		 	}
-		 	else
-		 	{
-		 		InteractionComponent->ToggleInteraction();	
-		 	}
-		// }
-		// else
-		// {
-		// 	if ( !HasAuthority() )
-		// 	{
-		// 		//Server_EndInteraction();
-		// 	}
-		// 	else
-		// 	{
-		// 		InteractionComponent->StopInteraction();	
-		// 	}
-		// }
+		if (!HasAuthority())
+		{
+			Server_BeginInteraction();
+		}
+		else
+		{
+			InteractionComponent->ToggleInteraction();
+		}
 	}
 }
 
