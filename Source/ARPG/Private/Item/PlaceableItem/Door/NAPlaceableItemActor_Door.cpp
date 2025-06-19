@@ -17,11 +17,15 @@ ANAPlaceableItemActor_Door::ANAPlaceableItemActor_Door(const FObjectInitializer&
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	ItemCollision = CreateOptionalDefaultSubobject<UBoxComponent>(TEXT("ItemCollision(Box)"));
-	if ( UBoxComponent* BoxComponent = Cast<UBoxComponent>( ItemCollision ) )
+	if (UBoxComponent* ItemCollisionBox = CreateOptionalDefaultSubobject<UBoxComponent>(TEXT("ItemCollision(Box)")))
 	{
-		BoxComponent->SetBoxExtent( {0.f, 0.f, 0.f} );
+		ItemCollisionBox->SetBoxExtent(FVector::ZeroVector);
+		ItemCollision = ItemCollisionBox;
+	}
+	if (ItemCollision)
+	{
 		bWasItemCollisionCreated = true;
+		SetRootComponent(ItemCollision);
 		if (TriggerSphere)
 		{
 			TriggerSphere->SetupAttachment(ItemCollision);
@@ -55,10 +59,7 @@ bool ANAPlaceableItemActor_Door::BeginInteract_Implementation(AActor* Interactor
 {
 	if (Super::BeginInteract_Implementation(Interactor))
 	{
-		if (ItemWidgetComponent && ItemWidgetComponent->IsVisible())
-		{
-			ItemWidgetComponent->CollapseItemWidgetPopup();
-		}
+		CollapseItemWidgetComponent();
 		// InitInteraction(Interactor);
 		// TickInteraction.BindUObject(this, &ThisClass::ExecuteInteract_Implementation);
 		return true;
@@ -192,7 +193,9 @@ void ANAPlaceableItemActor_Door::ToggleDoor()
 		UE_LOG(LogTemp, Warning, TEXT("[ToggleDoor]  DoorType was Max."));
 		return;
 	}
-	
+	if (bIsDoorMoving) return;
+
+	bIsDoorMoving = true;
 	if (!bIsOpened) // 문 열기
 	{
 		FLatentActionInfo LatentInfo;
@@ -263,10 +266,11 @@ void ANAPlaceableItemActor_Door::OnDoorOpeningFinished()
 		&& Door2->GetRelativeLocation().Equals(DestTF2_Local.GetLocation(), 0.1f))
 	{
 		bIsOpened = true;
-
-		if (bIsFocused &&ItemWidgetComponent && !ItemWidgetComponent->IsVisible())
+		bIsDoorMoving = false;
+		
+		if (bIsFocused)
 		{
-			ItemWidgetComponent->ReleaseItemWidgetPopup();
+			ReleaseItemWidgetComponent();
 		}
 	}
 }
@@ -277,11 +281,40 @@ void ANAPlaceableItemActor_Door::OnDoorClosingFinished()
 		&& Door2->GetRelativeLocation().Equals(OriginTF2_Local.GetLocation(), 0.1f))
 	{
 		bIsOpened = false;
+		bIsDoorMoving = false;
 		
-		if (bIsFocused &&ItemWidgetComponent && !ItemWidgetComponent->IsVisible())
+		if (bIsFocused)
 		{
-			ItemWidgetComponent->ReleaseItemWidgetPopup();
+			ReleaseItemWidgetComponent();
 		}
 	}
+}
+
+void ANAPlaceableItemActor_Door::ReleaseItemWidgetComponent()
+{
+	if (!ItemWidgetComponent) return;
+	if (!bIsOpened)
+	{
+		ItemWidgetComponent->SetItemInteractionName(TEXT("Open"));
+	}
+	else
+	{
+		ItemWidgetComponent->SetItemInteractionName(TEXT("Close"));
+	}
+	Super::ReleaseItemWidgetComponent();
+}
+
+void ANAPlaceableItemActor_Door::CollapseItemWidgetComponent()
+{
+	// if (!ItemWidgetComponent) return;
+	// if (!bIsOpened)
+	// {
+	// 	ItemWidgetComponent->SetItemInteractionName(TEXT("Open"));
+	// }
+	// else
+	// {
+	// 	ItemWidgetComponent->SetItemInteractionName(TEXT("Close"));
+	// }
+	Super::CollapseItemWidgetComponent();
 }
 

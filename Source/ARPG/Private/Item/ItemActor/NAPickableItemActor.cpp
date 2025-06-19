@@ -83,10 +83,8 @@ void ANAPickableItemActor::SetInteractionPhysicsEnabled(const bool bEnabled)
 			TriggerSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			TriggerSphere->Deactivate();
 		}
-		if (ItemWidgetComponent->IsVisible())
-		{
-			ItemWidgetComponent->CollapseItemWidgetPopup();
-		}
+		
+		CollapseItemWidgetComponent();
 	}
 	else
 	{

@@ -146,6 +146,14 @@ void UNAItemWidgetComponent::CollapseItemWidgetPopup()
 	GetItemWidget()->CollapseItemWidget();
 }
 
+void UNAItemWidgetComponent::SetItemInteractionName(const FString& NewString) const
+{
+	if (GetItemWidget())
+	{
+		GetItemWidget()->SetInteractionNameText(NewString);
+	}
+}
+
 class UNAItemWidget* UNAItemWidgetComponent::GetItemWidget() const
 {
 	return Cast<UNAItemWidget>(GetWidget());
