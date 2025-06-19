@@ -117,6 +117,9 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	/* Equip/UnequipWeapon*/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
 	UInputAction* ToggleWeaponEquippedAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
+	UInputAction* SelectWeaponAction;
 	
 	/* Interaction Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
@@ -234,6 +237,8 @@ protected:
 	// 힐팩 단축키로 자동 사용: 높은 등급부터
 	void UseMedPackByShortcut(const FInputActionValue& Value);
 	void UseStasisPackByShortcut(const FInputActionValue& Value);
+
+	void SelectWeaponByMouseWheel(const FInputActionValue& Value);
 	
 protected:
 	void TryRevive();

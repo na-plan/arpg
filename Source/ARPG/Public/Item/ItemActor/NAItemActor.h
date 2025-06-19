@@ -128,6 +128,8 @@ public:
 
 	virtual void ReleaseItemWidgetComponent();
 	virtual void CollapseItemWidgetComponent();
+
+	void OnFullyAddedToInventoryBeforeDestroy(AActor* Interactor);
 	
 protected:
 	// OnItemDataInitialized: BP 확장 가능
@@ -140,6 +142,8 @@ protected:
 	void OnActorBeginOverlap_Impl( AActor* OverlappedActor, AActor* OtherActor );
 	UFUNCTION()
 	void OnActorEndOverlap_Impl( AActor* OverlappedActor, AActor* OtherActor );
+
+	virtual void OnFullyAddedToInventoryBeforeDestroy_Impl(AActor* Interactor) {}
 	
 private:
 	void InitItemData();

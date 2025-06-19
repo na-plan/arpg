@@ -12,6 +12,7 @@
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Overlay.h"
+#include "Widgets/SViewport.h"
 
 FNAInvenSlotWidgets::FNAInvenSlotWidgets(UButton* Button, UImage* Icon, UTextBlock* Text)
 	: InvenSlotButton(Button), InvenSlotIcon(Icon), InvenSlotQty(Text)
@@ -460,18 +461,18 @@ void UNAInventoryWidget::OnInventoryWidgetReleased()
 		UWidgetBlueprintLibrary::SetInputMode_GameAndUIEx(GetOwningPlayer(), nullptr, EMouseLockMode::LockAlways, true, false);
 
 		// 일단 땜빵: [인벤 위젯 활성화 시 마우스 커서 노출되는 문제 + 마우스 버튼 다운/업 시 인벤 위젯에서 키보드 포커스 빠지는 문제] 틀어막음 
-		// UGameViewportClient* GameViewportClient = GetWorld()->GetGameViewport();
-		// TSharedPtr<SViewport> ViewportWidget = GameViewportClient->GetGameViewportWidget();
-		// if (ViewportWidget.IsValid())
-		// {
-		// 	FReply& SlateOperations = GetOwningLocalPlayer()->GetSlateOperations();
-		// 	TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.ToSharedRef();
-		// 	SlateOperations.UseHighPrecisionMouseMovement(ViewportWidgetRef);
-		// 	SlateOperations.LockMouseToWidget(ViewportWidgetRef);
-		// 	GameViewportClient->SetIgnoreInput(false);
-		// 	GameViewportClient->SetHideCursorDuringCapture(true);
-		// 	GameViewportClient->SetMouseCaptureMode(EMouseCaptureMode::NoCapture);
-		// }
+		UGameViewportClient* GameViewportClient = GetWorld()->GetGameViewport();
+		TSharedPtr<SViewport> ViewportWidget = GameViewportClient->GetGameViewportWidget();
+		if (ViewportWidget.IsValid())
+		{
+			FReply& SlateOperations = GetOwningLocalPlayer()->GetSlateOperations();
+			TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.ToSharedRef();
+			SlateOperations.UseHighPrecisionMouseMovement(ViewportWidgetRef);
+			SlateOperations.LockMouseToWidget(ViewportWidgetRef);
+			GameViewportClient->SetIgnoreInput(false);
+			GameViewportClient->SetHideCursorDuringCapture(true);
+			GameViewportClient->SetMouseCaptureMode(EMouseCaptureMode::NoCapture);
+		}
 		
 		OwningInventoryComponent->SetWindowFocusable(true);
 		if (!LastFocusedSlotButton.IsValid())

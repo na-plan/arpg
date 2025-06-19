@@ -362,6 +362,8 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(RightMouseAttackAction, ETriggerEvent::Started, this, &ANACharacter::Zoom);
 		
 		EnhancedInputComponent->BindAction(ToggleWeaponEquippedAction, ETriggerEvent::Started, this, &ANACharacter::ToggleWeaponEquipped);
+		
+		EnhancedInputComponent->BindAction(SelectWeaponAction, ETriggerEvent::Started, this, &ANACharacter::SelectWeaponByMouseWheel);
 	}
 	else
 	{
@@ -752,6 +754,16 @@ void ANACharacter::ToggleWeaponEquipped(const FInputActionValue& Value)
 			}
 		}
 	}
+}
+
+void ANACharacter::SelectWeaponByMouseWheel(const FInputActionValue& Value)
+{
+	if (!InventoryComponent) return;
+
+	const float AxisValue = Value.Get<float>();
+	if (FMath::IsNearlyZero(AxisValue)) return;
+
+	int32 Direction = AxisValue > 0.f ? 1 : -1;
 }
 
 void ANACharacter::RotateSpringArmForInventory(bool bExpand, float Overtime)

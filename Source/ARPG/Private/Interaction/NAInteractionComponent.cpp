@@ -618,7 +618,7 @@ int32 UNAInteractionComponent::TryAddItemToInventory(ANAItemActor* ItemActor)
 	if (RemainQuantity == 0) // 전부 추가 성공: 아이템 액터 파괴
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[TryAddItemToInventory]  (%s) 전부 추가 성공"), *ItemActor->GetName());
-		ItemActor->Destroy();
+		ItemActor->OnFullyAddedToInventoryBeforeDestroy(GetOwner());
 	}
 	else if (RemainQuantity > 0) // 부분 추가
 	{
@@ -632,6 +632,7 @@ int32 UNAInteractionComponent::TryAddItemToInventory(ANAItemActor* ItemActor)
 		// 아이템 액터 잔존 및 아이템 데이터 변경 없음
 		UE_LOG(LogTemp, Warning, TEXT("[TryAddItemToInventory]  (%s) 전부 추가 실패"), *ItemActor->GetName());
 	}
+	
 	if (!ItemActor->HasAuthority())
 	{
 		Client_AddItemToInventory(ItemActor);
