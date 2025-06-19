@@ -10,6 +10,7 @@
 #include "Engine/OverlapResult.h"
 #include "NACharacter.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
+#include "Monster/Pawn/MonsterBase.h"
 
 
 void UNAAnimNotifyState_ParryAreaTest::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration, const FAnimNotifyEventReference& EventReference)
@@ -20,34 +21,40 @@ void UNAAnimNotifyState_ParryAreaTest::NotifyBegin(USkeletalMeshComponent* MeshC
 
 	AActor* OwnerActor = MeshComp->GetOwner();
 
-#if WITH_EDITOR
-	if (GIsEditor && OwnerActor && OwnerActor->GetWorld() != GWorld) { return; }
-#endif
+//#if WITH_EDITOR
+//	if (GIsEditor && OwnerActor && OwnerActor->GetWorld() != GWorld) { return; }
+//#endif
 
 	if (MeshComp->GetWorld()->IsGameWorld())
 	{
 		if (MeshComp->GetOwner()->HasAuthority())
 		{
-			//const TScriptInterface<IAbilitySystemInterface>& SourceInterface = MeshComp->GetOwner();
+			const TScriptInterface<IAbilitySystemInterface>& SourceInterface = MeshComp->GetOwner();
 
-			//if (!SourceInterface)
-			//{
-			//	// GAS가 없는 객체로부터 시도됨
-			//	check(false);
-			//	return;
-			//}
+			if (!SourceInterface)
+			{
+				// GAS가 없는 객체로부터 시도됨
+				check(false);
+				return;
+			}
 			if (UAbilitySystemComponent* OwnerASC = OwnerActor->FindComponentByClass<UAbilitySystemComponent>())
 			{
-				const FVector SocketLocation = MeshComp->GetSocketLocation(SocketName);
-				ContextHandle = OwnerASC->MakeEffectContext();
-				ContextHandle.AddOrigin(SocketLocation);
-				ContextHandle.AddInstigator(MeshComp->GetOwner()->GetInstigatorController(), MeshComp->GetOwner());
-				ContextHandle.SetAbility(OwnerASC->GetAnimatingAbility());
-				ContextHandle.AddSourceObject(this);
-				SpecHandle = OwnerASC->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1.f, ContextHandle);
-				if ( const UNAMontageCombatComponent* CombatComponent = MeshComp->GetOwner()->GetComponentByClass<UNAMontageCombatComponent>() )
+				if (AMonsterBase* Monster = Cast<AMonsterBase>(MeshComp->GetOwner()))
 				{
-					SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( "Data.Damage" ), -CombatComponent->GetBaseDamage() );
+
+					const FVector SocketLocation = MeshComp->GetSocketLocation(SocketName);
+					ContextHandle = OwnerASC->MakeEffectContext();
+					ContextHandle.AddOrigin(SocketLocation);
+					ContextHandle.AddInstigator(MeshComp->GetOwner()->GetInstigatorController(), MeshComp->GetOwner());
+					ContextHandle.SetAbility(OwnerASC->GetAnimatingAbility());
+					ContextHandle.AddSourceObject(this);
+					SpecHandle = OwnerASC->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1.f, ContextHandle);
+					//SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag("Data.Damage"), -Damage);
+				
+					// 그냥 asc에 박을까? 
+					// Monster->GetBaseDamage()
+					float Test = Monster->GetBaseDamage();
+					SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( "Data.Damage" ), -Test);
 				}
 			}
 		}
@@ -108,7 +115,6 @@ void UNAAnimNotifyState_ParryAreaTest::NotifyEnd(USkeletalMeshComponent* MeshCom
 								*SpecHandle.Data.Get(),
 								PlayerASC
 							);				
-
 					}
 				}
 
