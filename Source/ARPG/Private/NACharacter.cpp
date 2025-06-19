@@ -224,6 +224,7 @@ void ANACharacter::BeginPlay()
 		
 		// 총알을 소모했을때, 인벤토리에 있는 총알의 갯수도 동기화, 인벤토리 상태는 클라이언트에서 업데이트
 		AbilitySystemComponent->OnAnyGameplayEffectRemovedDelegate().AddUObject( this, &ANACharacter::SyncAmmoConsumptionWithInventory );
+		VitalCheckComponent->OnCharacterStateChanged.AddUObject( this, &ANACharacter::HideInventoryIfNotAlive );
 	}
 
 	InteractionComponent->SetActive( true );
@@ -361,7 +362,7 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 		EnhancedInputComponent->BindAction(RightMouseAttackAction, ETriggerEvent::Started, this, &ANACharacter::Zoom);
 		
-		EnhancedInputComponent->BindAction(ToggleWeaponEquippedAction, ETriggerEvent::Started, this, &ANACharacter::ToggleWeaponEquipped);
+		EnhancedInputComponent->BindAction(ToggleWeaponEquippedAction, ETriggerEvent::Started, this, &ANACharacter::Server_ToggleWeaponEquipped);
 		
 		EnhancedInputComponent->BindAction(SelectWeaponAction, ETriggerEvent::Started, this, &ANACharacter::SelectWeaponByMouseWheel);
 	}
@@ -568,6 +569,11 @@ void ANACharacter::Look(const FInputActionValue& Value)
 
 void ANACharacter::StartLeftMouseAttack()
 {
+	if ( VitalCheckComponent->GetCharacterStatus() != ECharacterStatus::Alive )
+	{
+		return;
+	}
+	
 	if ( KineticComponent->HasGrabbed() )
 	{
 		return;
@@ -602,8 +608,23 @@ void ANACharacter::OnRep_Zoom()
 	}
 }
 
+void ANACharacter::Jump()
+{
+	if ( VitalCheckComponent->GetCharacterStatus() != ECharacterStatus::Alive )
+	{
+		return;	
+	}
+	
+	Super::Jump();
+}
+
 void ANACharacter::Zoom()
 {
+	if ( VitalCheckComponent->GetCharacterStatus() != ECharacterStatus::Alive )
+	{
+		return;
+	}
+	
 	if (InventoryComponent->IsVisible()) return;
 	
 	SetZoom();
@@ -649,9 +670,13 @@ bool ANACharacter::ServerSetZoom_Validate(bool bZoom)
 	return true;
 }
 
-
 void ANACharacter::TryInteraction()
 {
+	if ( VitalCheckComponent->GetCharacterStatus() != ECharacterStatus::Alive )
+	{
+		return;
+	}
+	
 	if (ensure(InteractionComponent != nullptr))
 	{
 		if (!HasAuthority())
@@ -667,7 +692,9 @@ void ANACharacter::TryInteraction()
 
 bool ANACharacter::CanToggleInventoryWidget() const
 {
-	return InventoryComponent && !bIsExpandingInventoryWidget;
+	return InventoryComponent &&
+		   !bIsExpandingInventoryWidget &&
+		   VitalCheckComponent->GetCharacterStatus() == ECharacterStatus::Alive;
 }
 
 void ANACharacter::ToggleInventoryWidget()
@@ -708,7 +735,7 @@ void ANACharacter::ToggleInventoryWidget()
 	}
 }
 
-void ANACharacter::ToggleWeaponEquipped(const FInputActionValue& Value)
+void ANACharacter::Server_ToggleWeaponEquipped_Implementation()
 {
 	if (!RightHandChildActor || !LeftHandChildActor || !InventoryComponent)
 		return;
@@ -827,6 +854,17 @@ void ANACharacter::SelectWeaponByMouseWheel(const FInputActionValue& Value)
 		if (UnequipWeapon())
 		{
 			InventoryComponent->SetEquippedWeaponIndex(nullptr);
+		}
+	}
+}
+
+void ANACharacter::HideInventoryIfNotAlive( ECharacterStatus Old, ECharacterStatus New )
+{
+	if ( New != ECharacterStatus::Alive )
+	{
+		if ( InventoryComponent && InventoryComponent->IsInventoryWidgetVisible() )
+		{
+			ToggleInventoryWidget();
 		}
 	}
 }
@@ -962,21 +1000,38 @@ void ANACharacter::RemoveItemFromInventory(const FInputActionValue& Value)
 	}
 }
 
-void ANACharacter::UseMedPackByShortcut(const FInputActionValue& Value)
+void ANACharacter::UseMedPackByShortcut()
 {
+	if ( VitalCheckComponent->GetCharacterStatus() != ECharacterStatus::Alive )
+	{
+		return;
+	}
+	
 	if (GEngine) {
 		FString Log = TEXT("UseMedPackByShortcut");
 		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, *Log);
 	}
 
-	if (InventoryComponent)
+	if ( InventoryComponent )
 	{
-		InventoryComponent->UseMedPackAutomatically(this);
+		if ( HasAuthority() )
+		{
+			InventoryComponent->UseMedPackByShortcut( this );	
+		}
+		else
+		{
+			Server_UseMedPackByShortcut();
+		}
 	}
 }
 
 void ANACharacter::UseStasisPackByShortcut(const FInputActionValue& Value)
 {
+	if ( VitalCheckComponent->GetCharacterStatus() != ECharacterStatus::Alive )
+	{
+		return;
+	}
+	
 	if (GEngine) {
 		FString Log = TEXT("UseStasisPackByShortcut");
 		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Blue, *Log);
@@ -985,6 +1040,14 @@ void ANACharacter::UseStasisPackByShortcut(const FInputActionValue& Value)
 	if (InventoryComponent)
 	{
 		InventoryComponent->UseStasisPackAutomatically(this);
+	}
+}
+
+void ANACharacter::Server_UseMedPackByShortcut_Implementation()
+{
+	if ( InventoryComponent )
+	{
+		InventoryComponent->UseMedPackByShortcut(this);
 	}
 }
 
