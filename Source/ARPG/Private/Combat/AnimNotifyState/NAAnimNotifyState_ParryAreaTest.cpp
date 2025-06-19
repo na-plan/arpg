@@ -207,10 +207,12 @@ void UNAAnimNotifyState_ParryAreaTest::NotifyTick(USkeletalMeshComponent* MeshCo
 							UNAMontageCombatComponent* PlayerCombatComponent = Player->FindComponentByClass<UNAMontageCombatComponent>();
 							float ParryAngle = FVector::DotProduct(Player->GetActorForwardVector(), MeshComp->GetOwner()->GetActorForwardVector());
 
+							float Dist = FVector::Dist(Player->GetActorLocation(), MeshComp->GetOwner()->GetActorLocation());
+
 							//	상대 공격에 맞지 않아도 공격한 상태면 패링이 되는 문제가 있음 -> 이건 어떻게 해야할까?...
 							//	생대 mesh와 owner mesh의 각도를 구해서 가져온뒤에 일정 각도 이하로 설정 ㄱ
-							// 30도 이하 + 공격중
-							if (PlayerCombatComponent->IsAttacking() && ParryAngle < -0.85) { SuccessParry = true; }
+							// 30도 이하 + 공격중 + 대상과의 거리 230 이하
+							if (Dist < 230 && PlayerCombatComponent->IsAttacking() && ParryAngle < -0.85) { SuccessParry = true; }
 							else{ SuccessParry = false; }
 
 						}					
