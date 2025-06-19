@@ -18,10 +18,10 @@ ANAPlaceableItemActor_Door::ANAPlaceableItemActor_Door(const FObjectInitializer&
 	PrimaryActorTick.bCanEverTick = true;
 
 	ItemCollision = CreateOptionalDefaultSubobject<UBoxComponent>(TEXT("ItemCollision(Box)"));
-	if (ItemCollision)
+	if ( UBoxComponent* BoxComponent = Cast<UBoxComponent>( ItemCollision ) )
 	{
+		BoxComponent->SetBoxExtent( {0.f, 0.f, 0.f} );
 		bWasItemCollisionCreated = true;
-		SetRootComponent(ItemCollision);
 		if (TriggerSphere)
 		{
 			TriggerSphere->SetupAttachment(ItemCollision);
