@@ -4,6 +4,8 @@
 #include "Ability/GameplayAbility/NAGA_Suplex.h"
 #include "NACharacter.h"
 #include "AbilitySystemComponent.h"
+#include "Combat/ActorComponent/NACombatComponent.h"
+#include "Combat/ActorComponent/NAMontageCombatComponent.h"
 
 UNAGA_Suplex::UNAGA_Suplex()
 {
@@ -25,13 +27,15 @@ void UNAGA_Suplex::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 
 	if (UAbilitySystemComponent* ASC = ActorInfo->AvatarActor.Get()->FindComponentByClass<UAbilitySystemComponent>())
 	{
-		bool FindComponentSuc = true;
-		if (ANACharacter* NACharacter = CastChecked<ANACharacter>(ActorInfo->AvatarActor.Get()))
+		if (UNAMontageCombatComponent* CombatComponent = ActorInfo->AvatarActor->GetComponentByClass<UNAMontageCombatComponent>())
 		{
-			if (UAnimMontage* SkillMontage = SuplexingMontage)
-			{
-				ASC->PlayMontage(this, CurrentActivationInfo, SkillMontage, 1.0f);
-			}
+			ActorInfo->AbilitySystemComponent->PlayMontage
+			(
+				this,
+				ActivationInfo,
+				CombatComponent->GetGrabMontage(),
+				CombatComponent->GetMontagePlayRate()
+			);
 		}
 
 	}

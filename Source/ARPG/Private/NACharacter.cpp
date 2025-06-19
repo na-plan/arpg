@@ -21,7 +21,7 @@
 #include "HP/GameplayAbility/NAGA_Revive.h"
 #include "HP/WidgetComponent/NAReviveWidgetComponent.h"
 #include "Net/UnrealNetwork.h"
-
+#include "Ability/GameplayAbility/NAGA_Suplex.h"
 #include "Interaction/NAInteractionComponent.h"
 #include "Inventory/Component/NAInventoryComponent.h"
 #include "Item/ItemActor/NAWeapon.h"
@@ -220,7 +220,7 @@ void ANACharacter::BeginPlay()
     	// - Character -> BeginPlay -> GiveAbility -> PlayerState -> AbilityComponent 초기화
     	// 초기화가 되지 않은 시점에서의 GiveAbility의 Replication을 받은 Client은 제대로된 값을 받지 못함
 		Server_RequestReviveAbility();
-		
+		Server_RequestSuplexAbility();
 		// 총알을 소모했을때, 인벤토리에 있는 총알의 갯수도 동기화, 인벤토리 상태는 클라이언트에서 업데이트
 		AbilitySystemComponent->OnAnyGameplayEffectRemovedDelegate().AddUObject( this, &ANACharacter::SyncAmmoConsumptionWithInventory );
 	}
@@ -284,6 +284,12 @@ void ANACharacter::PossessedBy(AController* NewController)
 			}
 		}
 	}
+}
+
+void ANACharacter::Server_RequestSuplexAbility_Implementation()
+{
+	const FGameplayAbilitySpec SpecHandle(UNAGA_Suplex::StaticClass(), 1.f, static_cast<int32>(EAbilityInputID::Grab));
+	AbilitySystemComponent->GiveAbility(SpecHandle);
 }
 
 void ANACharacter::Server_BeginInteraction_Implementation()
