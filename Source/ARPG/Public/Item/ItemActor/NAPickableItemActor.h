@@ -50,6 +50,9 @@ protected:
 //======================================================================================================================
 public:
 	virtual bool CanInteract_Implementation() const override;
+
+protected:
+	virtual void SetInteractionPhysicsEnabled(const bool bEnabled) override;
 	
 //======================================================================================================================
 // Pickable Item Actor Operations
