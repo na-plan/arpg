@@ -38,7 +38,7 @@ protected:
 
 
 	void OnAttack();
-
+	void CheckHP();
 	bool LookOnTarget = false;
 
 public:

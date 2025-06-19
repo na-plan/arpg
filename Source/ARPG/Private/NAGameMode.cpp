@@ -61,7 +61,7 @@ AActor* ANAGameMode::ChoosePlayerStart_Implementation(AController* Player)
 	if (FoundActors.Num() == 0)
 		return Super::ChoosePlayerStart_Implementation(Player);
 
-	int32 Index =1;
+	int32 Index = 0;
 
 	// if (Player && Player->PlayerState)
 	// 	Index = Player->PlayerState->GetPlayerId();

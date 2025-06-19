@@ -39,22 +39,12 @@ void UNAGA_Death::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 
 			if (AnimInstance && MonsterAIController)
 			{
+				MonsterASC->AbilityActorInfo->GetAnimInstance()->Montage_Stop(0.2f);
 				float PlayingMontage = MonsterASC->PlayMontage(this, CurrentActivationInfo, MonsterDeathMontage, 1.0f);
-
-				//float CurrentTime = AnimInstance->Montage_GetPosition(MonsterDeathMontage);
-				//float MontageLength = MonsterDeathMontage->GetPlayLength();
-				//float Progress = (CurrentTime / MontageLength) * 100.0f; // 진행 퍼센트 계산
-
-				//if (Progress >= 90.0f)
-				//{
-				//	AnimInstance->Montage_Pause();
-				//	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
-				//	MonsterAIController->GetOwner()->Destroy();
-				//}					
 			}
 
 		}
-		// spawn Montage 가 없을 경우 바로 ai작동
+		// Death Montage 가 없을 경우 바로 ai작동
 		else
 		{
 			AMonsterAIController* MonsterAIController = CastChecked<AMonsterAIController>(MonsterBase->GetController());

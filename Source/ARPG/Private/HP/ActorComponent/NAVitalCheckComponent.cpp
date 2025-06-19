@@ -21,10 +21,10 @@ UNAVitalCheckComponent::UNAVitalCheckComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 
 	// 기본 머테리얼 저장
-	FIND_OBJECT( GreenMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_green.MI_health_green'", 0 );
-	FIND_OBJECT( YellowMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_yellow.MI_health_yellow'", 1 );
-	FIND_OBJECT( RedMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_red.MI_health_red'", 2 );
-	FIND_OBJECT( BlankMaterial, "/Script/Engine.Material'/Game/00_ProjectNA/05_Resource/01_Material/Issac/BlankMaterial.BlankMaterial'", 3 );
+	FIND_OBJECT( GreenMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_green.MI_health_green'")
+	FIND_OBJECT( YellowMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_yellow.MI_health_yellow'")
+	FIND_OBJECT( RedMaterial, "/Script/Engine.MaterialInstanceConstant'/Game/00_ProjectNA/05_Resource/01_Material/Issac/MI_health_red.MI_health_red'")
+	FIND_OBJECT( BlankMaterial, "/Script/Engine.Material'/Game/00_ProjectNA/05_Resource/01_Material/Issac/BlankMaterial.BlankMaterial'")
 }
 
 ECharacterStatus UNAVitalCheckComponent::GetCharacterStatus() const
@@ -234,34 +234,19 @@ void UNAVitalCheckComponent::ChangeHealthMesh( const float NewValue, const float
 		// Red 상태는 그대로 유지
 		return;
 	}
-
-	constexpr std::pair GreenIndex = { 12, 13 };
-	constexpr std::pair YellowIndex = { 10, 11 };
-	constexpr std::pair RedIndex = { 8, 9 };
 	
-	std::pair<int32, int32> Target;
 	UMaterialInstance* TargetMaterial = nullptr;
-	TArray<std::pair<int32, int32>> Others;
 		
 	switch ( State )
 	{
 	case EVitalState::Green:
-		Target = GreenIndex;
 		TargetMaterial = GreenMaterial;
-		Others.Emplace( YellowIndex );
-		Others.Emplace( RedIndex );
 		break;
 	case EVitalState::Yellow:
-		Target = YellowIndex;
 		TargetMaterial = YellowMaterial;
-		Others.Emplace( RedIndex );
-		Others.Emplace( GreenIndex );
 		break;
 	case EVitalState::Red:
-		Target = RedIndex;
 		TargetMaterial = RedMaterial;
-		Others.Emplace( GreenIndex );
-		Others.Emplace( YellowIndex );
 		break;
 	default:
 		check( false );
@@ -269,17 +254,8 @@ void UNAVitalCheckComponent::ChangeHealthMesh( const float NewValue, const float
 
 	if ( USkeletalMeshComponent* SkeletalMeshComponent = GetCharacter()->GetComponentByClass<USkeletalMeshComponent>() )
 	{
-		constexpr int32 BottomIndex = 6;
-		
-		SkeletalMeshComponent->SetMaterial( BottomIndex, TargetMaterial );
-		SkeletalMeshComponent->SetMaterial( Target.first, TargetMaterial );
-		SkeletalMeshComponent->SetMaterial( Target.second, TargetMaterial );
-
-		for (const auto& [ Inner, Outer ] : Others)
-		{
-			SkeletalMeshComponent->SetMaterial( Inner, BlankMaterial );
-			SkeletalMeshComponent->SetMaterial( Outer, BlankMaterial );
-		}
+		constexpr const char* DefaultHealthOuter = "health_outer";
+		SkeletalMeshComponent->SetMaterialByName( DefaultHealthOuter, TargetMaterial );
 	}
 }
 

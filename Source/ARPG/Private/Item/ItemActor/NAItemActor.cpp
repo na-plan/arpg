@@ -43,8 +43,8 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	
 	ItemDataID = NAME_None;
 	
-	bReplicates = true;
-	AActor::SetReplicateMovement( true );
+	SetReplicates( true );
+	SetReplicateMovement( true );
 	bAlwaysRelevant = true;
 }
 
@@ -52,7 +52,7 @@ void ANAItemActor::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	ensureAlways(ItemCollision && GetRootComponent() == ItemCollision);
+	//ensureAlways(ItemCollision && GetRootComponent() == ItemCollision);
 }
 
 void ANAItemActor::PostReinitProperties()
@@ -414,6 +414,7 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		ItemCollision->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		ItemCollision->SetCollisionProfileName(TEXT("BlockAllDynamic"));
 		ItemCollision->SetSimulatePhysics( true );
+		ItemCollision->SetIsReplicated( true );
 	}
 	if ( ItemMesh )
 	{
@@ -570,6 +571,14 @@ void ANAItemActor::BeginPlay()
 		OnActorEndOverlap.AddUniqueDynamic(this, &ThisClass::OnActorEndOverlap_Impl);
 	}
 
+	SetReplicates( true );
+
+	// 서버에서만 물리 시뮬레이션을 수행
+	if ( !HasAuthority() )
+	{
+		ItemCollision->SetSimulatePhysics( false );
+	}
+	
 	if (GetItemData())
 	{
 		// 임시: 수량 랜덤

@@ -10,6 +10,7 @@
 #include "Ability/GameplayAbility/AttackGameplayAbility.h"
 #include "Skill/DataTable/SkillTableRow.h"
 #include "Ability/AttributeSet/NAAttributeSet.h"
+#include "NACharacter.h"
 
 
 void AMonsterAIController::BeginPlay()
@@ -39,7 +40,7 @@ void AMonsterAIController::OnPossess(APawn* InPawn)
 	if (!IsValid(BrainComponent))
 	{
 		//BT로 바꾸기
-		UBehaviorTree* BehaviorTree = LoadObject<UBehaviorTree>(nullptr, TEXT("/Script/AIModule.BehaviorTree'/Game/01_ExternalAssets/TempResource/Monster/AI/BT_BaseMonster.BT_BaseMonster'"));
+		UBehaviorTree* BehaviorTree = LoadObject<UBehaviorTree>(nullptr, TEXT("/Script/AIModule.BehaviorTree'/Game/00_ProjectNA/AI/BT_BaseMonster.BT_BaseMonster'"));
 		check(BehaviorTree);
 		RunBehaviorTree(BehaviorTree);
 		//Spawn 위치 기준 일정 범위 이상 못나가게 하려고 할때 사용 가능합니다
@@ -47,7 +48,12 @@ void AMonsterAIController::OnPossess(APawn* InPawn)
 		FVector FSpawnLocation = OwningPawn->GetActorLocation();
 		Blackboard->SetValueAsVector(TEXT("SpwanPosition"), FSpawnLocation);
 		Blackboard->SetValueAsBool(TEXT("Spawning"), true);
-		
+
+		AMonsterBase* OwnerMonster = Cast<AMonsterBase>(GetPawn());
+		UAbilitySystemComponent* MonsterASC = OwnerMonster->GetAbilitySystemComponent();
+		float m_fHealth = Cast<UNAAttributeSet>(MonsterASC->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();
+		Blackboard->SetValueAsFloat(TEXT("HP"), m_fHealth);
+
 
 	}
 
@@ -57,7 +63,7 @@ void AMonsterAIController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	LookTarget();
-	
+	CheckHP();
 	//Montage play중이면 이동 멈추는거
 	IsPlayingMontage();
 	//Player 찾기
@@ -143,11 +149,21 @@ void AMonsterAIController::FindPlayerByPerception()
 		// 중간에 다른 사람이 공격할 경우 그 사람을 공격하려고 합니다
 		for (AActor* It : OutActors)
 		{
-			if (ACharacter* DetectedPlayer = Cast<ACharacter>(It))
+			if (ANACharacter* DetectedPlayer = Cast<ANACharacter>(It))
 			{
-				bFound = true;
-				Blackboard->SetValueAsObject(TEXT("DetectPlayer"), Cast<UObject>(DetectedPlayer));
-				break;
+				UAbilitySystemComponent* PlayerASC = DetectedPlayer->GetAbilitySystemComponent();
+				float m_fPlayerHealth = Cast<UNAAttributeSet>(PlayerASC->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();
+				if (m_fPlayerHealth > 0)
+				{
+					bFound = true;
+					Blackboard->SetValueAsObject(TEXT("DetectPlayer"), Cast<UObject>(DetectedPlayer));
+					break;
+				}
+				// 중간에 0으로 내려가면 null로
+				else
+				{
+					Blackboard->SetValueAsObject(TEXT("DetectPlayer"), nullptr);
+				}
 			}
 		}
 
@@ -352,4 +368,14 @@ void AMonsterAIController::OnAttack()
 
 
 
+}
+
+void AMonsterAIController::CheckHP()
+{
+	if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(GetPawn()))
+	{
+		UAbilitySystemComponent* MonsterASC = OwnerMonster->GetAbilitySystemComponent();
+		float m_fHealth = Cast<UNAAttributeSet>(MonsterASC->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();
+		Blackboard->SetValueAsFloat(TEXT("HP"), m_fHealth);
+	}
 }
