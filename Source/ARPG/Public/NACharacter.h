@@ -241,11 +241,11 @@ protected:
 	void RemoveItemFromInventory(const FInputActionValue& Value);
 	
 	// 힐팩 단축키로 자동 사용: 높은 등급부터
-	void UseMedPackByShortcut();
-	void UseStasisPackByShortcut(const FInputActionValue& Value);
-
 	UFUNCTION( Server, Reliable )
 	void Server_UseMedPackByShortcut();
+
+	UFUNCTION( Server, Reliable )
+	void Server_UseStasisPackByShortcut();
 
 	void SelectWeaponByMouseWheel(const FInputActionValue& Value);
 	float LastWheelInputTime = 0.f;

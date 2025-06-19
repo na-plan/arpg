@@ -357,8 +357,8 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(SelectInventoryButtonAction, ETriggerEvent::Started, this, &ANACharacter::SelectInventorySlot);
 		EnhancedInputComponent->BindAction(RemoveItemFromInventoryAction, ETriggerEvent::Started, this, &ANACharacter::RemoveItemFromInventory);
 		
-		EnhancedInputComponent->BindAction(MedPackShortcutAction, ETriggerEvent::Started, this, &ANACharacter::UseMedPackByShortcut);
-		EnhancedInputComponent->BindAction(StasisPackShortcutAction, ETriggerEvent::Started, this, &ANACharacter::UseStasisPackByShortcut);
+		EnhancedInputComponent->BindAction(MedPackShortcutAction, ETriggerEvent::Started, this, &ANACharacter::Server_UseMedPackByShortcut);
+		EnhancedInputComponent->BindAction(StasisPackShortcutAction, ETriggerEvent::Started, this, &ANACharacter::Server_UseStasisPackByShortcut);
 
 		EnhancedInputComponent->BindAction(RightMouseAttackAction, ETriggerEvent::Started, this, &ANACharacter::Zoom);
 		
@@ -820,6 +820,24 @@ bool ANACharacter::UnequipWeapon()
 	return !RightHandChildActor->GetChildActor() && !LeftHandChildActor->GetChildActor();
 }
 
+void ANACharacter::Server_UseStasisPackByShortcut_Implementation()
+{
+	if ( VitalCheckComponent->GetCharacterStatus() != ECharacterStatus::Alive )
+	{
+		return;
+	}
+	
+	if (GEngine) {
+		FString Log = TEXT("UseStasisPackByShortcut");
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Blue, *Log);
+	}
+
+	if (InventoryComponent)
+	{
+		InventoryComponent->UseStasisPackAutomatically(this);
+	}
+}
+
 // @TODO: 마우스 휠로 무기 바꾸기 -> 특정 선행 키 입력 도중에만 활성하기 (e.g. ctrl 누르면서 휠 돌릴때만 작동)
 // @TODO: 선행 키 입력 도중 무기 퀵슬롯 위젯 표시?
 void ANACharacter::SelectWeaponByMouseWheel(const FInputActionValue& Value)
@@ -1000,7 +1018,7 @@ void ANACharacter::RemoveItemFromInventory(const FInputActionValue& Value)
 	}
 }
 
-void ANACharacter::UseMedPackByShortcut()
+void ANACharacter::Server_UseMedPackByShortcut_Implementation()
 {
 	if ( VitalCheckComponent->GetCharacterStatus() != ECharacterStatus::Alive )
 	{
@@ -1014,40 +1032,7 @@ void ANACharacter::UseMedPackByShortcut()
 
 	if ( InventoryComponent )
 	{
-		if ( HasAuthority() )
-		{
-			InventoryComponent->UseMedPackByShortcut( this );	
-		}
-		else
-		{
-			Server_UseMedPackByShortcut();
-		}
-	}
-}
-
-void ANACharacter::UseStasisPackByShortcut(const FInputActionValue& Value)
-{
-	if ( VitalCheckComponent->GetCharacterStatus() != ECharacterStatus::Alive )
-	{
-		return;
-	}
-	
-	if (GEngine) {
-		FString Log = TEXT("UseStasisPackByShortcut");
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Blue, *Log);
-	}
-
-	if (InventoryComponent)
-	{
-		InventoryComponent->UseStasisPackAutomatically(this);
-	}
-}
-
-void ANACharacter::Server_UseMedPackByShortcut_Implementation()
-{
-	if ( InventoryComponent )
-	{
-		InventoryComponent->UseMedPackByShortcut(this);
+		InventoryComponent->UseMedPackAutomatically( this );
 	}
 }
 
