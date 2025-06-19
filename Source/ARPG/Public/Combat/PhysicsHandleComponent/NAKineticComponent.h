@@ -26,11 +26,11 @@ class ARPG_API UNAKineticComponent : public UPhysicsHandleComponent
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Kinetic", meta=( AllowPrivateAccess=true ) )
 	bool bIsGrab = false;
 
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Kinetic", meta=( AllowPrivateAccess=true ) )
-	float GrabDistance;
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Kinetic", meta=( AllowPrivateAccess=true ) )
+	FVector_NetQuantizeNormal ControlForward;
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Kinetic", meta=( AllowPrivateAccess=true ) )
-	FVector_NetQuantizeNormal ActorForward;
+	float GrabDistance;
 
 	FGameplayAbilitySpecHandle GrabSpecHandle;
 
@@ -54,6 +54,8 @@ class ARPG_API UNAKineticComponent : public UPhysicsHandleComponent
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Binding", meta=( AllowPrivateAccess=true ) )
 	UInputMappingContext* KineticMappingContext;
+
+	TWeakObjectPtr<APlayerController> OwningController;
 
 	FEnhancedInputActionEventBinding* GrabActionBinding;
 
@@ -83,13 +85,15 @@ public:
 	
 	float GetGrabDistance() const;
 
-	FVector_NetQuantizeNormal GetActorForward() const;
+	FVector_NetQuantizeNormal GetControlForward() const;
 
 	void ToggleGrabAbility( const bool bFlag );
 	
-	void ForceUpdateActorForward();
-
 	bool HasGrabbed() const;
+
+	void SetOwningController( APlayerController* PlayerController );
+
+	void ForceUpdateControlForward();
 
 protected:
 	
@@ -101,7 +105,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-	
+
 	void BindKineticKeys();
 
 	void UnbindKineticKeys();
@@ -116,6 +120,11 @@ protected:
 	UFUNCTION( Server, Unreliable )
 	void Server_Throw();
 
+	void AdjustDistanceImpl( float Magnitude );
+
+	UFUNCTION( Server, Unreliable, WithValidation )
+	void Server_AdjustDistance( float Magnitude );
+	
 	void AdjustDistance( const FInputActionValue& InputActionValue );
 
 public:

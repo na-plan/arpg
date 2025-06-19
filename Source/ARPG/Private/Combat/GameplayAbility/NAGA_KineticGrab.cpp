@@ -175,7 +175,7 @@ void UNAGA_KineticGrab::ActivateAbility( const FGameplayAbilitySpecHandle Handle
 		{
 			if ( Hit.GetComponent()->IsSimulatingPhysics() )
 			{
-				Component->ForceUpdateActorForward();
+				Component->ForceUpdateControlForward();
 				Component->GrabComponentAtLocationWithRotation
 				(
 					Hit.GetComponent(),
@@ -184,14 +184,14 @@ void UNAGA_KineticGrab::ActivateAbility( const FGameplayAbilitySpecHandle Handle
 					(
 						ActorInfo->AvatarActor.Get(),
 						Hit.GetComponent(),
-						Component->GetActorForward(),
+						Component->GetControlForward(),
 						Component->GetGrabDistance()
 					),
-					Component->GetActorForward().Rotation()
+					Component->GetControlForward().Rotation()
 				);
 
 				UE_LOG(LogTemp, Log, TEXT("%hs: Grabbing %s"), __FUNCTION__, *GetNameSafe( Hit.GetActor() ) )
-				
+
 				Component->bIsGrab = true;
 				bSuccess = true;
 			}
@@ -233,7 +233,7 @@ void UNAGA_KineticGrab::Throw()
 			if ( Component->bIsGrab )
 			{
 				const float ImpulseForce = Component->GetForce();
-				const FVector ForwardVector = Component->GetActorForward();
+				const FVector ForwardVector = Component->GetControlForward();
 				UPrimitiveComponent* OtherComponent = Component->GetGrabbedComponent();
 				OtherComponent->AddImpulse( ForwardVector * ImpulseForce );
 			}

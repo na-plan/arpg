@@ -210,7 +210,6 @@ void ANACharacter::BeginPlay()
 	{
 		LeftHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
 		RightHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
-		KineticComponent->ToggleGrabAbility( true );
 	}
 
 	if ( GetController() == GetWorld()->GetFirstPlayerController() )
@@ -221,6 +220,8 @@ void ANACharacter::BeginPlay()
     	// 초기화가 되지 않은 시점에서의 GiveAbility의 Replication을 받은 Client은 제대로된 값을 받지 못함
 		Server_RequestReviveAbility();
 		Server_RequestSuplexAbility();
+		Server_RequestKineticGrabAbility();
+		
 		// 총알을 소모했을때, 인벤토리에 있는 총알의 갯수도 동기화, 인벤토리 상태는 클라이언트에서 업데이트
 		AbilitySystemComponent->OnAnyGameplayEffectRemovedDelegate().AddUObject( this, &ANACharacter::SyncAmmoConsumptionWithInventory );
 	}
@@ -290,6 +291,14 @@ void ANACharacter::Server_RequestSuplexAbility_Implementation()
 {
 	const FGameplayAbilitySpec SpecHandle(UNAGA_Suplex::StaticClass(), 1.f, static_cast<int32>(EAbilityInputID::Grab));
 	AbilitySystemComponent->GiveAbility(SpecHandle);
+}
+
+void ANACharacter::Server_RequestKineticGrabAbility_Implementation()
+{
+	if ( KineticComponent )
+	{
+		KineticComponent->ToggleGrabAbility( true );
+	}
 }
 
 void ANACharacter::Server_BeginInteraction_Implementation()
@@ -364,6 +373,8 @@ void ANACharacter::RetrieveAsset(const AActor* InCDO)
 {
 	if (const ANACharacter* DefaultAsset = Cast<ANACharacter>(InCDO))
 	{
+		FObjectPropertyUtility::CopyClassPropertyIfTypeEquals<ANACharacter, UInputMappingContext, UInputAction>( this, DefaultAsset );
+		
 		struct LazyUpdatePair
 		{
 			USceneComponent* OldParent;
@@ -466,9 +477,7 @@ void ANACharacter::RetrieveAsset(const AActor* InCDO)
 		}
 
 		check( LazyUpdates.IsEmpty() );
-
-		FObjectPropertyUtility::CopyClassPropertyIfTypeEquals<ANACharacter, UInputMappingContext, UInputAction>( this, DefaultAsset );
-
+		
 		ApplyAttachments();
 		const FTransform Transform = DefaultAsset->GetMesh()->GetRelativeTransform();
 		

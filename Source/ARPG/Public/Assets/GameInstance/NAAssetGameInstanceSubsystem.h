@@ -16,12 +16,14 @@ class ARPG_API UNAAssetGameInstanceSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 
+	/*
 	UFUNCTION()
 	void OnActorSpawned(AActor* InActor) const;
+	*/
+	
+	//void OnPreWorldInitialization(UWorld* InWorld, const FWorldInitializationValues WorldInitializationValues);
 
-	void OnPreWorldInitialization(UWorld* InWorld, const FWorldInitializationValues WorldInitializationValues);
-
-	void OnPostWorldCleanup(UWorld* World, bool bArg, bool bCond);
+	//void OnPostWorldCleanup(UWorld* World, bool bArg, bool bCond);
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true", RequiredAssetDataTags="RowStructure=/Script/ARPG.AssetTableRow"))
 	UDataTable* AssetTable;
