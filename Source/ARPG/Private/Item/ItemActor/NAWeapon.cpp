@@ -25,12 +25,17 @@ ANAWeapon::ANAWeapon() : ANAPickableItemActor(FObjectInitializer::Get())
 	MuzzleFlashComponent->SetAutoActivate( false );
 
 	AmmoIndicatorComponent = CreateDefaultSubobject<UNAAmmoIndicatorComponent>( TEXT("AmmoIndicatorComponent") );
-
 	// 플레이어를 바라보도록
 	AmmoIndicatorComponent->SetRelativeRotation( {0.f, -90.f, 0.f} );
-	AmmoIndicatorComponent->SetRelativeLocation( {0.f, 0.f, 300.f} );
+	AmmoIndicatorComponent->SetRelativeLocation( {0.f, 0.f, 10.f} );
 	
 	PickupMode = EPickupMode::PM_Inventory;
+
+	if ( ItemMesh )
+	{
+		AmmoIndicatorComponent->AttachToComponent( ItemMesh, FAttachmentTransformRules::KeepRelativeTransform, TEXT("Indicator") );
+		MuzzleFlashComponent->AttachToComponent( ItemMesh, FAttachmentTransformRules::KeepRelativeTransform, TEXT( "Muzzle" ) );
+	}
 }
 
 // Called when the game starts or when spawned
@@ -41,8 +46,7 @@ void ANAWeapon::BeginPlay()
 	// 몽타주랑 공격이 설정되어 있는지 확인
 	check( CombatComponent->GetMontage() && CombatComponent->GetAttackAbility() );
 	CombatComponent->SetActive( true );
-
-	MuzzleFlashComponent->AttachToComponent( ItemMesh, FAttachmentTransformRules::KeepRelativeTransform, TEXT( "Muzzle" ) );
+	
 	MuzzleFlashComponent->SetActive( false );
 
 	if ( !HasAuthority() )
@@ -73,7 +77,24 @@ void ANAWeapon::OnConstruction( const FTransform& Transform )
 {
 	Super::OnConstruction( Transform );
 
-	AmmoIndicatorComponent->AttachToComponent( ItemMesh, FAttachmentTransformRules::KeepRelativeTransform, TEXT("Indicator") );
+	if ( ItemMesh && MuzzleFlashComponent->GetAttachParent() != ItemMesh )
+	{
+		if ( MuzzleFlashComponent->GetAttachParent() )
+		{
+			MuzzleFlashComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );	
+		}
+		
+		MuzzleFlashComponent->AttachToComponent( ItemMesh, FAttachmentTransformRules::KeepRelativeTransform, TEXT( "Muzzle" ) );	
+	}
+	if ( ItemMesh && AmmoIndicatorComponent->GetAttachParent() != ItemMesh )
+	{
+		if ( AmmoIndicatorComponent->GetAttachParent() )
+		{
+			AmmoIndicatorComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );	
+		}
+		
+		AmmoIndicatorComponent->AttachToComponent( ItemMesh, FAttachmentTransformRules::KeepRelativeTransform, TEXT("Indicator") );	
+	}
 }
 
 // Called every frame

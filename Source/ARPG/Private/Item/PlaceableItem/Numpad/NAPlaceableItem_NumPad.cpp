@@ -5,9 +5,6 @@
 
 #include "Item/PlaceableItem/Numpad/NANumpadWidget.h"
 
-#include "Editor.h"
-#include "Misc/NAWorldEventHandler.h"
-#include "Subsystems/EditorActorSubsystem.h"
 
 // Sets default values
 ANAPlaceableItem_NumPad::ANAPlaceableItem_NumPad(const FObjectInitializer& ObjectInitializer)
