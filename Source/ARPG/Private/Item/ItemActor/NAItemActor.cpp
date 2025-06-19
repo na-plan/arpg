@@ -473,6 +473,12 @@ void ANAItemActor::CollapseItemWidgetComponent()
 	}
 }
 
+void ANAItemActor::OnFullyAddedToInventoryBeforeDestroy(AActor* Interactor)
+{
+	OnFullyAddedToInventoryBeforeDestroy_Impl(Interactor);
+	Destroy();
+}
+
 void ANAItemActor::OnItemDataInitialized()
 {
 	VerifyInteractableData();
