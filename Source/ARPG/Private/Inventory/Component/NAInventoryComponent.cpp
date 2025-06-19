@@ -339,7 +339,7 @@ void UNAInventoryComponent::RemoveItemAtInventorySlot()
 	TryRemoveItem(SlotID, ItemData->GetQuantity());
 }
 
-void UNAInventoryComponent::UseMedPackByShortcut(AActor* User)
+void UNAInventoryComponent::UseMedPackAutomatically(AActor* User)
 {
 	if (!User) return;
 
@@ -369,6 +369,55 @@ void UNAInventoryComponent::UseMedPackByShortcut(AActor* User)
 	UNAItemData* MedPack = InvenSlotContents[MedPackSlots[0]].Get();
 	if (!MedPack) return;
 	MedPack->TryUseItem(User);
+}
+
+void UNAInventoryComponent::UseStasisPackAutomatically(AActor* User)
+{
+	// @TODO
+}
+
+UNAItemData* UNAInventoryComponent::SelectNextWeapon(int32 Direction) const
+{
+	if (FMath::Abs(Direction) != 1) return nullptr;
+
+	int32 MaxWeaponIndex = MaxWeaponSlotCount - 1;
+	int32 NewIndex;
+	if (EquippedWeaponIndex == -1)
+	{
+		NewIndex = Direction > 0 ? 0 : MaxWeaponIndex;
+	}
+	else
+	{
+		NewIndex = (EquippedWeaponIndex + Direction + MaxWeaponIndex) % MaxWeaponIndex;
+	}
+	if (FMath::IsWithinInclusive(NewIndex, 0, MaxWeaponIndex))
+	{
+		FName WeaponSlotID = MakeWeaponSlotID(NewIndex);
+		if (WeaponSlotID.IsValid())
+		{
+			return GetItemDataFromSlot(WeaponSlotID);
+		}
+	}
+	return nullptr;
+}
+
+void UNAInventoryComponent::SetEquippedWeaponIndex(const UNAItemData* EquippedWeapon)
+{
+	if (EquippedWeapon == nullptr)
+	{
+		EquippedWeaponIndex = -1;
+		return;
+	}
+	
+	FName SlotID = FindSlotIDForItem(EquippedWeapon);
+	if (!SlotID.IsNone())
+	{
+		int32 NewIndex = ExtractSlotNumber(SlotID);
+		if (FMath::IsWithinInclusive(NewIndex, 0, MaxWeaponSlotCount))
+		{
+			EquippedWeaponIndex = NewIndex;
+		}
+	}
 }
 
 int32 UNAInventoryComponent::TryAddItem(UNAItemData* ItemToAdd)
@@ -495,7 +544,7 @@ bool UNAInventoryComponent::HandleRemoveItem(const FName& SlotID)
 	{
 		ItemToRemove = InvenSlotContents[SlotID].Get();
 		if (!ItemToRemove
-			|| ItemToRemove->GetOwningInventory() != this) {  check(false); return false; }
+			|| ItemToRemove->GetOwningInventory() != this) {  return ensureAlways(false); }
 		if (ItemToRemove)
 		{
 			InvenSlotContents[SlotID] = nullptr;
@@ -505,14 +554,14 @@ bool UNAInventoryComponent::HandleRemoveItem(const FName& SlotID)
 	{
 		ItemToRemove = WeaponSlotContents[SlotID].Get();
 		if (!ItemToRemove
-			|| ItemToRemove->GetOwningInventory() != this) { check(false); return false; }
+			|| ItemToRemove->GetOwningInventory() != this) { return ensureAlways(false); }
 		
 		if (ItemToRemove)
 		{
 			WeaponSlotContents[SlotID] = nullptr;
 		}
 	}
-	else { check(false); return false; }
+	else { return ensureAlways(false); }
 	
 	if (UNAInventoryGameInstanceSubsystem* InvenSubsys = UNAInventoryGameInstanceSubsystem::Get(GetWorld()))
 	{
@@ -527,8 +576,8 @@ bool UNAInventoryComponent::HandleRemoveItem(const FName& SlotID)
 		}
 		return true;
 	}
-	
-	return ensure(false);
+
+	return ensureAlways(false);
 }
 
 bool UNAInventoryComponent::HasItemOfClass(const UClass* ItemClass) const

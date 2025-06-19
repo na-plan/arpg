@@ -715,60 +715,125 @@ void ANACharacter::ToggleWeaponEquipped(const FInputActionValue& Value)
 
 	ANAWeapon* WeaponToUnequip_Right = Cast<ANAWeapon>(RightHandChildActor->GetChildActor());
 	ANAWeapon* WeaponToUnequip_Left = Cast<ANAWeapon>(LeftHandChildActor->GetChildActor());
-	const bool bShouldUnequipWeapon = WeaponToUnequip_Right || WeaponToUnequip_Left;
+	const bool bShouldEquipWeapon = !WeaponToUnequip_Right && !WeaponToUnequip_Left;
 	
-	if (bShouldUnequipWeapon)
-	{
-		// 무기 장착만 해제, 인벤토리에서 무기를 드랍하지 않음
-		if (WeaponToUnequip_Right)
-		{
-			RightHandChildActor->DestroyChildActor();
-			RightHandChildActor->SetChildActorClass(nullptr);
-		}
-		if (WeaponToUnequip_Left)
-		{
-			LeftHandChildActor->DestroyChildActor();
-			LeftHandChildActor->SetChildActorClass(nullptr);
-		}
-	}
-	else
+	if (bShouldEquipWeapon)
 	{
 		// 무기 어태치, 인벤토리에 소지된 무기가 있다면, 가장 작은 넘버의 슬롯에 적재된 무기로 장착 시도
 		UNAItemData* WeaponToEquip = InventoryComponent->FindSameClassItem(ANAWeapon::StaticClass());
 		if (WeaponToEquip)
 		{
-			UClass* WeaponClass = WeaponToEquip->GetItemActorClass();
-			if (!RightHandChildActor->GetChildActor())
+			if (EquipWeapon(WeaponToEquip))
 			{
-				RightHandChildActor->SetChildActorClass(WeaponClass);
-				ANAWeapon* NewlyEquippedWeapon = CastChecked<ANAWeapon>(RightHandChildActor->GetChildActor());
-				ANAItemActor::AssignItemDataToChildActor(WeaponToEquip, NewlyEquippedWeapon);
-				return;
+				InventoryComponent->SetEquippedWeaponIndex(WeaponToEquip);
 			}
-			if (!LeftHandChildActor->GetChildActor())
-			{
-				LeftHandChildActor->SetChildActorClass(WeaponClass);
-				ANAWeapon* NewlyEquippedWeapon = CastChecked<ANAWeapon>(LeftHandChildActor->GetChildActor());
-				ANAItemActor::AssignItemDataToChildActor(WeaponToEquip, NewlyEquippedWeapon);
-				return;
-			}
+		}
+	}
+	else
+	{
+		// 무기 장착만 해제, 인벤토리에서 무기를 드랍하지 않음
+		if (UnequipWeapon())
+		{
+			InventoryComponent->SetEquippedWeaponIndex(nullptr);
 		}
 	}
 }
 
+ANAItemActor* ANACharacter::EquipWeapon(UNAItemData* WeaponToEquip)
+{
+	if (!RightHandChildActor || !LeftHandChildActor || !InventoryComponent)
+	return nullptr;
+	
+	ANAItemActor* NewlyEquippedWeapon = nullptr;
+	if (WeaponToEquip)
+	{
+		AActor* NewlyAttachedWeapon = nullptr;
+		UClass* WeaponClass = WeaponToEquip->GetItemActorClass();
+		
+		if (!RightHandChildActor->GetChildActor())
+		{
+			RightHandChildActor->SetChildActorClass(WeaponClass);
+			NewlyAttachedWeapon = RightHandChildActor->GetChildActor();
+		}
+		else if (!LeftHandChildActor->GetChildActor())
+		{
+			LeftHandChildActor->SetChildActorClass(WeaponClass);
+			NewlyAttachedWeapon = LeftHandChildActor->GetChildActor();
+		}
+
+		if (NewlyAttachedWeapon)
+		{
+			NewlyEquippedWeapon = CastChecked<ANAWeapon>(NewlyAttachedWeapon);
+			ANAItemActor::AssignItemDataToChildActor(WeaponToEquip, NewlyEquippedWeapon);
+		}
+	}
+	
+	return NewlyEquippedWeapon;
+}
+
+bool ANACharacter::UnequipWeapon()
+{
+	if (!RightHandChildActor || !LeftHandChildActor || !InventoryComponent)
+		return false;
+
+	ANAWeapon* WeaponToUnequip_Right = Cast<ANAWeapon>(RightHandChildActor->GetChildActor());
+	ANAWeapon* WeaponToUnequip_Left = Cast<ANAWeapon>(LeftHandChildActor->GetChildActor());
+	
+	if (WeaponToUnequip_Right)
+	{
+		RightHandChildActor->DestroyChildActor();
+		RightHandChildActor->SetChildActorClass(nullptr);
+	}
+	else if (WeaponToUnequip_Left)
+	{
+		LeftHandChildActor->DestroyChildActor();
+		LeftHandChildActor->SetChildActorClass(nullptr);
+	}
+
+	return !RightHandChildActor->GetChildActor() && !LeftHandChildActor->GetChildActor();
+}
+
+// @TODO: 마우스 휠로 무기 바꾸기 -> 특정 선행 키 입력 도중에만 활성하기 (e.g. ctrl 누르면서 휠 돌릴때만 작동)
+// @TODO: 선행 키 입력 도중 무기 퀵슬롯 위젯 표시?
 void ANACharacter::SelectWeaponByMouseWheel(const FInputActionValue& Value)
 {
 	if (!InventoryComponent) return;
-
+	
+	// 디바운스 처리
+	float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (CurrentTime - LastWheelInputTime < InputDebounceDelay)
+	{
+		return;
+	}
+	LastWheelInputTime = CurrentTime;
+	
 	const float AxisValue = Value.Get<float>();
 	if (FMath::IsNearlyZero(AxisValue)) return;
 
 	int32 Direction = AxisValue > 0.f ? 1 : -1;
+
+	UNAItemData* SelectedWeapon = InventoryComponent->SelectNextWeapon(Direction);
+	if (SelectedWeapon)
+	{
+		// 무기 교체
+		if (EquipWeapon(SelectedWeapon))
+		{
+			InventoryComponent->SetEquippedWeaponIndex(SelectedWeapon);
+		}
+	}
+	else
+	{
+		// 무기 장착 해제
+		if (UnequipWeapon())
+		{
+			InventoryComponent->SetEquippedWeaponIndex(nullptr);
+		}
+	}
 }
 
 void ANACharacter::RotateSpringArmForInventory(bool bExpand, float Overtime)
 {
-	if (!ensure(InventoryComponent != nullptr && InventoryWidgetBoom != nullptr)) return;
+	if (!InventoryComponent || !InventoryWidgetBoom) return;
 
 	FVector TargetLocation = InventoryWidgetBoom->GetRelativeLocation();
 	FRotator TargetRotation;
@@ -802,7 +867,7 @@ void ANACharacter::RotateSpringArmForInventory(bool bExpand, float Overtime)
 
 void ANACharacter::ToggleInventoryCameraView(const bool bEnable, USpringArmComponent* InNewBoom, float Overtime, const FRotator& Rotation)
 {
-	if (!ensure(InNewBoom != nullptr && FollowCamera != nullptr)) return;
+	if (!InNewBoom|| !FollowCamera) return;
 	
 	bIsExpandingInventoryWidget = true;
 	
@@ -906,7 +971,7 @@ void ANACharacter::UseMedPackByShortcut(const FInputActionValue& Value)
 
 	if (InventoryComponent)
 	{
-		InventoryComponent->UseMedPackByShortcut(this);
+		InventoryComponent->UseMedPackAutomatically(this);
 	}
 }
 
@@ -915,6 +980,11 @@ void ANACharacter::UseStasisPackByShortcut(const FInputActionValue& Value)
 	if (GEngine) {
 		FString Log = TEXT("UseStasisPackByShortcut");
 		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Blue, *Log);
+	}
+
+	if (InventoryComponent)
+	{
+		InventoryComponent->UseStasisPackAutomatically(this);
 	}
 }
 

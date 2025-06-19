@@ -56,8 +56,8 @@ public:
 	{
 		if ( UNAItemEngineSubsystem::Get() && SourceChildActor && TargetActor)
 		{
-			if (ensureAlwaysMsgf(SourceChildActor->IsChildActor() && SourceChildActor->GetItemData()
-				&& !TargetActor->IsChildActor() && TargetActor->GetItemData(),
+			if (ensureAlwaysMsgf(SourceChildActor->IsChildActor() && SourceChildActor->HasValidItemID()
+				&& !TargetActor->IsChildActor() && TargetActor->HasValidItemID(),
 				TEXT(
 					"[MigrateItemStateFromChildActor]  ")))
 			{
@@ -87,8 +87,8 @@ public:
 	{
 		if (SourceActor && TargetChildActor)
 		{
-			if (ensureAlwaysMsgf(!SourceActor->IsChildActor() && SourceActor->GetItemData()
-				&& TargetChildActor->IsChildActor() && !TargetChildActor->GetItemData(),
+			if (ensureAlwaysMsgf(!SourceActor->IsChildActor() && SourceActor->HasValidItemID()
+				&& TargetChildActor->IsChildActor() && !TargetChildActor->HasValidItemID(),
 				TEXT(
 					"[MigrateItemStateToChildActor]  ChildActorComponent에 의해 생성된 아이템 액터에 새로 생성된 아이템 데이터가 있었음")))
 			{
@@ -110,9 +110,9 @@ public:
 	{
 		if (ItemData && !ItemData->GetItemID().IsNone() && TargetChildActor)
 		{
-			ensureAlwaysMsgf(TargetChildActor->IsChildActor() && !TargetChildActor->GetItemData(),
+			ensureAlwaysMsgf(TargetChildActor->IsChildActor() && !TargetChildActor->HasValidItemID(),
 				TEXT(
-					"[AssignItemDataToChildActor]  ChildActorComponent에 의해 생성된 아이템 액터에는 새로 생성된 아이템 데이터가 있었음"));
+					"[AssignItemDataToChildActor]  ChildActorComponent에 의해 생성된 아이템 액터에 새로 생성된 아이템 데이터가 있었음"));
 			if (TargetChildActor->IsChildActor() && !TargetChildActor->GetItemData())
 			{
 				TargetChildActor->ItemDataID = ItemData->GetItemID();
