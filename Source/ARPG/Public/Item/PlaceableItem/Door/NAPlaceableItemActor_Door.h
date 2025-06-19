@@ -76,7 +76,7 @@ protected:
 	EDoorType DoorType;
 
 	UPROPERTY(EditAnywhere)
-	double MoveDist = 200.0;
+	double MoveDist = 260.0;
 	
 	UPROPERTY()
 	float Duration = 1.5f;
