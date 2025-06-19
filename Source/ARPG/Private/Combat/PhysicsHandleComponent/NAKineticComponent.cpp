@@ -137,7 +137,7 @@ void UNAKineticComponent::ToggleGrabAbility( const bool bFlag )
 		{
 			if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner() )
 			{
-				const FGameplayAbilitySpec Spec( UNAGA_KineticGrab::StaticClass(), 1.f, static_cast<int32>( EAbilityInputID::Grab ) );
+				const FGameplayAbilitySpec Spec( UNAGA_KineticGrab::StaticClass(), 1.f, static_cast<int32>( EAbilityInputID::KineticGrab ) );
 				GrabSpecHandle = Interface->GetAbilitySystemComponent()->GiveAbility( Spec );
 			}	
 		}
