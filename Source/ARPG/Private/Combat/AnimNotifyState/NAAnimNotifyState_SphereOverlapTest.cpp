@@ -154,9 +154,12 @@ void UNAAnimNotifyState_SphereOverlapTest::NotifyTick( USkeletalMeshComponent* M
 																
 								// Damage 이벤트 보고 및 UAISense_Damage로 callback 함수 등록: 여기서 TargetActor는 피해를 입은 액터
 								AActor* TargetActor = OverlapResult.GetActor();
-								UAISense_Damage::ReportDamageEvent(GetWorld(), TargetActor, MeshComp->GetOwner(),BaseDamage, TargetActor->GetActorLocation(), MeshComp->GetOwner()->GetActorLocation());
+								if (TargetActor)
+								{
+									UAISense_Damage::ReportDamageEvent(GetWorld(), TargetActor, MeshComp->GetOwner(),BaseDamage, TargetActor->GetActorLocation(), MeshComp->GetOwner()->GetActorLocation());
 
-								AppliedActors.Add(OverlapResult.GetActor());
+									AppliedActors.Add(OverlapResult.GetActor());
+								}
 							}
 						}
 					}
