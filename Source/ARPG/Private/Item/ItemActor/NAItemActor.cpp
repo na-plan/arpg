@@ -13,6 +13,29 @@
 ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	if (HasAnyFlags(RF_ClassDefaultObject))
+	{
+		if (GetClass()->HasAllClassFlags(CLASS_CompiledFromBlueprint))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  C++ CDO 생성자 (%s)"), *GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  BP CDO 생성자 (%s)"), *GetName());
+		}
+	}
+	else
+	{
+		if (GetClass()->HasAllClassFlags(CLASS_CompiledFromBlueprint))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  C++ 인스턴스 생성자 (%s)"), *GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  BP 인스턴스 생성자 (%s)"), *GetName());
+		}
+	}
+	
 	ItemCollision = CreateOptionalDefaultSubobject<USphereComponent>(TEXT("ItemCollision(Sphere)"));
 	ItemMesh = CreateOptionalDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh(Static)"));
 
@@ -36,11 +59,6 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	TriggerSphere->SetSimulatePhysics(false);
 	
 	ItemWidgetComponent = CreateDefaultSubobject<UNAItemWidgetComponent>(TEXT("ItemWidgetComponent"));
-	static ConstructorHelpers::FObjectFinder<UMaterialInstanceConstant>
-		ItemWidgetMaterial(TEXT(
-			"/Script/Engine.MaterialInstanceConstant'/Engine/EngineMaterials/Widget3DPassThrough_Translucent.Widget3DPassThrough_Translucent'"));
-	check(ItemWidgetMaterial.Object);
-	WidgetInstance = ItemWidgetMaterial.Object;
 	
 	ItemDataID = NAME_None;
 

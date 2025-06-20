@@ -17,6 +17,15 @@ public:
 	UNAItemWidgetComponent(const FObjectInitializer& ObjectInitializer);
 	virtual void PostInitProperties() override;
 
+private:
+	UPROPERTY(EditAnywhere)
+	TSoftClassPtr<class UNAItemWidget> PickableItemWidgetClassRef;
+	UPROPERTY(EditAnywhere)
+	TSoftClassPtr<class UNAItemWidget> PlaceableItemWidgetClassRef;
+
+	UPROPERTY(EditAnywhere)
+	TSoftObjectPtr<UMaterialInterface> ItemWidgetMaterialRef;
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -62,4 +71,7 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	FTransform PlaceableWidgetRelativeBackwardTransform = FTransform::Identity;
+
+	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true"))
+	TSoftClassPtr<UNAItemWidget> ItemWidgetClass;
 };

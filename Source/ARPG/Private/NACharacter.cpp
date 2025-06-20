@@ -26,7 +26,6 @@
 #include "Inventory/Component/NAInventoryComponent.h"
 #include "Item/ItemActor/NAWeapon.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "Materials/MaterialInstanceConstant.h"
 #include "Weapon/PickableItemActor/NAWeaponAmmoBox.h"
 
 DEFINE_LOG_CATEGORY( LogTemplateCharacter );
@@ -145,10 +144,6 @@ ANACharacter::ANACharacter()
 	InventoryComponent->SetRelativeLocation(FVector(0.f, -28.f, 31.f));
 	InventoryComponent->SetRelativeRotation(FRotator(9.f, 0.f, 0.f));
 	InventoryComponent->SetRelativeScale3D(FVector(0.42f));
-	static ConstructorHelpers::FObjectFinder<UMaterialInstanceConstant>
-		WidgetMaterial(TEXT(
-			"/Script/Engine.MaterialInstanceConstant'/Engine/EngineMaterials/Widget3DPassThrough_Translucent.Widget3DPassThrough_Translucent'"));
-	InventoryWidgetMaterial = WidgetMaterial.Object;
 
 	LeftHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("LeftHandChildActor"));
 	RightHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("RightHandChildActor"));
@@ -205,8 +200,6 @@ void ANACharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
-	InventoryComponent->SetMaterial( 0, InventoryWidgetMaterial );
-	
 	if ( HasAuthority() )
 	{
 		LeftHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );

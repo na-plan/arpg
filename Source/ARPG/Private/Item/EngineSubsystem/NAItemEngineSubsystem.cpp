@@ -23,13 +23,13 @@ void UNAItemEngineSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		// 1) Registry 에셋 동기 로드 (나중에 실제 경로로 교체)
 		static const FString RegistryPath = TEXT("/Script/ARPG.ItemDataTablesAsset'/Game/00_ProjectNA/ItemTest/DA_ItemDataTables.DA_ItemDataTables'");
 		UItemDataTablesAsset* Registry = Cast<UItemDataTablesAsset>(StaticLoadObject(UItemDataTablesAsset::StaticClass(), nullptr, *RegistryPath));
-
+	
 		if (!Registry)
 		{
 			UE_LOG(LogTemp, Error, TEXT("[UNAItemGameInstanceSubsystem::Initialize]  ItemDataTablesAsset 로드 실패: %s"), *RegistryPath);
 			return;
 		}
-
+	
 		// 2) Registry 안의 SoftObjectPtr<UDataTable> 리스트 순회
 		UE_LOG(LogTemp, Warning, TEXT("[UNAItemGameInstanceSubsystem::Initialize]  아이템 DT LoadSynchronous 시작"));
 		for (const TSoftObjectPtr<UDataTable>& SoftDT : Registry->ItemDataTables)
@@ -41,12 +41,12 @@ void UNAItemEngineSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 					TEXT("[UNAItemGameInstanceSubsystem]  Failed to load DataTable: %s"), *SoftDT.ToString());
 				continue;
 			}
-
+	
 			ItemDataTableSources.Emplace(ResourceDT);
 			UE_LOG(LogTemp, Log,
 				TEXT("[UNAItemGameInstanceSubsystem]  Loaded DataTable: %s"), *ResourceDT->GetName());
 		}
-
+	
 		// (2) 메타데이터 맵 빌드
 		if (ItemMetaDataMap.IsEmpty())
 		{
@@ -175,6 +175,9 @@ UNAItemData* UNAItemEngineSubsystem::CreateItemDataCopy(const UNAItemData* Sourc
 	// 4) 새로 생성한 UNAItemData 객체의 소유권을 런타임 때 아이템 데이터 추적용 Map으로 이관
 	RuntimeItemDataMap.Emplace(Duplicated->ID, Duplicated);
 
+	UE_LOG(LogTemp, Warning, TEXT("[CreateItemDataCopy]  아이템 데이터 복제(%s), 원본 소스 데이터(%s)")
+			, *NewItemID, *SourceItemData->ID.ToString());
+	
 	return RuntimeItemDataMap[Duplicated->ID].Get();
 }
 
@@ -217,6 +220,9 @@ UNAItemData* UNAItemEngineSubsystem::CreateItemDataBySlot(UWorld* InWorld, const
 		// 3) 새로 생성한 UNAItemData 객체의 소유권을 런타임 때 아이템 데이터 추적용 Map으로 이관
 		RuntimeItemDataMap.Emplace(NewItemData->ID, NewItemData);
 
+		UE_LOG(LogTemp, Warning, TEXT("[CreateItemDataBySlot]  슬롯 데이터로 아이템 데이터 생성(%s)")
+			, *NewItemID);
+		
 		return RuntimeItemDataMap[NewItemData->ID];
 	}
 

@@ -18,9 +18,6 @@ UNAInventoryComponent::UNAInventoryComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
-	static ConstructorHelpers::FClassFinder<UNAInventoryWidget> InventoryWidgetClass(TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/00_ProjectNA/Inventory/BP_NAInventoryWidget.BP_NAInventoryWidget_C'"));
-	check(InventoryWidgetClass.Class);
-	SetWidgetClass(InventoryWidgetClass.Class);
 	SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	SetGenerateOverlapEvents(false);
 	SetEnableGravity(false);
@@ -43,6 +40,29 @@ UNAInventoryComponent::UNAInventoryComponent()
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
 		InitInventorySlotIDs(this);
+	}
+	
+	static const FSoftClassPath InventoryWidgetClassPath(TEXT("/Game/00_ProjectNA/Inventory/BP_NAInventoryWidget.BP_NAInventoryWidget_C"));
+	InventoryWidgetClassRef = InventoryWidgetClassPath;
+
+	static const FSoftObjectPath InventoryWidgetMaterialPath(TEXT("/Engine/EngineMaterials/Widget3DPassThrough_Translucent.Widget3DPassThrough_Translucent"));
+	InventoryWidgetMaterialRef = InventoryWidgetMaterialPath;
+}
+
+void UNAInventoryComponent::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	if (HasAnyFlags(RF_ClassDefaultObject)) return;
+	
+	if (!InventoryWidgetClassRef.IsNull())
+	{
+		SetWidgetClass(InventoryWidgetClassRef.LoadSynchronous());
+	}
+	
+	if (!InventoryWidgetMaterialRef.IsNull())
+	{
+		SetMaterial(0, InventoryWidgetMaterialRef.LoadSynchronous());
 	}
 }
 

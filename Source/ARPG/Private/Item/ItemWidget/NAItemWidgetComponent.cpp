@@ -33,6 +33,16 @@ UNAItemWidgetComponent::UNAItemWidgetComponent(const FObjectInitializer& ObjectI
 	OpacityFromTexture = 1.f;
 	SetBlendMode(EWidgetBlendMode::Masked);
 	SetWindowFocusable(false);
+
+	static const FSoftClassPath PickableItemWidgetClassPath(TEXT("/Game/00_ProjectNA/ItemTest/ItemWidget/BP_NAPickableItemWidget.BP_NAPickableItemWidget_C"));
+	PickableItemWidgetClassRef = PickableItemWidgetClassPath;
+	
+	static const FSoftClassPath PlaceableItemWidgetClassPath(TEXT("/Game/00_ProjectNA/ItemTest/ItemWidget/BP_NAPlaceableItemWidget.BP_NAPlaceableItemWidget_C"));
+	PlaceableItemWidgetClassRef = PlaceableItemWidgetClassPath;
+
+	static const FSoftObjectPath ItemWidgetMaterialPath(TEXT("/Engine/EngineMaterials/Widget3DPassThrough_Translucent.Widget3DPassThrough_Translucent"));
+	ItemWidgetMaterialRef = ItemWidgetMaterialPath;
+
 }
 
 void UNAItemWidgetComponent::PostInitProperties()
@@ -41,11 +51,17 @@ void UNAItemWidgetComponent::PostInitProperties()
 
 	if (GetOwner() && GetWidgetClass() == nullptr)
 	{
+		if (!ItemWidgetMaterialRef.IsNull())
+		{
+			SetMaterial(0, ItemWidgetMaterialRef.LoadSynchronous());
+		}
+		
 		if (GetOwner()->GetClass()->IsChildOf<ANAPickableItemActor>())
 		{
-			UClass* LoadedClass = LoadClass<UNAItemWidget>(nullptr, TEXT("/Game/00_ProjectNA/ItemTest/ItemWidget/BP_NAPickableItemWidget.BP_NAPickableItemWidget_C"));
-			check(LoadedClass);
-			SetWidgetClass(LoadedClass);
+			if (!PickableItemWidgetClassRef.IsNull())
+			{
+				SetWidgetClass(PickableItemWidgetClassRef.LoadSynchronous());
+			}
 
 			PickableWidgetRelativeOffset = FVector(0.f, 80.f, 170.f);
 			SetRelativeLocation(PickableWidgetRelativeOffset);
@@ -58,9 +74,10 @@ void UNAItemWidgetComponent::PostInitProperties()
 		}
 		else if (GetOwner()->GetClass()->IsChildOf<ANAPlaceableItemActor>())
 		{
-			UClass* LoadedClass = LoadClass<UNAItemWidget>(nullptr, TEXT("/Game/00_ProjectNA/ItemTest/ItemWidget/BP_NAPlaceableItemWidget.BP_NAPlaceableItemWidget_C"));
-			check(LoadedClass);
-			SetWidgetClass(LoadedClass);
+			if (!PlaceableItemWidgetClassRef.IsNull())
+			{
+				SetWidgetClass(PlaceableItemWidgetClassRef.LoadSynchronous());
+			}
 
 			FVector ForwardLoc = FVector(80.f, 0.f, 0.f);
 			FRotator ForwardRot = FRotator(0.f, 0.f, 0.f);
