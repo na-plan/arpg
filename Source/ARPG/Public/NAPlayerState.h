@@ -49,6 +49,8 @@ public:
 	UFUNCTION()
 	void BindVitalDelegate();
 
+	// int32 GetPlayerNumber() const { return PlayerNumber; }
+	
 protected:
 
 	// 서버에서 AssetName이 바뀐 경우 클라이언트 사이드에서 에셋 업데이트
@@ -77,4 +79,8 @@ protected:
 
 	UPROPERTY(Replicated)
 	FName PlayerName;
+
+public:
+	UPROPERTY(Replicated)
+	int32 PlayerNumber;
 };

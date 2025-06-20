@@ -91,7 +91,7 @@ void UNAGA_FireGun::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 		}
 		
 		const FVector HeadLocation = ControlledPawn->GetComponentByClass<USkeletalMeshComponent>()->GetSocketLocation(INAHandActor::HeadSocketName);
-		const FVector ForwardVector = ControlledPawn->GetActorForwardVector();
+		const FVector ForwardVector = ControlledPawn->Controller->GetControlRotation().Vector().GetSafeNormal();
 		const FVector EndLocation = HeadLocation + ForwardVector * 1000.f; // todo: Range 하드코딩
 
 		FCollisionQueryParams CollisionParams;

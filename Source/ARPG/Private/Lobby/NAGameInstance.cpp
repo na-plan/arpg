@@ -4,7 +4,9 @@
 #include "Lobby/NAGameInstance.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSessionSettings.h"
-
+#include "OnlineSubsystemUtils.h"
+#include "Kismet/GameplayStatics.h"
+#include "Online/OnlineSessionNames.h"
 
 
 UNAGameInstance::UNAGameInstance()
@@ -16,35 +18,52 @@ void UNAGameInstance::Init()
 	Super::Init();
 	
 	// LAN 기반 Subsystem, steam이나 다른 플랫폼이면 ini, 플러그인 추가해야함
-	IOnlineSubsystem* subsystem =IOnlineSubsystem::Get(FName("NULL"));
-	SessionInterface = subsystem->GetSessionInterface();
-
-	if (SessionInterface.IsValid())
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem( GetWorld(), FName("NULL"));
+	SessionInterface = Subsystem->GetSessionInterface();
+	
+	if ( const TSharedPtr<IOnlineSession> Session = SessionInterface.Pin() )
 	{
 		// 콜백함수 바인딩
-		SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &ThisClass::OnFindSessionComplete);
-		SessionInterface->OnCreateSessionCompleteDelegates.AddUObject(this, &ThisClass::OnCreateSessionComplete);
-		SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &ThisClass::OnJoinSessionComplete);
-		SessionInterface->OnDestroySessionCompleteDelegates.AddUObject(this, &ThisClass::OnDestroySessionComplete);
+		Session->OnFindSessionsCompleteDelegates.AddUObject(this, &ThisClass::OnFindSessionComplete);
+		Session->OnCreateSessionCompleteDelegates.AddUObject(this, &ThisClass::OnCreateSessionComplete);
+		Session->OnJoinSessionCompleteDelegates.AddUObject(this, &ThisClass::OnJoinSessionComplete);
+		Session->OnDestroySessionCompleteDelegates.AddUObject(this, &ThisClass::OnDestroySessionComplete);
+		Session->OnStartSessionCompleteDelegates.AddUObject(this, &ThisClass::OnStartSessionComplete);
 	}
 }
 
 void UNAGameInstance::FindSessions()
 {
-	if (!SessionInterface.IsValid()) return;
+	if ( const TSharedPtr<IOnlineSession> Session = SessionInterface.Pin() )
+	{
+		SessionSearch = MakeShareable(new FOnlineSessionSearch());
+		SessionSearch->bIsLanQuery = true;
+		SessionSearch->MaxSearchResults = 20;
+		SessionSearch->TimeoutInSeconds = 1.f;
+		SessionSearch->QuerySettings.Set(SEARCH_LOBBIES, true, EOnlineComparisonOp::Equals);
 
-	SessionSearch = MakeShareable(new FOnlineSessionSearch());
-	SessionSearch->bIsLanQuery = true;
-	SessionSearch->MaxSearchResults = 20;
-	
-	SessionInterface->FindSessions(0, SessionSearch.ToSharedRef());
+		Session->FindSessions(0, SessionSearch.ToSharedRef());
+	}
 }
 
 void UNAGameInstance::JoinSession(int32 Index)
 {
-	if (!SessionInterface.IsValid() || !SessionSearch.IsValid()) return;
+	if ( !SessionSearch.IsValid() ) return;
 
-	SessionInterface->JoinSession(0, MadeSessionName, SessionSearch->SearchResults[Index]);
+	if ( const TSharedPtr<IOnlineSession> Session = SessionInterface.Pin() )
+	{
+		Session->JoinSession(0, MadeSessionName, SessionSearch->SearchResults[Index]);
+	}
+}
+
+void UNAGameInstance::JoinSession(FOnlineSessionSearchResult* Result)
+{
+	//if (!SessionInterface.IsValid() || !SessionSearch.IsValid()) return;
+
+	if ( const TSharedPtr<IOnlineSession> Session = SessionInterface.Pin() )
+	{
+		Session->JoinSession(0,MadeSessionName, *Result);
+	}
 }
 
 void UNAGameInstance::JoinSession_Wrapped()
@@ -52,21 +71,44 @@ void UNAGameInstance::JoinSession_Wrapped()
 	JoinSession(ReservedSessionIndex);
 }
 
-void UNAGameInstance::CreateSession(FName SessionName, bool bIsLAN)
+void UNAGameInstance::CreateSession(FName SessionName, bool bIsLAN = true)
 {
-	if (!SessionInterface.IsValid()) return;
-
-	FOnlineSessionSettings Settings;
-	Settings.bIsLANMatch = true;
-	Settings.NumPublicConnections = 2;
-	Settings.bShouldAdvertise = true;
-	MadeSessionName = SessionName;
-	
-	SessionInterface->CreateSession(0, MadeSessionName, Settings);
+	if ( const TSharedPtr<IOnlineSession> Session = SessionInterface.Pin() )
+	{
+		FOnlineSessionSettings Settings;
+		Settings.bIsLANMatch = bIsLAN;
+		Settings.NumPublicConnections = 2;
+		Settings.bShouldAdvertise = true;
+		Settings.bUsesPresence = true;
+		Settings.bAllowJoinInProgress = true;
+		Settings.bAllowJoinViaPresence = true;
+		MadeSessionName = SessionName;
+		
+		Session->CreateSession(0, MadeSessionName, Settings);
+		bIsHosting = true;
+	}
 }
 
 void UNAGameInstance::DestroySession()
 {
+}
+
+void UNAGameInstance::StartSession(FName SessionName)
+{
+	if ( const TSharedPtr<IOnlineSession> Session = SessionInterface.Pin() )
+	{
+		Session->StartSession(MadeSessionName);
+	}
+}
+
+void UNAGameInstance::StartSession_Wrapped()
+{
+	StartSession(MadeSessionName);
+}
+
+bool UNAGameInstance::IsHosting() const
+{
+	return bIsHosting;
 }
 
 void UNAGameInstance::OnFindSessionComplete(bool bWasSuccess)
@@ -76,6 +118,8 @@ void UNAGameInstance::OnFindSessionComplete(bool bWasSuccess)
 		for (const FOnlineSessionSearchResult& Result : SessionSearch->SearchResults)
 		{
 			UE_LOG(LogTemp, Log, TEXT("세션 발견: %s"), *Result.GetSessionIdStr());
+
+			OnSessionFound.Broadcast();
 		}
 	}
 }
@@ -83,11 +127,14 @@ void UNAGameInstance::OnFindSessionComplete(bool bWasSuccess)
 void UNAGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
 {
 	FString Str;
-	if (SessionInterface->GetResolvedConnectString(SessionName, Str))
+	if ( const TSharedPtr<IOnlineSession> Session = SessionInterface.Pin() )
 	{
-		APlayerController* PC = GetFirstLocalPlayerController();
-		if (PC)
-			PC->ClientTravel(Str, TRAVEL_Absolute);
+		if (Session->GetResolvedConnectString(SessionName, Str))
+		{
+			APlayerController* PC = GetFirstLocalPlayerController();
+			if (PC)
+				PC->ClientTravel(Str, TRAVEL_Absolute);
+		}
 	}
 }
 
@@ -95,10 +142,20 @@ void UNAGameInstance::OnCreateSessionComplete(FName SessionName, bool bWasSucces
 {
 	if (bWasSuccess)
 	{
-		GetWorld()->ServerTravel("");
+		//GetWorld()->ServerTravel("");
+		UGameplayStatics::OpenLevel(GetWorld(), "/Game/00_ProjectNA/02_Level/Level_NALobby",true,"listen");
+		//UGameplayStatics::OpenLevel(GetWorld(),"/Game/00_ProjectNA/02_Level/Level_NALobby?listen");
 	}
 }
 
 void UNAGameInstance::OnDestroySessionComplete(FName SessionName, bool bWasSuccess)
 {
+}
+
+void UNAGameInstance::OnStartSessionComplete(FName SessionName, bool bWasSuccess)
+{
+	if (bWasSuccess)
+	{
+		GetWorld()->ServerTravel("/Game/00_ProjectNA/02_Level/Level_NATestLevel?listen");		
+	}
 }

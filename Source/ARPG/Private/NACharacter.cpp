@@ -26,6 +26,7 @@
 #include "Inventory/Component/NAInventoryComponent.h"
 #include "Item/ItemActor/NAWeapon.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Materials/MaterialInstanceConstant.h"
 #include "Weapon/PickableItemActor/NAWeaponAmmoBox.h"
 
 DEFINE_LOG_CATEGORY( LogTemplateCharacter );
@@ -144,11 +145,10 @@ ANACharacter::ANACharacter()
 	InventoryComponent->SetRelativeLocation(FVector(0.f, -28.f, 31.f));
 	InventoryComponent->SetRelativeRotation(FRotator(9.f, 0.f, 0.f));
 	InventoryComponent->SetRelativeScale3D(FVector(0.42f));
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface>
-		InventoryWidgetMaterial(TEXT(
+	static ConstructorHelpers::FObjectFinder<UMaterialInstanceConstant>
+		WidgetMaterial(TEXT(
 			"/Script/Engine.MaterialInstanceConstant'/Engine/EngineMaterials/Widget3DPassThrough_Translucent.Widget3DPassThrough_Translucent'"));
-	check(InventoryWidgetMaterial.Object);
-	InventoryComponent->SetMaterial(0, InventoryWidgetMaterial.Object);
+	InventoryWidgetMaterial = WidgetMaterial.Object;
 
 	LeftHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("LeftHandChildActor"));
 	RightHandChildActor = CreateDefaultSubobject<UChildActorComponent>(TEXT("RightHandChildActor"));
@@ -205,7 +205,8 @@ void ANACharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
-
+	InventoryComponent->SetMaterial( 0, InventoryWidgetMaterial );
+	
 	if ( HasAuthority() )
 	{
 		LeftHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
@@ -843,6 +844,11 @@ void ANACharacter::Server_UseStasisPackByShortcut_Implementation()
 void ANACharacter::SelectWeaponByMouseWheel(const FInputActionValue& Value)
 {
 	if (!InventoryComponent) return;
+
+	if ( KineticComponent->HasGrabbed() )
+	{
+		return;
+	}
 	
 	// 디바운스 처리
 	float CurrentTime = GetWorld()->GetTimeSeconds();
@@ -855,8 +861,12 @@ void ANACharacter::SelectWeaponByMouseWheel(const FInputActionValue& Value)
 	const float AxisValue = Value.Get<float>();
 	if (FMath::IsNearlyZero(AxisValue)) return;
 
-	int32 Direction = AxisValue > 0.f ? 1 : -1;
+	const int32 Direction = AxisValue > 0.f ? 1 : -1;
+	Server_SwapWeapon( Direction );
+}
 
+void ANACharacter::Server_SwapWeapon_Implementation( const int32 Direction )
+{
 	UNAItemData* SelectedWeapon = InventoryComponent->SelectNextWeapon(Direction);
 	if (SelectedWeapon)
 	{

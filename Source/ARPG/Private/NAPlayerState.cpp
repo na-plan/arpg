@@ -203,4 +203,5 @@ void ANAPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME( ANAPlayerState, PossessAssetName )
+	DOREPLIFETIME( ANAPlayerState, PlayerNumber )
 }

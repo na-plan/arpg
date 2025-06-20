@@ -7,6 +7,7 @@
 #include "Interaction/NAInteractionComponent.h"
 #include "GeometryCollection/GeometryCollectionObject.h"
 #include "Item/ItemWidget/NAItemWidgetComponent.h"
+#include "Materials/MaterialInstanceConstant.h"
 
 
 ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
@@ -35,11 +36,11 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	TriggerSphere->SetSimulatePhysics(false);
 	
 	ItemWidgetComponent = CreateDefaultSubobject<UNAItemWidgetComponent>(TEXT("ItemWidgetComponent"));
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface>
+	static ConstructorHelpers::FObjectFinder<UMaterialInstanceConstant>
 		ItemWidgetMaterial(TEXT(
 			"/Script/Engine.MaterialInstanceConstant'/Engine/EngineMaterials/Widget3DPassThrough_Translucent.Widget3DPassThrough_Translucent'"));
 	check(ItemWidgetMaterial.Object);
-	ItemWidgetComponent->SetMaterial(0, ItemWidgetMaterial.Object);
+	WidgetInstance = ItemWidgetMaterial.Object;
 	
 	ItemDataID = NAME_None;
 
@@ -51,7 +52,7 @@ void ANAItemActor::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	//ensureAlways(ItemCollision && GetRootComponent() == ItemCollision);
+	ensureAlways(ItemCollision && GetRootComponent() == ItemCollision);
 }
 
 void ANAItemActor::PostReinitProperties()
@@ -514,6 +515,8 @@ void ANAItemActor::OnActorEndOverlap_Impl(AActor* OverlappedActor, AActor* Other
 
 void ANAItemActor::BeginPlay()
 {
+	ItemWidgetComponent->SetMaterial( 0, WidgetInstance );
+	
 	/**
 	 * @TODO: 플레이 때 서브오브젝트 계층구조 무너지면 이 부분 활성화 하시오
 	 */

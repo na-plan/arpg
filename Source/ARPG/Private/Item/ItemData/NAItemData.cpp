@@ -22,7 +22,6 @@ void UNAItemData::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	UE_LOG( LogTemp, Warning, TEXT("%hs: Item %s with the data of %s"), __FUNCTION__, *GetItemName(), *GetName() )
 	if (HasAnyFlags(RF_ClassDefaultObject))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[UNAItemData::PostInitProperties] CDO) %s"), *GetName());

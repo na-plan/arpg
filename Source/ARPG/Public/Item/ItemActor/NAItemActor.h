@@ -9,6 +9,7 @@
 class UTextRenderComponent;
 class UNAMontageCombatComponent;
 class UBillboardComponent;
+class UMaterialInstanceConstant;
 
 UENUM()
 enum class EItemSubobjDirtyFlags : uint8
@@ -171,6 +172,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Static Mesh")
 	TObjectPtr<class UNAItemWidgetComponent> ItemWidgetComponent;
+
+	UPROPERTY()
+	UMaterialInstanceConstant* WidgetInstance;
 
 private:
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Item Actor", meta = (AllowPrivateAccess = "true"))
