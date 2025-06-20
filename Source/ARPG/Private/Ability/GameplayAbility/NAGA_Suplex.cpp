@@ -84,7 +84,7 @@ void UNAGA_Suplex::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 					FRotator RotationB = RotationA + FRotator(0, -90, 0);
 					// B 카메라 전환
 					ActionCamB->SetActorLocationAndRotation(LocationB, RotationB);
-					PlayerController->SetViewTargetWithBlend(ActionCamB, 2.f);				
+					PlayerController->SetViewTargetWithBlend(ActionCamB, 1.f);				
 				}), 1.0f, false); // 2초 뒤 실행
 
 			FTimerHandle CameraBHandle2;
