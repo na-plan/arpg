@@ -90,6 +90,12 @@ void UNAGA_Suplex::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 			FTimerHandle CameraBHandle2;
 			GetWorld()->GetTimerManager().SetTimer(CameraBHandle2, FTimerDelegate::CreateLambda([=]()
 				{
+					PlayerController->SetViewTargetWithBlend(Character, 1.f);
+				}), 5.0f, false); // 2초 뒤 실행
+			FTimerHandle CameraBHandle3;
+			GetWorld()->GetTimerManager().SetTimer(CameraBHandle3, FTimerDelegate::CreateLambda([=]()
+				{
+					PlayerController->SetViewTargetWithBlend(Character, 1.f);
 					ActionCamA->Destroy();
 					ActionCamB->Destroy();	
 				}), 6.0f, false); // 2초 뒤 실행
@@ -129,7 +135,7 @@ void UNAGA_Suplex::OnMontageFinished()
 		APlayerController* PlayerController = Cast<APlayerController>(Character->GetController());
 
 
-		PlayerController->SetViewTargetWithBlend(GetAvatarActorFromActorInfo(), 0.3f);
+		PlayerController->SetViewTargetWithBlend(GetAvatarActorFromActorInfo(), 1.f);
 		
 
 
