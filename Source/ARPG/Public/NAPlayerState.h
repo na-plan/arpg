@@ -83,4 +83,10 @@ protected:
 public:
 	UPROPERTY(Replicated)
 	int32 PlayerNumber;
+
+	UPROPERTY()
+	bool bInSession = false;
+
+	UPROPERTY(Replicated)
+	bool bIsReady = false;
 };

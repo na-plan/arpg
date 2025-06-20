@@ -3,6 +3,7 @@
 
 #include "Lobby/NASessionListWidget.h"
 
+#include "Components/CanvasPanel.h"
 #include "Components/ListView.h"
 #include "GameFramework/PlayerState.h"
 #include "Kismet/GameplayStatics.h"
@@ -27,7 +28,7 @@ void UNASessionListWidget::OnClick_CreateSession()
 	//UGameplayStatics::OpenLevel(GetWorld(),"/Game/00_ProjectNA/02_Level/Level_NALobby?listen");
 	//SetVisibility(ESlateVisibility::Visible);
 	CreateSession();
-
+	
 	Button_StartGame->SetVisibility( ESlateVisibility::Visible );
 }
 

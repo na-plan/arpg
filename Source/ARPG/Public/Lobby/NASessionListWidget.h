@@ -12,6 +12,7 @@
 #include "NASessionListWidget.generated.h"
 
 
+class UCanvasPanel;
 class UNAGameInstance;
 class UButton;
 class UTextBlock;
@@ -117,7 +118,7 @@ protected:
 protected:
 	UPROPERTY(meta = (BindWidget, AllowPrivateAccess = true))
 	UListView* SessionListView;
-
+	
 	UPROPERTY(meta = (BindWidget, AllowPrivateAccess = true))
 	UButton* Button_CreateSession;
 	
