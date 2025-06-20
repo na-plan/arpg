@@ -8,7 +8,8 @@
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
-
+#include "Kismet/KismetSystemLibrary.h"
+#include "Camera/CameraActor.h"
 
 UNAGA_Suplex::UNAGA_Suplex()
 {
@@ -47,6 +48,71 @@ void UNAGA_Suplex::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 				this, NAME_None, CombatComponent->GetGrabMontage(), 1.0f);
 			MontageTask->OnCompleted.AddDynamic(this, &UNAGA_Suplex::OnMontageFinished);
 			MontageTask->ReadyForActivation();
+
+
+			APlayerController* PlayerController = Cast<APlayerController>(ActorInfo->PlayerController);
+
+
+
+			FVector StartLocation = PlayerController->PlayerCameraManager->GetCameraLocation();
+			FRotator StartRotation = PlayerController->PlayerCameraManager->GetCameraRotation();
+
+			
+			ACameraActor* ActionCamA = GetWorld()->SpawnActor<ACameraActor>(StartLocation, StartRotation);
+			if (!ActionCamA) return;
+			ACameraActor* ActionCamB = GetWorld()->SpawnActor<ACameraActor>(StartLocation, StartRotation);
+			if (!ActionCamB) return;
+
+
+			FVector LocationA = Character->GetActorLocation()+FVector(0,120,0);
+			FRotator RotationA = FRotator(0, -90, 0);
+
+			// Test용 바로 setting
+			ActionCamA->SetActorLocationAndRotation(LocationA, RotationA);
+			PlayerController->SetViewTargetWithBlend(ActionCamA, 1.f);
+
+
+			FTimerHandle CameraBHandle;
+			GetWorld()->GetTimerManager().SetTimer(CameraBHandle, FTimerDelegate::CreateLambda([=]()
+				{
+					FVector LocationB = LocationA + FVector(160, -120, -10);
+					FRotator RotationB = FRotator(0, -180, 0);
+
+					// B 카메라 전환
+					ActionCamB->SetActorLocationAndRotation(LocationB, RotationB);
+					PlayerController->SetViewTargetWithBlend(ActionCamB, 1.0f);				
+
+				}), 1.0f, false); // 2초 뒤 실행
+
+			FTimerHandle CameraBHandle2;
+			GetWorld()->GetTimerManager().SetTimer(CameraBHandle2, FTimerDelegate::CreateLambda([=]()
+				{
+					ActionCamA->Destroy();
+					ActionCamB->Destroy();
+		
+
+				}), 6.0f, false); // 2초 뒤 실행
+
+
+			//UKismetSystemLibrary::MoveComponentTo(
+			//	ActionCam,
+			//	LocationA,
+			//	RotationA,
+			//	true, true,
+			//	Overtime,
+			//	true,
+			//	EMoveComponentAction::Move,
+			//	LatentInfo
+			//);
+
+
+
+
+
+
+			//PlayerController->SetViewTargetWithBlend(TempCam, 0.3f);
+
+
 		}
 
 	}
@@ -57,5 +123,14 @@ void UNAGA_Suplex::OnMontageFinished()
 	if (ACharacter* Character = Cast<ACharacter>(GetAvatarActorFromActorInfo()))
 	{
 		Character->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+
+
+		APlayerController* PlayerController = Cast<APlayerController>(Character->GetController());
+
+
+		PlayerController->SetViewTargetWithBlend(GetAvatarActorFromActorInfo(), 0.3f);
+		
+
+
 	}
 }
