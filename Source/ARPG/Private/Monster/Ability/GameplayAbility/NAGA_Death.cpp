@@ -43,8 +43,8 @@ void UNAGA_Death::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 					UAnimMontage* CheckMontage = MonsterASC->GetCurrentMontage();
 					if (AnimInstance && MonsterAIController)
 					{
-						//MonsterASC->AbilityActorInfo->GetAnimInstance()->Montage_Stop(0.2f);
-						//float PlayingMontage = MonsterASC->PlayMontage(this, CurrentActivationInfo, MonsterDeathMontage, 1.0f);
+						MonsterASC->AbilityActorInfo->GetAnimInstance()->Montage_Stop(0.2f);
+						float PlayingMontage = MonsterASC->PlayMontage(this, CurrentActivationInfo, MonsterDeathMontage, 1.0f);
 					}
 				}
 				else
