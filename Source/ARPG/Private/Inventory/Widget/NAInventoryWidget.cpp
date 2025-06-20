@@ -442,12 +442,8 @@ void UNAInventoryWidget::ReleaseInventoryWidget()
 {
 	if (!OwningInventoryComponent || !Widget_Appear) return;
 	if (!GetOwningPlayer()) return;
-	bReleaseInventoryWidget = true;
 	
-	OwningInventoryComponent->SetVisibility(true);
-	OwningInventoryComponent->SetWindowVisibility(EWindowVisibility::Visible);
-	SetIsEnabled(true);
-	SetVisibility(ESlateVisibility::HitTestInvisible);
+	bReleaseInventoryWidget = true;
 	PlayAnimationForward(Widget_Appear);
 }
 
@@ -458,9 +454,11 @@ void UNAInventoryWidget::OnInventoryWidgetReleased()
 
 	if (bReleaseInventoryWidget)
 	{
+		OwningInventoryComponent->SetWindowFocusable(true);
+		
 		// 움직이면서 인벤토리 위젯 조작 가능은 한데, 진입할때 게임쪽 입력이 끊김 whyyyyyyyyy
-		UWidgetBlueprintLibrary::SetInputMode_GameAndUIEx(GetOwningPlayer(), nullptr, EMouseLockMode::LockAlways, true, false);
-
+		UWidgetBlueprintLibrary::SetInputMode_GameAndUIEx(
+			GetOwningPlayer(),nullptr, EMouseLockMode::LockAlways, true, false);
 		// 일단 땜빵: [인벤 위젯 활성화 시 마우스 커서 노출되는 문제 + 마우스 버튼 다운/업 시 인벤 위젯에서 키보드 포커스 빠지는 문제] 틀어막음 
 		UGameViewportClient* GameViewportClient = GetWorld()->GetGameViewport();
 		TSharedPtr<SViewport> ViewportWidget = GameViewportClient->GetGameViewportWidget();
@@ -475,7 +473,6 @@ void UNAInventoryWidget::OnInventoryWidgetReleased()
 			GameViewportClient->SetMouseCaptureMode(EMouseCaptureMode::NoCapture);
 		}
 		
-		OwningInventoryComponent->SetWindowFocusable(true);
 		if (!LastFocusedSlotButton.IsValid())
 		{
 			Weapon_00->SetKeyboardFocus();	
@@ -485,16 +482,19 @@ void UNAInventoryWidget::OnInventoryWidgetReleased()
 			LastFocusedSlotButton->SetKeyboardFocus();
 		}
 	}
+	else
+	{
+		UWidgetBlueprintLibrary::SetInputMode_GameOnly(GetOwningPlayer(), false);
+		OwningInventoryComponent->SetWindowFocusable(false);
+	}
 }
 
 void UNAInventoryWidget::CollapseInventoryWidget()
 {
 	if (!OwningInventoryComponent || !Widget_Appear) return;
 	if (!GetOwningPlayer()) return;
-	bReleaseInventoryWidget = false;
 	
-	UWidgetBlueprintLibrary::SetInputMode_GameOnly(GetOwningPlayer(), false);
-	OwningInventoryComponent->SetWindowFocusable(false);
+	bReleaseInventoryWidget = false;
 	PlayAnimationReverse(Widget_Appear, 1.3f);
 }
 
@@ -503,7 +503,14 @@ void UNAInventoryWidget::OnInventoryWidgetCollapsed()
 	if (!OwningInventoryComponent || !Widget_Appear) return;
 	if (!GetOwningPlayer()) return;
 	
-	if (!bReleaseInventoryWidget)
+	if (bReleaseInventoryWidget)
+	{
+		OwningInventoryComponent->SetVisibility(true);
+		OwningInventoryComponent->SetWindowVisibility(EWindowVisibility::Visible);
+		SetIsEnabled(true);
+		SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
+	else
 	{
 		SetVisibility(ESlateVisibility::Hidden);
 		SetIsEnabled(false);
