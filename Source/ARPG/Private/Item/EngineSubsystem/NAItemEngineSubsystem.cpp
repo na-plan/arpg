@@ -23,13 +23,13 @@ void UNAItemEngineSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		// 1) Registry 에셋 동기 로드 (나중에 실제 경로로 교체)
 		static const FString RegistryPath = TEXT("/Script/ARPG.ItemDataTablesAsset'/Game/00_ProjectNA/ItemTest/DA_ItemDataTables.DA_ItemDataTables'");
 		UItemDataTablesAsset* Registry = Cast<UItemDataTablesAsset>(StaticLoadObject(UItemDataTablesAsset::StaticClass(), nullptr, *RegistryPath));
-
+	
 		if (!Registry)
 		{
 			UE_LOG(LogTemp, Error, TEXT("[UNAItemGameInstanceSubsystem::Initialize]  ItemDataTablesAsset 로드 실패: %s"), *RegistryPath);
 			return;
 		}
-
+	
 		// 2) Registry 안의 SoftObjectPtr<UDataTable> 리스트 순회
 		UE_LOG(LogTemp, Warning, TEXT("[UNAItemGameInstanceSubsystem::Initialize]  아이템 DT LoadSynchronous 시작"));
 		for (const TSoftObjectPtr<UDataTable>& SoftDT : Registry->ItemDataTables)
@@ -41,12 +41,12 @@ void UNAItemEngineSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 					TEXT("[UNAItemGameInstanceSubsystem]  Failed to load DataTable: %s"), *SoftDT.ToString());
 				continue;
 			}
-
+	
 			ItemDataTableSources.Emplace(ResourceDT);
 			UE_LOG(LogTemp, Log,
 				TEXT("[UNAItemGameInstanceSubsystem]  Loaded DataTable: %s"), *ResourceDT->GetName());
 		}
-
+	
 		// (2) 메타데이터 맵 빌드
 		if (ItemMetaDataMap.IsEmpty())
 		{
