@@ -58,7 +58,7 @@ void UNASessionListWidget::RefreshSessionList()
 		for (auto& It :  Results)
 		{
 			UNASessionListEntryData* Data = NewObject<UNASessionListEntryData>();
-			Data->SearchResult = &It;
+			Data->SearchResult = MakeShared<FOnlineSessionSearchResult>(It);
 
 			SessionListView->AddItem(Cast<UObject>(Data));
 		}

@@ -25,14 +25,13 @@ class UNASessionListEntryData : public UObject
 public:
 	UNASessionListEntryData()
 	{
-		SessionName = SearchResult->GetSessionIdStr();
 	}
 		
 public:
 	FString SessionName;
 	FString TravelAddress;
 	int32 SessionIndex;
-	FOnlineSessionSearchResult* SearchResult;
+	TSharedPtr<FOnlineSessionSearchResult> SearchResult;
 };
 
 UCLASS()
@@ -65,7 +64,7 @@ public:
 	{
 		UNAGameInstance* GameInstance = Cast<UNAGameInstance>(GetGameInstance());
 		GameInstance->SetReservedIndex(Data->SessionIndex);
-		//GameInstance->JoinSession(*Data->SearchResult);
+		GameInstance->JoinSession(Data->SearchResult.Get());
 	}
 	
 public:
@@ -76,6 +75,7 @@ public:
 	UTextBlock* Text_SessionName;
 
 protected:
+	UPROPERTY()
 	UNASessionListEntryData* Data;
 };
 

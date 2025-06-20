@@ -41,7 +41,7 @@ public:
 	UFUNCTION()
 	void JoinSession_Wrapped();
 
-	//void JoinSession(class FOnlineSessionSearchResult* InResult);
+	void JoinSession(class FOnlineSessionSearchResult* InResult);
 	
 	UFUNCTION()
 	void CreateSession(FName SessionName, bool bIsLAN);

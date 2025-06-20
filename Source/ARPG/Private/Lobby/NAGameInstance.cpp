@@ -51,12 +51,12 @@ void UNAGameInstance::JoinSession(int32 Index)
 	SessionInterface->JoinSession(0, MadeSessionName, SessionSearch->SearchResults[Index]);
 }
 
-// void UNAGameInstance::JoinSession(FOnlineSessionSearchResult* Result)
-// {
-// 	if (!SessionInterface.IsValid() || !SessionSearch.IsValid()) return;
-// 	
-// 	SessionInterface->JoinSession(0,FName(Result->GetSessionIdStr()), *Result);
-// }
+void UNAGameInstance::JoinSession(FOnlineSessionSearchResult* Result)
+{
+	//if (!SessionInterface.IsValid() || !SessionSearch.IsValid()) return;
+	
+	SessionInterface->JoinSession(0,MadeSessionName, *Result);
+}
 
 void UNAGameInstance::JoinSession_Wrapped()
 {
