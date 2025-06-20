@@ -25,5 +25,8 @@ public:
 	virtual void SetSuplexMontage(UAnimMontage* InAnimMontage) { SuplexingMontage = InAnimMontage; }
 	UPROPERTY(EditDefaultsOnly)
 	UAnimMontage* SuplexingMontage;
-	
+
+	UCameraComponent* ActionCamera;
+	ACameraActor* ActionCam;
+	USpringArmComponent* ActionBoom;
 };
