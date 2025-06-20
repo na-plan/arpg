@@ -134,6 +134,9 @@ public:
 		// 3) 새로 생성한 UNAItemData 객체의 소유권을 런타임 때 아이템 데이터 추적용 Map으로 이관
 		RuntimeItemDataMap.Emplace(NewItemData->ID, NewItemData);
 
+		UE_LOG(LogTemp, Warning, TEXT("[CreateItemDataByActor]  아이템 데이터 생성(%s) - 아이템 액터(%s)")
+			,*NewItemID, *InItemActor->GetName());
+		
 		return RuntimeItemDataMap[NewItemData->ID].Get();
 	}
 
