@@ -75,6 +75,8 @@ void UNAItemWidget::OnItemWidgetCollapsed()
 		OwningItemWidgetComponent->Activate();
 		OwningItemWidgetComponent->SetVisibility(true);
 		OwningItemWidgetComponent->SetWindowVisibility(EWindowVisibility::Visible);
+		OwningItemWidgetComponent->SetEnableUpdateTransform(true);
+		
 		SetIsEnabled(true);
 		SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
@@ -82,6 +84,8 @@ void UNAItemWidget::OnItemWidgetCollapsed()
 	{
 		SetVisibility(ESlateVisibility::Hidden);
 		SetIsEnabled(false);
+
+		OwningItemWidgetComponent->SetEnableUpdateTransform(false);
 		OwningItemWidgetComponent->SetWindowVisibility(EWindowVisibility::SelfHitTestInvisible);
 		OwningItemWidgetComponent->SetVisibility(false);
 		OwningItemWidgetComponent->Deactivate();

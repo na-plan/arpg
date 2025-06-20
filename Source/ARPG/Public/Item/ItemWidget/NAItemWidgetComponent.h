@@ -36,8 +36,30 @@ public:
 	class UNAItemWidget* GetItemWidget() const;
 
 	void SetItemInteractionName(const FString& NewString) const;
+
+	void SetEnableUpdateTransform(const bool bEnable);
 	
 protected:
-	uint8 bFaceCamera : 1 = false;
-	void FaceCamera();
+	void UpdateTransformFacingCamera();
+	void UpdateTransformFacingCharacter();
+
+private:
+	uint8 bUpdateTransformFacingCamera : 1 = false;
+
+	// Yaw: 설정 반영 안됨(카메라 빌보드 처리)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	FRotator PickableWidgetRelativeRotation = FRotator::ZeroRotator;
+	
+	// X: 앞/뒤  Y: 좌/우  Z: 상/하
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	FVector PickableWidgetRelativeOffset = FVector::ZeroVector;
+
+	
+	uint8 bUpdateTransformFacingCharacter : 1 = false;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	FTransform PlaceableWidgetRelativeForwardTransform = FTransform::Identity;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	FTransform PlaceableWidgetRelativeBackwardTransform = FTransform::Identity;
 };

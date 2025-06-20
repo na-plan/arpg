@@ -35,7 +35,6 @@ ANAPlaceableItemActor_Door::ANAPlaceableItemActor_Door(const FObjectInitializer&
 		if (ItemWidgetComponent)
 		{
 			ItemWidgetComponent->SetupAttachment(ItemCollision);
-			ItemWidgetComponent->SetRelativeLocation(FVector(-80.f, 0.f, 0.f));
 		}
 	}
 }
