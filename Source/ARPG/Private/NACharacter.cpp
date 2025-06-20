@@ -843,6 +843,11 @@ void ANACharacter::Server_UseStasisPackByShortcut_Implementation()
 void ANACharacter::SelectWeaponByMouseWheel(const FInputActionValue& Value)
 {
 	if (!InventoryComponent) return;
+
+	if ( KineticComponent->HasGrabbed() )
+	{
+		return;
+	}
 	
 	// 디바운스 처리
 	float CurrentTime = GetWorld()->GetTimeSeconds();
@@ -855,8 +860,12 @@ void ANACharacter::SelectWeaponByMouseWheel(const FInputActionValue& Value)
 	const float AxisValue = Value.Get<float>();
 	if (FMath::IsNearlyZero(AxisValue)) return;
 
-	int32 Direction = AxisValue > 0.f ? 1 : -1;
+	const int32 Direction = AxisValue > 0.f ? 1 : -1;
+	Server_SwapWeapon( Direction );
+}
 
+void ANACharacter::Server_SwapWeapon_Implementation( const int32 Direction )
+{
 	UNAItemData* SelectedWeapon = InventoryComponent->SelectNextWeapon(Direction);
 	if (SelectedWeapon)
 	{

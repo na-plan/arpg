@@ -250,6 +250,9 @@ protected:
 	void SelectWeaponByMouseWheel(const FInputActionValue& Value);
 	float LastWheelInputTime = 0.f;
 	const float InputDebounceDelay = 0.18f;
+
+	UFUNCTION( Server, Unreliable )
+	void Server_SwapWeapon( const int32 Direction );
 	
 	void HideInventoryIfNotAlive( ECharacterStatus Old, ECharacterStatus New );
 	
