@@ -53,6 +53,7 @@ class ARPG_API UNACombatComponent : public UActorComponent
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
 	TSubclassOf<UGameplayAbility> AttackAbility;
 
+	//Suplex 사용
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
 	TSubclassOf<UGameplayAbility> GrabAbility;
 

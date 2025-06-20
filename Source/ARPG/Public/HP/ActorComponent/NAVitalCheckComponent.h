@@ -4,11 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameplayEffectTypes.h"
-#include "NACharacter.h"
 #include "Components/ActorComponent.h"
 
 #include "NAVitalCheckComponent.generated.h"
 
+class ANACharacter;
 DECLARE_LOG_CATEGORY_EXTERN( LogVitalComponent, Log, All );
 
 // 체력 매시 상태

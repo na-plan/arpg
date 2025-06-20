@@ -26,6 +26,8 @@ void ANAPlaceableItemActor::OnConstruction(const FTransform& Transform)
 	if (ItemCollision)
 	{
 		ItemCollision->SetSimulatePhysics(false);
+		ItemCollision->SetGenerateOverlapEvents(false);
+		ItemCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 }
 

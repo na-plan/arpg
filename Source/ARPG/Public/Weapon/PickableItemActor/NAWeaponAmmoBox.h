@@ -27,9 +27,11 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	
+	virtual void OnFullyAddedToInventoryBeforeDestroy_Impl(AActor* Interactor) override;
 
-	virtual bool ExecuteInteract_Implementation(AActor* InteractorActor) override;
-
+	virtual bool BeginInteract_Implementation(AActor* InteractorActor) override;
+	
 	virtual bool EndInteract_Implementation(AActor* InteractorActor) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;

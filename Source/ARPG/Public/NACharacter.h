@@ -7,6 +7,7 @@
 #include "Assets/Interface/NAManagedAsset.h"
 #include "Combat/Interface/NAHandActor.h"
 #include "GameFramework/Character.h"
+#include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "Logging/LogMacros.h"
 #include "NACharacter.generated.h"
 
@@ -117,6 +118,9 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	/* Equip/UnequipWeapon*/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
 	UInputAction* ToggleWeaponEquippedAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
+	UInputAction* SelectWeaponAction;
 	
 	/* Interaction Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
@@ -191,6 +195,8 @@ protected:
 	UFUNCTION()
 	void OnRep_Zoom();
 
+	virtual void Jump() override;
+
 	// 무기 Zoom 상태 
 	UFUNCTION()
 	void Zoom();
@@ -212,8 +218,11 @@ protected:
 	UFUNCTION()
 	void ToggleInventoryWidget();
 
-	UFUNCTION()
-	void ToggleWeaponEquipped(const FInputActionValue& Value);
+	UFUNCTION(Server, Reliable)
+	void Server_ToggleWeaponEquipped();
+
+	class ANAItemActor* EquipWeapon(class UNAItemData* WeaponToEquip);
+	bool UnequipWeapon();
 
 	// Rotate Inventory Widget
 	UFUNCTION()
@@ -232,8 +241,17 @@ protected:
 	void RemoveItemFromInventory(const FInputActionValue& Value);
 	
 	// 힐팩 단축키로 자동 사용: 높은 등급부터
-	void UseMedPackByShortcut(const FInputActionValue& Value);
-	void UseStasisPackByShortcut(const FInputActionValue& Value);
+	UFUNCTION( Server, Reliable )
+	void Server_UseMedPackByShortcut();
+
+	UFUNCTION( Server, Reliable )
+	void Server_UseStasisPackByShortcut();
+
+	void SelectWeaponByMouseWheel(const FInputActionValue& Value);
+	float LastWheelInputTime = 0.f;
+	const float InputDebounceDelay = 0.18f;
+	
+	void HideInventoryIfNotAlive( ECharacterStatus Old, ECharacterStatus New );
 	
 protected:
 	void TryRevive();
@@ -262,8 +280,14 @@ protected:
 	UFUNCTION( Server, Reliable )
 	void Server_RequestReviveAbility();
 
+	UFUNCTION( Server, Reliable )
+	void Server_RequestKineticGrabAbility();
+
 	UFUNCTION( Server, Unreliable )
 	void Server_BeginInteraction();
+
+	UFUNCTION( Server, Reliable)
+	void Server_RequestSuplexAbility();
 
 protected:
 	virtual UChildActorComponent* GetLeftHandChildActorComponent() const override { return LeftHandChildActor; }

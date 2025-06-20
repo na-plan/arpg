@@ -30,14 +30,11 @@ protected:
 	
 	UPROPERTY(Transient, BlueprintReadOnly)
 	TWeakObjectPtr<UNAItemWidgetComponent> OwningItemWidgetComponent;
-
-	uint8 bIsToggleAction : 1 = false;
-	FString ToggleActionText;
-	void SwapToggleActionText(FString& ToggleActionStr) const;
+	
+	void SetInteractionNameText(const FString& NewString) const;
 	
 public:
 	void InitItemWidget(UNAItemWidgetComponent* OwningComp, class UNAItemData* ItemData);
-	
 	
 	void ReleaseItemWidget();
 	void CollapseItemWidget();

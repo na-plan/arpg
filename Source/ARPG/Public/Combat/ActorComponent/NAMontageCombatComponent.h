@@ -20,7 +20,7 @@ class ARPG_API UNAMontageCombatComponent : public UNACombatComponent
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
 	UAnimMontage* AttackMontage = nullptr;
-	//GrabMontage		BP에서 세팅하면 Set이 필요할까? 싶음
+	// Suplex Montage 가 되었음
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(AllowPrivateAccess="true"))
 	UAnimMontage* GrabMontage = nullptr;
 

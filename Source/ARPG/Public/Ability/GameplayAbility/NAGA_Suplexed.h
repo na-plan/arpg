@@ -4,26 +4,25 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
-#include "NAGA_Suplex.generated.h"
+#include "NAGA_Suplexed.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class ARPG_API UNAGA_Suplex : public UGameplayAbility
+class ARPG_API UNAGA_Suplexed : public UGameplayAbility
 {
 	GENERATED_BODY()
 	
-	UNAGA_Suplex();
+	UNAGA_Suplexed();
 
 public:
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData);
 
-	UFUNCTION()
-	void OnMontageFinished();
-
-	virtual void SetSuplexMontage(UAnimMontage* InAnimMontage) { SuplexingMontage = InAnimMontage; }
+	virtual void SetSuplexedMontage(UAnimMontage* InAnimMontage) { SuplexedMontage = InAnimMontage; }
 	UPROPERTY(EditDefaultsOnly)
-	UAnimMontage* SuplexingMontage;
+	UAnimMontage* SuplexedMontage;
+
+	
 	
 };

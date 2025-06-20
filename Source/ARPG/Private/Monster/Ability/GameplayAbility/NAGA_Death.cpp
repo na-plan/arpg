@@ -27,21 +27,41 @@ void UNAGA_Death::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 	if (AMonsterBase* MonsterBase = CastChecked<AMonsterBase>(ActorInfo->AvatarActor.Get()))
 	{
 		UAnimMontage* MonsterDeathMontage = MonsterBase->GetDeathMontage();
+		UAnimMontage* MonsterSuplexedMontage = MonsterBase->GetSuplexedMontage();
 		UAbilitySystemComponent* MonsterASC = MonsterBase->GetAbilitySystemComponent();
-
+		//UAbilitySystemComponent* MonsterASC = ActorInfo->AvatarActor.Get()->FindComponentByClass<UAbilitySystemComponent>();
 		// 들어오는거 확인 모두 보유중
-		if (MonsterDeathMontage && MonsterASC)
+		if ((MonsterSuplexedMontage || MonsterDeathMontage) && MonsterASC)
 		{
-			// 재생
 			UAnimInstance* AnimInstance = MonsterASC->GetAvatarActor()->FindComponentByClass<USkeletalMeshComponent>()->GetAnimInstance();
-
 			AMonsterAIController* MonsterAIController = CastChecked<AMonsterAIController>(MonsterBase->GetController());
+			if (MonsterSuplexedMontage)
+			{				
+				if (MonsterASC->GetCurrentMontage() != MonsterSuplexedMontage)
+				{
+					// 얘가 NULL 로 들어옴
+					UAnimMontage* CheckMontage = MonsterASC->GetCurrentMontage();
+					if (AnimInstance && MonsterAIController)
+					{
+						//MonsterASC->AbilityActorInfo->GetAnimInstance()->Montage_Stop(0.2f);
+						//float PlayingMontage = MonsterASC->PlayMontage(this, CurrentActivationInfo, MonsterDeathMontage, 1.0f);
+					}
+				}
+				else
+				{
+					bool CheckSupled = true;
 
-			if (AnimInstance && MonsterAIController)
-			{
-				MonsterASC->AbilityActorInfo->GetAnimInstance()->Montage_Stop(0.2f);
-				float PlayingMontage = MonsterASC->PlayMontage(this, CurrentActivationInfo, MonsterDeathMontage, 1.0f);
+				}
 			}
+			else
+			{
+				if (AnimInstance && MonsterAIController)
+				{
+					MonsterASC->AbilityActorInfo->GetAnimInstance()->Montage_Stop(0.2f);
+					float PlayingMontage = MonsterASC->PlayMontage(this, CurrentActivationInfo, MonsterDeathMontage, 1.0f);
+				}
+			}
+
 
 		}
 		// Death Montage 가 없을 경우 바로 ai작동

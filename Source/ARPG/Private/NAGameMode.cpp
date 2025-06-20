@@ -19,6 +19,7 @@ ANAGameMode::ANAGameMode()
 	GameStateClass = ANAGameStateBase::StaticClass();
 	PlayerControllerClass = ANAPlayerController::StaticClass();
 	HUDClass = ANAInGameHUD::StaticClass();
+	bUseSeamlessTravel = true;
 }
 
 APawn* ANAGameMode::SpawnDefaultPawnAtTransform_Implementation(AController* NewPlayer, const FTransform& SpawnTransform)

@@ -23,6 +23,7 @@ class ARPG_API UNAAnimNotifyState_Suplex : public UAnimNotifyState
 	virtual void NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime, const FAnimNotifyEventReference& EventReference) override;
 
 	bool SuccessSuplex = false;
+	bool AbleToSuplex = false;
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlap", meta = (AllowPrivateAccess = "true"))
 	float ClearInterval = 0.3f;
@@ -30,6 +31,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlap", meta = (AllowPrivateAccess = "true"))
 	FName SocketName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlap", meta = (AllowPrivateAccess = "true"))
+	FName OffsetName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlap", meta = (AllowPrivateAccess = "true"))
 	float SphereRadius = 20.f;

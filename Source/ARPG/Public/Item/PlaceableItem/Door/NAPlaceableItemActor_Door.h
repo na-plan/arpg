@@ -30,6 +30,13 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void PostInitializeComponents() override;
 
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
+
+protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+
 //======================================================================================================================
 // Interactable Interface Implements
 //======================================================================================================================
@@ -49,14 +56,10 @@ private:
 	void OnDoorOpeningFinished();
 	UFUNCTION()
 	void OnDoorClosingFinished();
-	
-public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+public:
+	virtual void ReleaseItemWidgetComponent() override;
+	virtual void CollapseItemWidgetComponent() override;
 
 protected:
 	UPROPERTY()
@@ -73,7 +76,7 @@ protected:
 	EDoorType DoorType;
 
 	UPROPERTY(EditAnywhere)
-	double MoveDist = 200.0;
+	double MoveDist = 260.0;
 	
 	UPROPERTY()
 	float Duration = 1.5f;
@@ -96,6 +99,7 @@ protected:
 	// Delegate
 	FOnTickInteraction TickInteraction;
 
+	uint8 bIsDoorMoving = false;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	uint8 bIsOpened : 1 = false;
 

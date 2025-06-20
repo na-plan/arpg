@@ -21,7 +21,7 @@
 #include "HP/GameplayAbility/NAGA_Revive.h"
 #include "HP/WidgetComponent/NAReviveWidgetComponent.h"
 #include "Net/UnrealNetwork.h"
-
+#include "Ability/GameplayAbility/NAGA_Suplex.h"
 #include "Interaction/NAInteractionComponent.h"
 #include "Inventory/Component/NAInventoryComponent.h"
 #include "Item/ItemActor/NAWeapon.h"
@@ -210,7 +210,6 @@ void ANACharacter::BeginPlay()
 	{
 		LeftHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
 		RightHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
-		KineticComponent->ToggleGrabAbility( true );
 	}
 
 	if ( GetController() == GetWorld()->GetFirstPlayerController() )
@@ -220,9 +219,12 @@ void ANACharacter::BeginPlay()
     	// - Character -> BeginPlay -> GiveAbility -> PlayerState -> AbilityComponent 초기화
     	// 초기화가 되지 않은 시점에서의 GiveAbility의 Replication을 받은 Client은 제대로된 값을 받지 못함
 		Server_RequestReviveAbility();
+		Server_RequestSuplexAbility();
+		Server_RequestKineticGrabAbility();
 		
 		// 총알을 소모했을때, 인벤토리에 있는 총알의 갯수도 동기화, 인벤토리 상태는 클라이언트에서 업데이트
 		AbilitySystemComponent->OnAnyGameplayEffectRemovedDelegate().AddUObject( this, &ANACharacter::SyncAmmoConsumptionWithInventory );
+		VitalCheckComponent->OnCharacterStateChanged.AddUObject( this, &ANACharacter::HideInventoryIfNotAlive );
 	}
 
 	InteractionComponent->SetActive( true );
@@ -286,6 +288,20 @@ void ANACharacter::PossessedBy(AController* NewController)
 	}
 }
 
+void ANACharacter::Server_RequestSuplexAbility_Implementation()
+{
+	const FGameplayAbilitySpec SpecHandle(UNAGA_Suplex::StaticClass(), 1.f, static_cast<int32>(EAbilityInputID::Grab));
+	AbilitySystemComponent->GiveAbility(SpecHandle);
+}
+
+void ANACharacter::Server_RequestKineticGrabAbility_Implementation()
+{
+	if ( KineticComponent )
+	{
+		KineticComponent->ToggleGrabAbility( true );
+	}
+}
+
 void ANACharacter::Server_BeginInteraction_Implementation()
 {
 	if (InteractionComponent)
@@ -341,12 +357,14 @@ void ANACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(SelectInventoryButtonAction, ETriggerEvent::Started, this, &ANACharacter::SelectInventorySlot);
 		EnhancedInputComponent->BindAction(RemoveItemFromInventoryAction, ETriggerEvent::Started, this, &ANACharacter::RemoveItemFromInventory);
 		
-		EnhancedInputComponent->BindAction(MedPackShortcutAction, ETriggerEvent::Started, this, &ANACharacter::UseMedPackByShortcut);
-		EnhancedInputComponent->BindAction(StasisPackShortcutAction, ETriggerEvent::Started, this, &ANACharacter::UseStasisPackByShortcut);
+		EnhancedInputComponent->BindAction(MedPackShortcutAction, ETriggerEvent::Started, this, &ANACharacter::Server_UseMedPackByShortcut);
+		EnhancedInputComponent->BindAction(StasisPackShortcutAction, ETriggerEvent::Started, this, &ANACharacter::Server_UseStasisPackByShortcut);
 
 		EnhancedInputComponent->BindAction(RightMouseAttackAction, ETriggerEvent::Started, this, &ANACharacter::Zoom);
 		
-		EnhancedInputComponent->BindAction(ToggleWeaponEquippedAction, ETriggerEvent::Started, this, &ANACharacter::ToggleWeaponEquipped);
+		EnhancedInputComponent->BindAction(ToggleWeaponEquippedAction, ETriggerEvent::Started, this, &ANACharacter::Server_ToggleWeaponEquipped);
+		
+		EnhancedInputComponent->BindAction(SelectWeaponAction, ETriggerEvent::Started, this, &ANACharacter::SelectWeaponByMouseWheel);
 	}
 	else
 	{
@@ -358,6 +376,8 @@ void ANACharacter::RetrieveAsset(const AActor* InCDO)
 {
 	if (const ANACharacter* DefaultAsset = Cast<ANACharacter>(InCDO))
 	{
+		FObjectPropertyUtility::CopyClassPropertyIfTypeEquals<ANACharacter, UInputMappingContext, UInputAction>( this, DefaultAsset );
+		
 		struct LazyUpdatePair
 		{
 			USceneComponent* OldParent;
@@ -460,9 +480,7 @@ void ANACharacter::RetrieveAsset(const AActor* InCDO)
 		}
 
 		check( LazyUpdates.IsEmpty() );
-
-		FObjectPropertyUtility::CopyClassPropertyIfTypeEquals<ANACharacter, UInputMappingContext, UInputAction>( this, DefaultAsset );
-
+		
 		ApplyAttachments();
 		const FTransform Transform = DefaultAsset->GetMesh()->GetRelativeTransform();
 		
@@ -551,6 +569,11 @@ void ANACharacter::Look(const FInputActionValue& Value)
 
 void ANACharacter::StartLeftMouseAttack()
 {
+	if ( VitalCheckComponent->GetCharacterStatus() != ECharacterStatus::Alive )
+	{
+		return;
+	}
+	
 	if ( KineticComponent->HasGrabbed() )
 	{
 		return;
@@ -585,8 +608,23 @@ void ANACharacter::OnRep_Zoom()
 	}
 }
 
+void ANACharacter::Jump()
+{
+	if ( VitalCheckComponent->GetCharacterStatus() != ECharacterStatus::Alive )
+	{
+		return;	
+	}
+	
+	Super::Jump();
+}
+
 void ANACharacter::Zoom()
 {
+	if ( VitalCheckComponent->GetCharacterStatus() != ECharacterStatus::Alive )
+	{
+		return;
+	}
+	
 	if (InventoryComponent->IsVisible()) return;
 	
 	SetZoom();
@@ -632,9 +670,13 @@ bool ANACharacter::ServerSetZoom_Validate(bool bZoom)
 	return true;
 }
 
-
 void ANACharacter::TryInteraction()
 {
+	if ( VitalCheckComponent->GetCharacterStatus() != ECharacterStatus::Alive )
+	{
+		return;
+	}
+	
 	if (ensure(InteractionComponent != nullptr))
 	{
 		if (!HasAuthority())
@@ -650,7 +692,9 @@ void ANACharacter::TryInteraction()
 
 bool ANACharacter::CanToggleInventoryWidget() const
 {
-	return InventoryComponent && !bIsExpandingInventoryWidget;
+	return InventoryComponent &&
+		   !bIsExpandingInventoryWidget &&
+		   VitalCheckComponent->GetCharacterStatus() == ECharacterStatus::Alive;
 }
 
 void ANACharacter::ToggleInventoryWidget()
@@ -691,57 +735,161 @@ void ANACharacter::ToggleInventoryWidget()
 	}
 }
 
-void ANACharacter::ToggleWeaponEquipped(const FInputActionValue& Value)
+void ANACharacter::Server_ToggleWeaponEquipped_Implementation()
 {
 	if (!RightHandChildActor || !LeftHandChildActor || !InventoryComponent)
 		return;
 
 	ANAWeapon* WeaponToUnequip_Right = Cast<ANAWeapon>(RightHandChildActor->GetChildActor());
 	ANAWeapon* WeaponToUnequip_Left = Cast<ANAWeapon>(LeftHandChildActor->GetChildActor());
-	const bool bShouldUnequipWeapon = WeaponToUnequip_Right || WeaponToUnequip_Left;
+	const bool bShouldEquipWeapon = !WeaponToUnequip_Right && !WeaponToUnequip_Left;
 	
-	if (bShouldUnequipWeapon)
-	{
-		// 무기 장착만 해제, 인벤토리에서 무기를 드랍하지 않음
-		if (WeaponToUnequip_Right)
-		{
-			RightHandChildActor->DestroyChildActor();
-			RightHandChildActor->SetChildActorClass(nullptr);
-		}
-		if (WeaponToUnequip_Left)
-		{
-			LeftHandChildActor->DestroyChildActor();
-			LeftHandChildActor->SetChildActorClass(nullptr);
-		}
-	}
-	else
+	if (bShouldEquipWeapon)
 	{
 		// 무기 어태치, 인벤토리에 소지된 무기가 있다면, 가장 작은 넘버의 슬롯에 적재된 무기로 장착 시도
 		UNAItemData* WeaponToEquip = InventoryComponent->FindSameClassItem(ANAWeapon::StaticClass());
 		if (WeaponToEquip)
 		{
-			UClass* WeaponClass = WeaponToEquip->GetItemActorClass();
-			if (!RightHandChildActor->GetChildActor())
+			if (EquipWeapon(WeaponToEquip))
 			{
-				RightHandChildActor->SetChildActorClass(WeaponClass);
-				ANAWeapon* NewlyEquippedWeapon = CastChecked<ANAWeapon>(RightHandChildActor->GetChildActor());
-				ANAItemActor::AssignItemDataToChildActor(WeaponToEquip, NewlyEquippedWeapon);
-				return;
+				InventoryComponent->SetEquippedWeaponIndex(WeaponToEquip);
 			}
-			if (!LeftHandChildActor->GetChildActor())
-			{
-				LeftHandChildActor->SetChildActorClass(WeaponClass);
-				ANAWeapon* NewlyEquippedWeapon = CastChecked<ANAWeapon>(LeftHandChildActor->GetChildActor());
-				ANAItemActor::AssignItemDataToChildActor(WeaponToEquip, NewlyEquippedWeapon);
-				return;
-			}
+		}
+	}
+	else
+	{
+		// 무기 장착만 해제, 인벤토리에서 무기를 드랍하지 않음
+		if (UnequipWeapon())
+		{
+			InventoryComponent->SetEquippedWeaponIndex(nullptr);
+		}
+	}
+}
+
+ANAItemActor* ANACharacter::EquipWeapon(UNAItemData* WeaponToEquip)
+{
+	if (!RightHandChildActor || !LeftHandChildActor || !InventoryComponent)
+	return nullptr;
+	
+	ANAItemActor* NewlyEquippedWeapon = nullptr;
+	if (WeaponToEquip)
+	{
+		AActor* NewlyAttachedWeapon = nullptr;
+		UClass* WeaponClass = WeaponToEquip->GetItemActorClass();
+		
+		if (!RightHandChildActor->GetChildActor())
+		{
+			RightHandChildActor->SetChildActorClass(WeaponClass);
+			NewlyAttachedWeapon = RightHandChildActor->GetChildActor();
+		}
+		else if (!LeftHandChildActor->GetChildActor())
+		{
+			LeftHandChildActor->SetChildActorClass(WeaponClass);
+			NewlyAttachedWeapon = LeftHandChildActor->GetChildActor();
+		}
+
+		if (NewlyAttachedWeapon)
+		{
+			NewlyEquippedWeapon = CastChecked<ANAWeapon>(NewlyAttachedWeapon);
+			ANAItemActor::AssignItemDataToChildActor(WeaponToEquip, NewlyEquippedWeapon);
+		}
+	}
+	
+	return NewlyEquippedWeapon;
+}
+
+bool ANACharacter::UnequipWeapon()
+{
+	if (!RightHandChildActor || !LeftHandChildActor || !InventoryComponent)
+		return false;
+
+	ANAWeapon* WeaponToUnequip_Right = Cast<ANAWeapon>(RightHandChildActor->GetChildActor());
+	ANAWeapon* WeaponToUnequip_Left = Cast<ANAWeapon>(LeftHandChildActor->GetChildActor());
+	
+	if (WeaponToUnequip_Right)
+	{
+		RightHandChildActor->DestroyChildActor();
+		RightHandChildActor->SetChildActorClass(nullptr);
+	}
+	else if (WeaponToUnequip_Left)
+	{
+		LeftHandChildActor->DestroyChildActor();
+		LeftHandChildActor->SetChildActorClass(nullptr);
+	}
+
+	return !RightHandChildActor->GetChildActor() && !LeftHandChildActor->GetChildActor();
+}
+
+void ANACharacter::Server_UseStasisPackByShortcut_Implementation()
+{
+	if ( VitalCheckComponent->GetCharacterStatus() != ECharacterStatus::Alive )
+	{
+		return;
+	}
+	
+	if (GEngine) {
+		FString Log = TEXT("UseStasisPackByShortcut");
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Blue, *Log);
+	}
+
+	if (InventoryComponent)
+	{
+		InventoryComponent->UseStasisPackAutomatically(this);
+	}
+}
+
+// @TODO: 마우스 휠로 무기 바꾸기 -> 특정 선행 키 입력 도중에만 활성하기 (e.g. ctrl 누르면서 휠 돌릴때만 작동)
+// @TODO: 선행 키 입력 도중 무기 퀵슬롯 위젯 표시?
+void ANACharacter::SelectWeaponByMouseWheel(const FInputActionValue& Value)
+{
+	if (!InventoryComponent) return;
+	
+	// 디바운스 처리
+	float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (CurrentTime - LastWheelInputTime < InputDebounceDelay)
+	{
+		return;
+	}
+	LastWheelInputTime = CurrentTime;
+	
+	const float AxisValue = Value.Get<float>();
+	if (FMath::IsNearlyZero(AxisValue)) return;
+
+	int32 Direction = AxisValue > 0.f ? 1 : -1;
+
+	UNAItemData* SelectedWeapon = InventoryComponent->SelectNextWeapon(Direction);
+	if (SelectedWeapon)
+	{
+		// 무기 교체
+		if (EquipWeapon(SelectedWeapon))
+		{
+			InventoryComponent->SetEquippedWeaponIndex(SelectedWeapon);
+		}
+	}
+	else
+	{
+		// 무기 장착 해제
+		if (UnequipWeapon())
+		{
+			InventoryComponent->SetEquippedWeaponIndex(nullptr);
+		}
+	}
+}
+
+void ANACharacter::HideInventoryIfNotAlive( ECharacterStatus Old, ECharacterStatus New )
+{
+	if ( New != ECharacterStatus::Alive )
+	{
+		if ( InventoryComponent && InventoryComponent->IsInventoryWidgetVisible() )
+		{
+			ToggleInventoryWidget();
 		}
 	}
 }
 
 void ANACharacter::RotateSpringArmForInventory(bool bExpand, float Overtime)
 {
-	if (!ensure(InventoryComponent != nullptr && InventoryWidgetBoom != nullptr)) return;
+	if (!InventoryComponent || !InventoryWidgetBoom) return;
 
 	FVector TargetLocation = InventoryWidgetBoom->GetRelativeLocation();
 	FRotator TargetRotation;
@@ -775,7 +923,7 @@ void ANACharacter::RotateSpringArmForInventory(bool bExpand, float Overtime)
 
 void ANACharacter::ToggleInventoryCameraView(const bool bEnable, USpringArmComponent* InNewBoom, float Overtime, const FRotator& Rotation)
 {
-	if (!ensure(InNewBoom != nullptr && FollowCamera != nullptr)) return;
+	if (!InNewBoom|| !FollowCamera) return;
 	
 	bIsExpandingInventoryWidget = true;
 	
@@ -870,24 +1018,21 @@ void ANACharacter::RemoveItemFromInventory(const FInputActionValue& Value)
 	}
 }
 
-void ANACharacter::UseMedPackByShortcut(const FInputActionValue& Value)
+void ANACharacter::Server_UseMedPackByShortcut_Implementation()
 {
+	if ( VitalCheckComponent->GetCharacterStatus() != ECharacterStatus::Alive )
+	{
+		return;
+	}
+	
 	if (GEngine) {
 		FString Log = TEXT("UseMedPackByShortcut");
 		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, *Log);
 	}
 
-	if (InventoryComponent)
+	if ( InventoryComponent )
 	{
-		InventoryComponent->UseMedPackByShortcut(this);
-	}
-}
-
-void ANACharacter::UseStasisPackByShortcut(const FInputActionValue& Value)
-{
-	if (GEngine) {
-		FString Log = TEXT("UseStasisPackByShortcut");
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Blue, *Log);
+		InventoryComponent->UseMedPackAutomatically( this );
 	}
 }
 
