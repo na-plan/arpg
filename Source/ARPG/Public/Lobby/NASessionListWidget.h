@@ -111,6 +111,8 @@ public:
 protected:
 	void RefreshSessionList();
 	void CreateSession();
+
+	FCriticalSection ListMutex;
 	
 protected:
 	UPROPERTY(meta = (BindWidget, AllowPrivateAccess = true))

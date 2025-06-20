@@ -54,6 +54,8 @@ public:
 
 	UFUNCTION()
 	void StartSession_Wrapped();
+
+	bool IsHosting() const;
 	
 public:
 	void SetReservedIndex(const int32 InIndex) { ReservedSessionIndex = InIndex; }
@@ -67,7 +69,8 @@ private:
 	void OnStartSessionComplete(FName SessionName, bool bWasSuccess);
 	
 private:
-	IOnlineSessionPtr SessionInterface;
+	TWeakPtr<IOnlineSession> SessionInterface;
+	
 	TSharedPtr<FOnlineSessionSearch> SessionSearch;
 	//TArray<FOnlineSessionSearchResult*> SessionSearchResults;
 
@@ -76,6 +79,8 @@ private:
 	
 	UPROPERTY()
 	int32 ReservedSessionIndex = 0;
+	
+	bool bIsHosting = false;
 
 public:
 	FOnSessionFound OnSessionFound;
