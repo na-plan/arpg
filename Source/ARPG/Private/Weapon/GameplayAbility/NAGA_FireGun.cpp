@@ -99,18 +99,51 @@ void UNAGA_FireGun::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 		CollisionParams.AddIgnoredActor( ActorInfo->AvatarActor.Get() );
 
 		FHitResult Result;
-		bool bHit = World->LineTraceSingleByChannel( Result, HeadLocation, EndLocation, ECC_Pawn, CollisionParams );
-		bool FinalPrediction = bHit || Result.IsValidBlockingHit();
-		if ( FinalPrediction )
+		//bool bHit = World->LineTraceSingleByChannel( Result, HeadLocation, EndLocation, ECC_Pawn, CollisionParams );
+
+		
+		TArray<FHitResult> HitResults;
+		float SphereSize = 30.f;
+		FCollisionShape SweepShape = FCollisionShape::MakeSphere(SphereSize); // 또는 MakeBox, MakeCapsule 등
+		bool bMultiHit = GetWorld()->SweepMultiByChannel(HitResults, HeadLocation, EndLocation, FQuat::Identity, ECC_Pawn, SweepShape, CollisionParams);
+		if (!HitResults.IsEmpty())
 		{
-			ContextHandle.AddHitResult(Result, true);
-			if ( TScriptInterface<IAbilitySystemInterface> TargetInterface = Result.GetActor() )
+			for (const FHitResult HitResult : HitResults)
 			{
-				FGameplayEffectSpecHandle SpecHandle = ActorInfo->AbilitySystemComponent->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1.f, ContextHandle);
-				SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( TEXT( "Data.Damage" ) ), -CombatComponent->GetBaseDamage() );
-				ActorInfo->AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetInterface->GetAbilitySystemComponent());
-			}
+				if (TScriptInterface<IAbilitySystemInterface> TargetInterface = HitResult.GetActor())
+				{
+					FGameplayEffectSpecHandle SpecHandle = ActorInfo->AbilitySystemComponent->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1.f, ContextHandle);
+					SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(TEXT("Data.Damage")), -CombatComponent->GetBaseDamage());
+					ActorInfo->AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetInterface->GetAbilitySystemComponent());
+#if WITH_EDITOR || UE_BUILD_DEBUG
+					DrawDebugSphere(
+						GetWorld(),
+						HitResult.ImpactPoint,     // 또는 Hit.Location
+						SphereSize,
+						12,
+						FColor::Green,
+						false,
+						2.0f,
+						0,
+						1.5f
+					);
+#endif
+
+				}
+			}			
 		}
+		bool bHit = World->LineTraceSingleByProfile( Result, HeadLocation, EndLocation, TEXT("FireGun"), CollisionParams);
+		bool FinalPrediction = bHit || Result.IsValidBlockingHit();
+		//if ( FinalPrediction )
+		//{
+		//	ContextHandle.AddHitResult(Result, true);
+		//	if ( TScriptInterface<IAbilitySystemInterface> TargetInterface = Result.GetActor() )
+		//	{
+		//		FGameplayEffectSpecHandle SpecHandle = ActorInfo->AbilitySystemComponent->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1.f, ContextHandle);
+		//		SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( TEXT( "Data.Damage" ) ), -CombatComponent->GetBaseDamage() );
+		//		ActorInfo->AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetInterface->GetAbilitySystemComponent());
+		//	}
+		//}
 
 #if WITH_EDITOR || UE_BUILD_DEBUG
 		DrawDebugLine( GetWorld(), HeadLocation, EndLocation, FinalPrediction ? FColor::Green : FColor::Red, false, 2.f );
@@ -174,4 +207,8 @@ bool UNAGA_FireGun::CommitAbility(const FGameplayAbilitySpecHandle Handle, const
 	}
 
 	return bResult;
+}
+
+void UNAGA_FireGun::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
 }
