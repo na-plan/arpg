@@ -16,11 +16,14 @@ static FAutoConsoleCommandWithWorldAndArgs SmiteCommand(
 	TEXT("Give the damage to the given player controller"),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic([](const TArray<FString>& Args, UWorld* World)
 	{
-		if (Args.Num() == 1)
+		if (Args.Num() == 2)
 		{
 			const FString Param = Args[0];
+			const FString Param2 = Args[1];
+			
 			const int32 TargetIndex = FCString::Atoi(*Param);
 			int32 Index = 0;
+			float Damage = FCString::Atof(*Param2);
 
 			ANAPlayerController* TargetPlayerController = nullptr;
 			
@@ -40,7 +43,7 @@ static FAutoConsoleCommandWithWorldAndArgs SmiteCommand(
 				{
 					const FGameplayEffectContextHandle Context = Interface->GetAbilitySystemComponent()->MakeEffectContext();
 					const FGameplayEffectSpecHandle Spec = Interface->GetAbilitySystemComponent()->MakeOutgoingSpec( UNAGE_Damage::StaticClass(), 1.f, Context );
-					Spec.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( "Data.Damage" ), -1000.f );
+					Spec.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( "Data.Damage" ), Damage );
 					Interface->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf( *Spec.Data.Get() );
 				}
 			}

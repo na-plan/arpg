@@ -9,6 +9,7 @@
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "HP/GameplayEffect/NAGE_Dead.h"
+#include "HP/GameplayEffect/NAGE_Heal.h"
 #include "HP/GameplayEffect/NAGE_KnockDown.h"
 
 DEFINE_LOG_CATEGORY( LogVitalComponent );
@@ -154,8 +155,6 @@ void UNAVitalCheckComponent::HandleKnockDown( const ANACharacter* Character, con
 	{
 		SetState( ECharacterStatus::Alive );
 		CombatComponent->SetActive( true );
-		const FGameplayTagContainer TagContainer( FGameplayTag::RequestGameplayTag( "Player.Status.KnockDown" ) );
-		Character->GetAbilitySystemComponent()->RemoveActiveEffectsWithAppliedTags( TagContainer );
 	}
 
 	// 캐릭터가 쓰러진 경우
@@ -213,9 +212,9 @@ void UNAVitalCheckComponent::ChangeHealthMesh( const float NewValue, const float
 	const int32 FillCount = NewRatio <= 0 ? 0 : static_cast<int32>( NewRatio / MeshHealthStep );
 	check( FillCount <= MaxHealthMesh );
 
-	const bool bShouldGreen = FillCount >= 3;
-	const bool bShouldYellow = FillCount >= 2;
-	const bool bShouldRed = FillCount >= 1;
+	const bool bShouldGreen = FillCount >= 3 && FillCount <= 4;
+	const bool bShouldYellow = FillCount >= 2 && FillCount <= 3;
+	const bool bShouldRed = FillCount <= 2;
 
 	if (bShouldGreen)
 	{
@@ -228,11 +227,6 @@ void UNAVitalCheckComponent::ChangeHealthMesh( const float NewValue, const float
 	else if (bShouldRed)
 	{
 		State = EVitalState::Red;
-	}
-	else
-	{
-		// Red 상태는 그대로 유지
-		return;
 	}
 	
 	UMaterialInstance* TargetMaterial = nullptr;
