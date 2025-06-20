@@ -36,11 +36,6 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	TriggerSphere->SetSimulatePhysics(false);
 	
 	ItemWidgetComponent = CreateDefaultSubobject<UNAItemWidgetComponent>(TEXT("ItemWidgetComponent"));
-	// static ConstructorHelpers::FObjectFinder<UMaterialInterface>
-	// 	ItemWidgetMaterial(TEXT(
-	// 		"/Script/Engine.MaterialInstanceConstant'/Engine/EngineMaterials/Widget3DPassThrough_Translucent.Widget3DPassThrough_Translucent'"));
-	// check(ItemWidgetMaterial.Object);
-	// ItemWidgetComponent->SetMaterial(0, ItemWidgetMaterial.Object);
 	
 	ItemDataID = NAME_None;
 
@@ -626,12 +621,6 @@ void ANAItemActor::BeginPlay()
 		{
 			GetItemData()->SetQuantity(1);
 		}
-	}
-
-	UObject* LoadedObject = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/EngineMaterials/Widget3DPassThrough_Translucent.Widget3DPassThrough_Translucent"));
-	if (UMaterialInterface* LoadedMat = Cast<UMaterialInterface>(LoadedObject))
-	{
-		ItemWidgetComponent->SetMaterial(0, LoadedMat);
 	}
 }
 

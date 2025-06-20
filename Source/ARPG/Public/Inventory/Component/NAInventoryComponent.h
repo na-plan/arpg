@@ -86,6 +86,16 @@ public:
 	// Sets default values for this component's properties
 	UNAInventoryComponent();
 
+	virtual void PostInitProperties() override;
+
+protected:
+	UPROPERTY(EditAnywhere)
+	TSoftClassPtr<class UNAInventoryWidget> InventoryWidgetClassRef;
+
+	UPROPERTY(EditAnywhere)
+	TSoftObjectPtr<UMaterialInterface> InventoryWidgetMaterialRef;
+	
+public:
 	static FName MakeInventorySlotID(int32 Index)
 	{
 		return FName(*FString::Printf(InventorySlotFormat, Index));
