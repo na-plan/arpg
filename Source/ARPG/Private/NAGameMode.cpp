@@ -9,6 +9,7 @@
 #include "NAPlayerState.h"
 #include "Assets/Interface/NAManagedAsset.h"
 #include "GameFramework/PlayerStart.h"
+#include "Item/ItemActor/NAItemActor.h"
 #include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -54,19 +55,35 @@ APawn* ANAGameMode::SpawnDefaultPawnAtTransform_Implementation(AController* NewP
 
 AActor* ANAGameMode::ChoosePlayerStart_Implementation(AController* Player)
 {
-	// temp 에디터 시작시 player01로 고정
-	
 	TArray<AActor*> FoundActors;
 	UGameplayStatics::GetAllActorsOfClass(this, APlayerStart::StaticClass(), FoundActors);
 
-	if (FoundActors.Num() == 0)
-		return Super::ChoosePlayerStart_Implementation(Player);
+	ANAPlayerState* PS = Cast<ANAPlayerState>(Player->PlayerState);
+	if (!PS) return Super::ChoosePlayerStart_Implementation(Player);
 
-	int32 Index = 0;
+	PS->PlayerNumber = PlayerCount++;
+	
+	for (TActorIterator<APlayerStart> It(GetWorld()); It; ++It)
+	{
+		APlayerStart* PlayerStart = Cast<APlayerStart>(*It);
+		if (PlayerStart->PlayerStartTag == FName(*FString::Printf(TEXT("Player0%i"),PS->PlayerNumber)))
+		{
+			return PlayerStart;
+		}
+	}
 
-	// if (Player && Player->PlayerState)
-	// 	Index = Player->PlayerState->GetPlayerId();
-
-	// int32 ChosenIndex = FMath::Clamp(Index, 0, FoundActors.Num() - 1);
-	return FoundActors[Index];
+	return Super::ChoosePlayerStart_Implementation(Player);
+	
+	
+	// temp 에디터 시작시 player01로 고정
+	// if (FoundActors.Num() == 0)
+	// 	return Super::ChoosePlayerStart_Implementation(Player);
+	//
+	// int32 Index = 0;
+	//
+	// // if (Player && Player->PlayerState)
+	// // 	Index = Player->PlayerState->GetPlayerId();
+	//
+	// // int32 ChosenIndex = FMath::Clamp(Index, 0, FoundActors.Num() - 1);
+	// return FoundActors[Index];
 }
