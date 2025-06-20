@@ -23,6 +23,7 @@ class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 class UAbilitySystemComponent;
+class UMaterialInstanceConstant;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -153,6 +154,9 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Input", meta = (AllowPrivateAccess = "true"))
 	FVector_NetQuantizeNormal ReplicatedControlRotation;
+
+	UPROPERTY()
+	UMaterialInstanceConstant* InventoryWidgetMaterial;
 	
 public:
 	ANACharacter();

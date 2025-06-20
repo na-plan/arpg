@@ -23,8 +23,8 @@ public class ARPG : ModuleRules
 			"GeometryCollectionEngine",
 			"Niagara",
 			"NetCore",
-      "NavigationSystem",
-      "OnlineSubsystem",
+      		"NavigationSystem",
+      		"OnlineSubsystem",
 			"OnlineSubsystemUtils"
 		});
 		
