@@ -74,7 +74,7 @@ void UNAGA_Suplex::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 
 			// Test용 바로 setting
 			ActionCamA->SetActorLocationAndRotation(LocationA, RotationA);
-			PlayerController->SetViewTargetWithBlend(ActionCamA, 1.f);
+			PlayerController->SetViewTargetWithBlend(ActionCamA, 0.5f);
 
 
 			FTimerHandle CameraBHandle;
@@ -84,14 +84,14 @@ void UNAGA_Suplex::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 					FRotator RotationB = RotationA + FRotator(0, -90, 0);
 					// B 카메라 전환
 					ActionCamB->SetActorLocationAndRotation(LocationB, RotationB);
-					PlayerController->SetViewTargetWithBlend(ActionCamB, 1.0f);				
+					PlayerController->SetViewTargetWithBlend(ActionCamB, 2.f);				
 				}), 1.0f, false); // 2초 뒤 실행
 
 			FTimerHandle CameraBHandle2;
 			GetWorld()->GetTimerManager().SetTimer(CameraBHandle2, FTimerDelegate::CreateLambda([=]()
 				{
-					PlayerController->SetViewTargetWithBlend(Character, 1.f);
-				}), 5.0f, false); // 2초 뒤 실행
+					PlayerController->SetViewTargetWithBlend(Character, 2.f);
+				}), 4.0f, false); // 2초 뒤 실행
 			FTimerHandle CameraBHandle3;
 			GetWorld()->GetTimerManager().SetTimer(CameraBHandle3, FTimerDelegate::CreateLambda([=]()
 				{
