@@ -168,65 +168,62 @@ void UNAAnimNotifyState_Suplex::NotifyTick(USkeletalMeshComponent* MeshComp, UAn
 						}
 					}
 
-
-
-				}
-
-				// 일정 시간마다 닿았던 대상이 지금도 닿는지 확인하기 위해 empty 처리
-				if (OverlapElapsed > ClearInterval)
-				{
-					AppliedActors.Empty();
-					OverlapElapsed = 0;
-				}
-			}
-
-		}
-
-		if (UAbilitySystemComponent* OwnerASC = MeshComp->GetOwner()->FindComponentByClass<UAbilitySystemComponent>())
-		{
-			if (UAnimInstance* AnimInstance = OwnerASC->AbilityActorInfo->GetAnimInstance())
-			{
-				//suplex 성공
-				if (SuccessSuplex)
-				{
-					for (AActor* CheckActor : AppliedActors)
+					if (UAbilitySystemComponent* OwnerASC = MeshComp->GetOwner()->FindComponentByClass<UAbilitySystemComponent>())
 					{
-						if (ANACharacter* Player = Cast<ANACharacter>(CheckActor))
+						if (UAnimInstance* AnimInstance = OwnerASC->AbilityActorInfo->GetAnimInstance())
 						{
-							UAbilitySystemComponent* PlayerASC = Player->GetAbilitySystemComponent();
-							UAnimInstance* PlayerAnimInstance = PlayerASC->AbilityActorInfo->GetAnimInstance();
-							//그러면 여기에서 gameability를 재생시켜버릴까?
-							if (PlayerASC->GetAvatarActor()->HasAuthority())
+							//suplex 성공
+							if (SuccessSuplex)
 							{
-								if (OffsetName.IsValid())
+								for (AActor* CheckActor : AppliedActors)
 								{
-									const FVector OffsetLocation = MeshComp->GetSocketLocation(OffsetName);
-									CheckActor->SetActorLocation(OffsetLocation);
-
-									FGameplayAbilitySpec* AbilitySpec = PlayerASC->FindAbilitySpecFromClass(UNAGA_Melee::StaticClass());
-									UNAGA_Melee* NAGA_Melee = Cast<UNAGA_Melee>(AbilitySpec->Ability);							
-									NAGA_Melee->ChangeMontageGrab(true);
-									FGameplayAbilitySpec* PlayerSuplexAbilitySpec = PlayerASC->FindAbilitySpecFromClass(UNAGA_Suplex::StaticClass());
-									PlayerASC->TryActivateAbility(PlayerSuplexAbilitySpec->Handle);
-
-									// 이걸로 실행해야 할듯
-									if (FGameplayAbilitySpec* MonsterSuplexedAbilitySpec = OwnerASC->FindAbilitySpecFromClass(UNAGA_Suplexed::StaticClass()))
+									if (ANACharacter* Player = Cast<ANACharacter>(CheckActor))
 									{
-										OwnerASC->TryActivateAbility(MonsterSuplexedAbilitySpec->Handle);
-									}
+										UAbilitySystemComponent* PlayerASC = Player->GetAbilitySystemComponent();
+										UAnimInstance* PlayerAnimInstance = PlayerASC->AbilityActorInfo->GetAnimInstance();
+										//그러면 여기에서 gameability를 재생시켜버릴까?
+										if (PlayerASC->GetAvatarActor()->HasAuthority())
+										{
+											if (OffsetName.IsValid())
+											{
+												const FVector OffsetLocation = MeshComp->GetSocketLocation(OffsetName);
+												CheckActor->SetActorLocation(OffsetLocation);
 
+												FGameplayAbilitySpec* AbilitySpec = PlayerASC->FindAbilitySpecFromClass(UNAGA_Melee::StaticClass());
+												UNAGA_Melee* NAGA_Melee = Cast<UNAGA_Melee>(AbilitySpec->Ability);
+												NAGA_Melee->ChangeMontageGrab(true);
+												FGameplayAbilitySpec* PlayerSuplexAbilitySpec = PlayerASC->FindAbilitySpecFromClass(UNAGA_Suplex::StaticClass());
+												PlayerASC->TryActivateAbility(PlayerSuplexAbilitySpec->Handle);
+
+												// 이걸로 실행해야 할듯
+												MeshComp->GetOwner();
+
+
+												if (FGameplayAbilitySpec* MonsterSuplexedAbilitySpec = OwnerASC->FindAbilitySpecFromClass(UNAGA_Suplexed::StaticClass()))
+												{
+													OwnerASC->TryActivateAbility(MonsterSuplexedAbilitySpec->Handle);
+												}
+
+											}
+										}
+										float HP = Cast<UNAAttributeSet>(OwnerASC->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();
+										//OwnerASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), OwnerASC);
+										float HP2 = Cast<UNAAttributeSet>(OwnerASC->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();
+										bool check = false;
+									}
 								}
 							}
-							float HP=Cast<UNAAttributeSet>(OwnerASC->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();
-							//OwnerASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), OwnerASC);
-							float HP2=Cast<UNAAttributeSet>(OwnerASC->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();
-							bool check = false;
+
 						}
 					}
-				}
 
+
+				}
 			}
+
 		}
+
+		
 
 	}
 }
