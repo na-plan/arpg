@@ -64,8 +64,13 @@ void UNAGA_Suplex::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 			if (!ActionCamB) return;
 
 
-			FVector LocationA = Character->GetActorLocation()+FVector(0,120,0);
-			FRotator RotationA = FRotator(0, -90, 0);
+			FVector RightVec = Character->GetActorRightVector();
+			FVector ForwardVec = Character->GetActorForwardVector();
+			FVector UpVec = Character->GetActorUpVector();
+
+			FVector LocationA = Character->GetActorLocation() + RightVec * 120;
+
+			FRotator RotationA = Character->GetActorRotation() + FRotator(0, -90, 0);
 
 			// Test용 바로 setting
 			ActionCamA->SetActorLocationAndRotation(LocationA, RotationA);
@@ -75,22 +80,18 @@ void UNAGA_Suplex::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 			FTimerHandle CameraBHandle;
 			GetWorld()->GetTimerManager().SetTimer(CameraBHandle, FTimerDelegate::CreateLambda([=]()
 				{
-					FVector LocationB = LocationA + FVector(160, -120, -10);
-					FRotator RotationB = FRotator(0, -180, 0);
-
+					FVector LocationB = LocationA + ForwardVec * 160 + RightVec * -120 + UpVec * -10;
+					FRotator RotationB = RotationA + FRotator(0, -90, 0);
 					// B 카메라 전환
 					ActionCamB->SetActorLocationAndRotation(LocationB, RotationB);
 					PlayerController->SetViewTargetWithBlend(ActionCamB, 1.0f);				
-
 				}), 1.0f, false); // 2초 뒤 실행
 
 			FTimerHandle CameraBHandle2;
 			GetWorld()->GetTimerManager().SetTimer(CameraBHandle2, FTimerDelegate::CreateLambda([=]()
 				{
 					ActionCamA->Destroy();
-					ActionCamB->Destroy();
-		
-
+					ActionCamB->Destroy();	
 				}), 6.0f, false); // 2초 뒤 실행
 
 
