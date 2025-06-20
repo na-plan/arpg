@@ -209,3 +209,54 @@ protected:
 #endif
 };
 
+USTRUCT()
+struct ARPG_API FNATestItemBaseTableRow : public FTableRowBase
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, Category = "Item Base Data", meta=(BlueprintBaseOnly, AllowAbstract="false"))
+	TSubclassOf<ANAItemActor> ItemClass = nullptr;
+
+};
+
+USTRUCT()
+struct FNADropItemPair
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TSubclassOf<ANAItemActor> ItemClasses;
+
+	UPROPERTY()
+	float Probability;
+};
+
+// 몬스터당 하나씩
+USTRUCT()
+struct ARPG_API FNATestDropBaseTableRow : public FTableRowBase
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, Category = "Item Base Data", meta=(BlueprintBaseOnly, AllowAbstract="false"))
+	TArray<FNADropItemPair> ItemClass;
+
+};
+
+// 우리의 목적: 강화하기
+
+// 강화를 하기 위해서 -> 강화 아이템을 떨궈야겠지?
+// 강화 아이템을 떨구기 위해선 몬스터가 드랍을 해야겠지?
+// 강화 아이템을 뭘 드랍할지 테이블로 정리
+// 몹이 죽으면 테이블 기반으로 확률적으로 돌려서 아이템 뽑고 SpawnActor 후 사망ㄴ
+
+// ----------
+
+// 강화 아이템 드랍 -> 인벤토리로 이동
+// 위젯에서 인벤토리 기반으로 강화 아이템 띄워주고
+// 위젯에서 강화 아이템이 충분히 있으면 강화 가능, 강화 요청 수행
+
+// ----------
+
+// 강화 => Ability 추가, (예: 중력 줍기)
+// 위젯에서 강화 -> 강화에서 노드 강화를 하면
+// 노드 강화 -> GAS에서 캡처 -> Ability 부여
