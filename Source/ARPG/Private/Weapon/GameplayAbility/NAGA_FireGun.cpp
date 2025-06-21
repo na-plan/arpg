@@ -8,15 +8,17 @@
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "Combat/Interface/NAHandActor.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
+#include "Weapon/AbilityTask/NAGA_WaitRotation.h"
 
-UNAGA_FireGun::UNAGA_FireGun()
+UNAGA_FireGun::UNAGA_FireGun(): WaitRotationTask( nullptr )
 {
 	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateYes;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
+	AbilityTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Firing" ) );
 }
 
 bool UNAGA_FireGun::ConsumeAmmo( UAbilitySystemComponent* InAbilitySystemComponent,
-	const TSubclassOf<UGameplayEffect>& InAmmoType )
+                                 const TSubclassOf<UGameplayEffect>& InAmmoType )
 {
 	if ( InAbilitySystemComponent )
 	{
@@ -59,6 +61,120 @@ void UNAGA_FireGun::OnMontageEnded( UAnimMontage* AnimMontage, bool bInterrupted
 	}
 }
 
+void UNAGA_FireGun::CancelAbilityProxy( FGameplayTag GameplayTag, int Count )
+{
+	if ( Count >= 1 )
+	{
+		CancelAbility( GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), false );
+	}
+}
+
+void UNAGA_FireGun::OnRotationCompleted()
+{
+	APawn* ControlledPawn = Cast<APawn>( GetCurrentActorInfo()->OwnerActor );
+	
+	if ( !ControlledPawn )
+	{
+		EndAbility( GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, true );
+		return;
+	}
+	
+	Fire( ControlledPawn );
+}
+
+void UNAGA_FireGun::Fire( APawn* ControlledPawn )
+{
+	const UWorld* World = GetCurrentActorInfo()->OwnerActor->GetWorld();
+
+	UNAMontageCombatComponent* CombatComponent = GetCurrentActorInfo()->AvatarActor->GetComponentByClass<
+		UNAMontageCombatComponent>();
+	if ( !CombatComponent )
+	{
+		EndAbility( GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, true );
+		return;
+	}
+
+	const FVector HeadLocation = ControlledPawn->GetComponentByClass<USkeletalMeshComponent>()->GetSocketLocation(
+		INAHandActor::HeadSocketName );
+	const FVector ForwardVector = ControlledPawn->Controller->GetControlRotation().Vector().GetSafeNormal();
+	const FVector EndLocation = HeadLocation + ForwardVector * 1000.f; // todo: Range 하드코딩
+
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.AddIgnoredActor( ControlledPawn );
+
+	FHitResult Result;
+	//bool bHit = World->LineTraceSingleByChannel( Result, HeadLocation, EndLocation, ECC_Pawn, CollisionParams );
+
+	FGameplayEffectContextHandle ContextHandle = GetCurrentActorInfo()->AbilitySystemComponent->MakeEffectContext();
+	ContextHandle.AddInstigator(GetCurrentActorInfo()->OwnerActor.Get(), GetCurrentActorInfo()->AvatarActor.Get());
+	ContextHandle.SetAbility(this);
+
+	TArray<FHitResult> HitResults;
+	float SphereSize = 30.f;
+	FCollisionShape SweepShape = FCollisionShape::MakeSphere( SphereSize ); // 또는 MakeBox, MakeCapsule 등
+	bool bMultiHit = GetWorld()->SweepMultiByChannel( HitResults, HeadLocation, EndLocation, FQuat::Identity, ECC_Pawn,
+	                                                  SweepShape, CollisionParams );
+	if ( !HitResults.IsEmpty() )
+	{
+		for ( const FHitResult HitResult : HitResults )
+		{
+			if ( TScriptInterface<IAbilitySystemInterface> TargetInterface = HitResult.GetActor() )
+			{
+				FGameplayEffectSpecHandle SpecHandle = GetCurrentActorInfo()->AbilitySystemComponent->MakeOutgoingSpec(
+					UNAGE_Damage::StaticClass(), 1.f, ContextHandle );
+				SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( TEXT( "Data.Damage" ) ),
+				                                          -CombatComponent->GetBaseDamage() );
+				GetCurrentActorInfo()->AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(
+					*SpecHandle.Data.Get(), TargetInterface->GetAbilitySystemComponent() );
+#if WITH_EDITOR || UE_BUILD_DEBUG
+				DrawDebugSphere(
+					GetWorld(),
+					HitResult.ImpactPoint, // 또는 Hit.Location
+					SphereSize,
+					12,
+					FColor::Green,
+					false,
+					2.0f,
+					0,
+					1.5f
+				);
+#endif
+			}
+		}
+	}
+	bool bHit = World->
+		LineTraceSingleByProfile( Result, HeadLocation, EndLocation, TEXT( "FireGun" ), CollisionParams );
+	bool FinalPrediction = bHit || Result.IsValidBlockingHit();
+
+#if WITH_EDITOR || UE_BUILD_DEBUG
+	DrawDebugLine( GetWorld(), HeadLocation, EndLocation, FinalPrediction ? FColor::Green : FColor::Red, false, 2.f );
+#endif
+
+	if ( USkeletalMeshComponent* MeshComponent = ControlledPawn->GetComponentByClass<USkeletalMeshComponent>() )
+	{
+		if ( UAnimInstance* AnimInstance = MeshComponent->GetAnimInstance() )
+		{
+			AnimInstance->OnMontageEnded.AddUniqueDynamic( this, &UNAGA_FireGun::OnMontageEnded );
+		}
+	}
+
+	FGameplayCueParameters Parameters;
+	Parameters.Instigator = GetAvatarActorFromActorInfo();
+	if ( FinalPrediction )
+	{
+		Parameters.Normal = Result.Normal;
+		Parameters.Location = Result.Location;
+	}
+	else
+	{
+		Parameters.Normal = ForwardVector;
+		Parameters.Location = EndLocation;
+	}
+	
+	GetCurrentActorInfo()->AbilitySystemComponent->ExecuteGameplayCue(
+		FGameplayTag::RequestGameplayTag( TEXT( "GameplayCue.Gun.Fire" ) ), Parameters );
+}
+
 void UNAGA_FireGun::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
                                     const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
@@ -68,113 +184,45 @@ void UNAGA_FireGun::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 		return;
 	}
 
-	UNAMontageCombatComponent* CombatComponent = ActorInfo->AvatarActor->GetComponentByClass<UNAMontageCombatComponent>();
-	if ( !CombatComponent )
-	{
-		EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
-		return;
-	}
-
 	if ( HasAuthority( &ActivationInfo ) )
 	{
-		FGameplayEffectContextHandle ContextHandle = ActorInfo->AbilitySystemComponent->MakeEffectContext();
-		ContextHandle.AddInstigator(ActorInfo->OwnerActor.Get(), ActorInfo->AvatarActor.Get());
-		ContextHandle.SetAbility(this);
+		APawn* ControlledPawn = Cast<APawn>( ActorInfo->OwnerActor );
+		UAbilitySystemComponent* AbilitySystemComponent = ControlledPawn->GetComponentByClass<UAbilitySystemComponent>();
 
-		const UWorld* World = ActorInfo->OwnerActor->GetWorld();
-		const APawn* ControlledPawn = Cast<APawn>( ActorInfo->OwnerActor );
-
-		if ( !ControlledPawn )
+		if ( !ControlledPawn || !AbilitySystemComponent )
 		{
-			EndAbility( Handle, ActorInfo, ActivationInfo, true, false );
+			EndAbility( Handle, ActorInfo, ActivationInfo, false, true );
 			return;
 		}
+
+		FGameplayTagContainer FailingTags;
+		FailingTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.KnockDown" ) );
+		FailingTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Dead" ) );
+		FailingTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Stun" ) );
 		
-		const FVector HeadLocation = ControlledPawn->GetComponentByClass<USkeletalMeshComponent>()->GetSocketLocation(INAHandActor::HeadSocketName);
-		const FVector ForwardVector = ControlledPawn->Controller->GetControlRotation().Vector().GetSafeNormal();
-		const FVector EndLocation = HeadLocation + ForwardVector * 1000.f; // todo: Range 하드코딩
-
-		FCollisionQueryParams CollisionParams;
-		CollisionParams.AddIgnoredActor( ControlledPawn );
-		CollisionParams.AddIgnoredActor( ActorInfo->AvatarActor.Get() );
-
-		FHitResult Result;
-		//bool bHit = World->LineTraceSingleByChannel( Result, HeadLocation, EndLocation, ECC_Pawn, CollisionParams );
-
-
-		TArray<FHitResult> HitResults;
-		float SphereSize = 30.f;
-		FCollisionShape SweepShape = FCollisionShape::MakeSphere(SphereSize); // 또는 MakeBox, MakeCapsule 등
-		bool bMultiHit = GetWorld()->SweepMultiByChannel(HitResults, HeadLocation, EndLocation, FQuat::Identity, ECC_Pawn, SweepShape, CollisionParams);
-		if (!HitResults.IsEmpty())
+		if ( AbilitySystemComponent->HasAnyMatchingGameplayTags( FailingTags ) )
 		{
-			for (const FHitResult HitResult : HitResults)
-			{
-				if (TScriptInterface<IAbilitySystemInterface> TargetInterface = HitResult.GetActor())
-				{
-					FGameplayEffectSpecHandle SpecHandle = ActorInfo->AbilitySystemComponent->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1.f, ContextHandle);
-					SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(TEXT("Data.Damage")), -CombatComponent->GetBaseDamage());
-					ActorInfo->AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetInterface->GetAbilitySystemComponent());
-#if WITH_EDITOR || UE_BUILD_DEBUG
-					DrawDebugSphere(
-						GetWorld(),
-						HitResult.ImpactPoint,     // 또는 Hit.Location
-						SphereSize,
-						12,
-						FColor::Green,
-						false,
-						2.0f,
-						0,
-						1.5f
-					);
-#endif
-
-				}
-			}
-		}
-		bool bHit = World->LineTraceSingleByProfile(Result, HeadLocation, EndLocation, TEXT("FireGun"), CollisionParams);
-		bool FinalPrediction = bHit || Result.IsValidBlockingHit();
-		//if ( FinalPrediction )
-		//{
-		//    ContextHandle.AddHitResult(Result, true);
-		//    if ( TScriptInterface<IAbilitySystemInterface> TargetInterface = Result.GetActor() )
-		//    {
-		//        FGameplayEffectSpecHandle SpecHandle = ActorInfo->AbilitySystemComponent->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1.f, ContextHandle);
-		//        SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( TEXT( "Data.Damage" ) ), -CombatComponent->GetBaseDamage() );
-		//        ActorInfo->AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetInterface->GetAbilitySystemComponent());
-		//    }
-		//}
-
-#if WITH_EDITOR || UE_BUILD_DEBUG
-		DrawDebugLine( GetWorld(), HeadLocation, EndLocation, FinalPrediction ? FColor::Green : FColor::Red, false, 2.f );
-#endif
-
-		if ( USkeletalMeshComponent* MeshComponent = ControlledPawn->GetComponentByClass<USkeletalMeshComponent>() )
-		{
-			if ( UAnimInstance* AnimInstance = MeshComponent->GetAnimInstance() )
-			{
-				AnimInstance->OnMontageEnded.AddUniqueDynamic( this, &UNAGA_FireGun::OnMontageEnded );
-			}
+			EndAbility( Handle, ActorInfo, ActivationInfo, false, true );
+			return;
 		}
 
-		FGameplayCueParameters Parameters;
-		Parameters.Instigator = GetAvatarActorFromActorInfo();
-		if ( FinalPrediction )
+		const FRotator PawnForward = ControlledPawn->GetActorForwardVector().Rotation();
+		const FRotator ControlForward = ControlledPawn->GetController()->GetControlRotation();
+		
+		if ( !FMath::IsNearlyEqual( PawnForward.Yaw, ControlForward.Yaw, 0.01 ) )
 		{
-			Parameters.Normal = Result.Normal;
-			Parameters.Location = Result.Location;	
+			WaitRotationTask = UNAAT_WaitRotation::WaitRotation( this, TEXT("WaitRotationForFireGun"), ControlForward.Quaternion() );
+			WaitRotationTask->ReadyForActivation();
+			WaitRotationTask->OnRotationCompleted.BindDynamic( this, &UNAGA_FireGun::OnRotationCompleted );
+
+			AbilitySystemComponent->RegisterGameplayTagEvent( FGameplayTag::RequestGameplayTag( "Player.Status.KnockDown" ) ).AddUObject( this, &UNAGA_FireGun::CancelAbilityProxy );
+			AbilitySystemComponent->RegisterGameplayTagEvent( FGameplayTag::RequestGameplayTag( "Player.Status.Dead" ) ).AddUObject( this, &UNAGA_FireGun::CancelAbilityProxy );
+			AbilitySystemComponent->RegisterGameplayTagEvent( FGameplayTag::RequestGameplayTag( "Player.Status.Stun" ) ).AddUObject( this, &UNAGA_FireGun::CancelAbilityProxy );
 		}
 		else
 		{
-			Parameters.Normal = ForwardVector;
-			Parameters.Location = EndLocation;
+			Fire( ControlledPawn );
 		}
-		ActorInfo->AbilitySystemComponent->ExecuteGameplayCue( FGameplayTag::RequestGameplayTag( TEXT( "GameplayCue.Gun.Fire" ) ), Parameters );
-	}
-
-	if ( const TScriptInterface<IAbilitySystemInterface> Interface = ActorInfo->OwnerActor.Get() )
-	{
-		Interface->GetAbilitySystemComponent()->PlayMontage( this, ActivationInfo, CombatComponent->GetMontage(), CombatComponent->GetMontagePlayRate() );
 	}
 }
 
@@ -207,4 +255,16 @@ bool UNAGA_FireGun::CommitAbility(const FGameplayAbilitySpecHandle Handle, const
 	}
 
 	return bResult;
+}
+
+void UNAGA_FireGun::EndAbility( const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled )
+{
+	Super::EndAbility( Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled );
+
+	if ( WaitRotationTask )
+	{
+		WaitRotationTask->EndTask();
+		WaitRotationTask = nullptr;
+	}
 }
