@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "NAPlayerController.generated.h"
 
+class UNASessionListEntryData;
 /**
  * 
  */

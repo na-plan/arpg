@@ -28,10 +28,15 @@ public:
 	}
 		
 public:
+	bool bPlayerValue = false;
+	
 	FString SessionName;
+
 	FString TravelAddress;
+	
 	int32 SessionIndex;
-	TWeakPtr<FOnlineSessionSearchResult> SearchResult;
+	
+	TSharedPtr<FOnlineSessionSearchResult> SearchResult;
 };
 
 UCLASS()
@@ -50,7 +55,15 @@ public:
 		Data = Result;
 		
 		Text_SessionName->SetText(FText::FromString(Data->SessionName));
-		Button_Join->OnClicked.AddDynamic(this, &ThisClass::OnClick_Join);
+
+		if ( Data->bPlayerValue )
+		{
+			Button_Join->SetVisibility( ESlateVisibility::Collapsed );
+		}
+		else
+		{
+			Button_Join->OnClicked.AddDynamic(this, &ThisClass::OnClick_Join);
+		}
 	}
 	
 	virtual void NativeDestruct() override
@@ -64,7 +77,7 @@ public:
 	{
 		UNAGameInstance* GameInstance = Cast<UNAGameInstance>(GetGameInstance());
 		GameInstance->SetReservedIndex( Data->SessionIndex );
-		GameInstance->JoinSession( GetWorld()->GetFirstLocalPlayerFromController(), *Data->SearchResult.Pin() );
+		GameInstance->JoinSession( GetWorld()->GetFirstLocalPlayerFromController(), *Data->SearchResult );
 	}
 	
 public:
@@ -95,6 +108,10 @@ class ARPG_API UNASessionListWidget : public UUserWidget
 public:
 	virtual void NativeConstruct() override;
 
+	virtual void NativeOnInitialized() override;
+	
+	virtual void NativeDestruct() override;
+	
 public:
 	UFUNCTION()
 	void OnClick_CreateSession();
@@ -107,11 +124,14 @@ public:
 
 	UFUNCTION()
 	void OnClick_Refresh();
+
+	UListView* GetSessionList() const;
 	
 protected:
 	void RefreshSessionList();
-	void CreateSession();
-
+	
+	void UpdatePlayerStates( APlayerState* PlayerState );
+	
 	FCriticalSection ListMutex;
 	
 protected:

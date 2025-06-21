@@ -4,7 +4,10 @@
 #include "ARPG/Public/NAPlayerController.h"
 
 #include "NAGameStateBase.h"
+#include "ARPG/ARPG.h"
+#include "ARPG/NAGlobalDelegate.h"
 #include "Combat/PhysicsHandleComponent/NAKineticComponent.h"
+#include "Lobby/NASessionListWidget.h"
 
 
 ANAPlayerController::ANAPlayerController()
@@ -65,6 +68,11 @@ void ANAPlayerController::AcknowledgePossession(APawn* P)
 void ANAPlayerController::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
+	if ( GetNetMode() == NM_Client )
+	{
+		// 클라이언트 방향 PlayerState Replication 추적
+		GOnNewPlayerStateAdded.Broadcast( GetPlayerState<APlayerState>() );
+	}
 }
 
 void ANAPlayerController::OnUnPossess()

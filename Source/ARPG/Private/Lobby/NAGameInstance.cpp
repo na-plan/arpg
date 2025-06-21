@@ -52,7 +52,7 @@ void UNAGameInstance::JoinSessionByIndex(int32 Index)
 
 	if ( const TSharedPtr<IOnlineSession> Session = SessionInterface.Pin() )
 	{
-		Session->JoinSession(0, MadeSessionName, SessionSearch->SearchResults[ Index ]);
+		bHasJoined = Session->JoinSession(0, MadeSessionName, SessionSearch->SearchResults[ Index ]);
 	}
 }
 
@@ -65,9 +65,11 @@ bool UNAGameInstance::JoinSession( ULocalPlayer* LocalPlayer, const FOnlineSessi
 {
 	if ( const TSharedPtr<IOnlineSession> Session = SessionInterface.Pin() )
 	{
-		return Session->JoinSession( LocalPlayer->GetLocalPlayerIndex(), MadeSessionName, SearchResult );
+		bHasJoined = Session->JoinSession( LocalPlayer->GetLocalPlayerIndex(), MadeSessionName, SearchResult );
+		return bHasJoined;
 	}
 
+	bHasJoined = false;
 	return false;
 }
 
@@ -109,6 +111,16 @@ void UNAGameInstance::StartSession_Wrapped()
 bool UNAGameInstance::IsHosting() const
 {
 	return bIsHosting;
+}
+
+bool UNAGameInstance::HasJoined() const
+{
+	return bHasJoined;
+}
+
+TWeakPtr<IOnlineSession> UNAGameInstance::GetCurrentSession() const
+{
+	return SessionInterface;
 }
 
 void UNAGameInstance::OnFindSessionComplete(bool bWasSuccess)

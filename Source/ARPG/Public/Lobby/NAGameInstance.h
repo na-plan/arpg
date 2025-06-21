@@ -56,6 +56,10 @@ public:
 	void StartSession_Wrapped();
 
 	bool IsHosting() const;
+
+	bool HasJoined() const;
+
+	TWeakPtr<IOnlineSession> GetCurrentSession() const;
 	
 public:
 	void SetReservedIndex(const int32 InIndex) { ReservedSessionIndex = InIndex; }
@@ -81,6 +85,8 @@ private:
 	int32 ReservedSessionIndex = 0;
 	
 	bool bIsHosting = false;
+
+	bool bHasJoined = false;
 
 public:
 	FOnSessionFound OnSessionFound;
