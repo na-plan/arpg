@@ -58,19 +58,10 @@ void UNAInventoryComponent::PostInitProperties()
 	{
 		return;
 	}
-	if ( GetOwner() && GetOwner()->GetClass()->HasAnyClassFlags( CLASS_CompiledFromBlueprint ) )
-	{
-		return;
-	}
 	
 	if (!InventoryWidgetClassRef.IsNull())
 	{
 		SetWidgetClass(InventoryWidgetClassRef.LoadSynchronous());
-	}
-	
-	if (!InventoryWidgetMaterialRef.IsNull())
-	{
-		SetMaterial(0, InventoryWidgetMaterialRef.LoadSynchronous());
 	}
 }
 
@@ -79,6 +70,8 @@ void UNAInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// SetMaterial은 어느 시점에서 불러도 렌더러를 요구
+	SetMaterial(0, InventoryWidgetMaterialRef.LoadSynchronous());
 	SetVisibility(false);
 	SetWindowVisibility(EWindowVisibility::SelfHitTestInvisible);
 	SetWindowFocusable(false);
