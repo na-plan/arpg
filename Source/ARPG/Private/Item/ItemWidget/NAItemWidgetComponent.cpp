@@ -48,23 +48,8 @@ void UNAItemWidgetComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	if ( HasAnyFlags( RF_ClassDefaultObject ) ) return;
-	if ( GetOwner() && GetOwner()->HasAnyFlags( RF_ClassDefaultObject ) )
-	{
-		return;
-	}
-	if ( GetOwner() && GetOwner()->GetClass()->HasAnyClassFlags( CLASS_CompiledFromBlueprint ) )
-	{
-		return;
-	}
-	
 	if (GetOwner() && GetWidgetClass() == nullptr)
 	{
-		if ( !ItemWidgetMaterialRef.IsNull() )
-		{
-			SetMaterial(0, ItemWidgetMaterialRef.LoadSynchronous());
-		}
-		
 		if (GetOwner()->GetClass()->IsChildOf<ANAPickableItemActor>())
 		{
 			if (!PickableItemWidgetClassRef.IsNull())
@@ -112,6 +97,8 @@ void UNAItemWidgetComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// SetMaterial은 어느 시점에서 불러도 렌더러를 요구
+	SetMaterial(0, ItemWidgetMaterialRef.LoadSynchronous());
 	SetVisibility(false);
 	Deactivate();
 }
