@@ -10,6 +10,7 @@
 #include "HP/ActorComponent/NAVitalCheckComponent.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
 #include "HP/GameplayEffect/NAGE_Dead.h"
+#include "HP/GameplayEffect/NAGE_Heal.h"
 #include "HP/GameplayEffect/NAGE_Helping.h"
 #include "HP/GameplayEffect/NAGE_Revive.h"
 
@@ -17,33 +18,21 @@ void UNAGA_Revive::OnReviveSucceeded()
 {
 	if ( const ANACharacter* Character = RevivingTarget.Get() )
 	{
-		FGameplayEffectQuery Query;
-		FGameplayTagQuery TagQuery;
-		FGameplayTagQueryExpression Expression;
-		Expression.ExprType = EGameplayTagQueryExprType::AnyTagsMatch;
-		Expression.TagSet.AddUnique( FGameplayTag::RequestGameplayTag( "Data.Health" ) );
-		TagQuery.Build( Expression );
-		Query.EffectTagQuery = TagQuery;
-		const TArray<FActiveGameplayEffectHandle> OutResults = Character->GetAbilitySystemComponent()->GetActiveEffects( Query );
-
-		// 지금까지 입었던 모든 데미지, 힐 효과를 제거함
-		for ( const FActiveGameplayEffectHandle& Handle : OutResults )
-		{
-			Character->GetAbilitySystemComponent()->RemoveActiveGameplayEffect( Handle );
-		}
-
 		if ( UAbilitySystemComponent* AbilitySystemComponent = GetCurrentActorInfo()->AbilitySystemComponent.Get() )
 		{
 			// 전체 체력의 10퍼센트를 회복시켜줌
 			const FGameplayEffectContextHandle& ContextHandle = AbilitySystemComponent->MakeEffectContext();
 			const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>( Character->GetAbilitySystemComponent()->GetAttributeSet( UNAAttributeSet::StaticClass() ) );
 			check( AttributeSet );
-			const FGameplayEffectSpecHandle DamageSpecHandle = AbilitySystemComponent->MakeOutgoingSpec( UNAGE_Damage::StaticClass(), 1.f, ContextHandle );
+			const FGameplayEffectSpecHandle DamageSpecHandle = AbilitySystemComponent->MakeOutgoingSpec( UNAGE_Heal::StaticClass(), 1.f, ContextHandle );
 			if ( AttributeSet )
 			{
-				DamageSpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( TEXT("Data.Damage") ), -(AttributeSet->GetMaxHealth() * 0.9f) );	
+				DamageSpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( TEXT("Data.Heal") ), AttributeSet->GetMaxHealth() * 0.1f );	
 			}
 			AbilitySystemComponent->ApplyGameplayEffectSpecToTarget( *DamageSpecHandle.Data.Get(), Character->GetAbilitySystemComponent() );
+			
+			const FGameplayTagContainer TagContainer( FGameplayTag::RequestGameplayTag( "Player.Status.KnockDown" ) );
+			Character->GetAbilitySystemComponent()->RemoveActiveEffectsWithAppliedTags( TagContainer );
 		}
 
 		EndAbility( GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), false, false );
