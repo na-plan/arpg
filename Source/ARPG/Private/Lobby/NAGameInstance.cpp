@@ -46,29 +46,29 @@ void UNAGameInstance::FindSessions()
 	}
 }
 
-void UNAGameInstance::JoinSession(int32 Index)
+void UNAGameInstance::JoinSessionByIndex(int32 Index)
 {
-	if ( !SessionSearch.IsValid() ) return;
+	if ( !SessionSearch.IsValid() || !SessionSearch->SearchResults.IsValidIndex( Index ) ) return;
 
 	if ( const TSharedPtr<IOnlineSession> Session = SessionInterface.Pin() )
 	{
-		Session->JoinSession(0, MadeSessionName, SessionSearch->SearchResults[Index]);
-	}
-}
-
-void UNAGameInstance::JoinSession(FOnlineSessionSearchResult* Result)
-{
-	//if (!SessionInterface.IsValid() || !SessionSearch.IsValid()) return;
-
-	if ( const TSharedPtr<IOnlineSession> Session = SessionInterface.Pin() )
-	{
-		Session->JoinSession(0,MadeSessionName, *Result);
+		Session->JoinSession(0, MadeSessionName, SessionSearch->SearchResults[ Index ]);
 	}
 }
 
 void UNAGameInstance::JoinSession_Wrapped()
 {
-	JoinSession(ReservedSessionIndex);
+	JoinSessionByIndex(ReservedSessionIndex);
+}
+
+bool UNAGameInstance::JoinSession( ULocalPlayer* LocalPlayer, const FOnlineSessionSearchResult& SearchResult )
+{
+	if ( const TSharedPtr<IOnlineSession> Session = SessionInterface.Pin() )
+	{
+		return Session->JoinSession( LocalPlayer->GetLocalPlayerIndex(), MadeSessionName, SearchResult );
+	}
+
+	return false;
 }
 
 void UNAGameInstance::CreateSession(FName SessionName, bool bIsLAN = true)

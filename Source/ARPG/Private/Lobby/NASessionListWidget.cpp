@@ -13,7 +13,7 @@ void UNASessionListWidget::NativeConstruct()
 	Super::NativeConstruct();
 
 	CachedGameInstance = Cast<UNAGameInstance>(GetGameInstance());
-	if (!CachedGameInstance) return;
+	if ( !CachedGameInstance.IsValid() ) return;
 
 	Button_CreateSession->OnClicked.AddDynamic(this,&ThisClass::OnClick_CreateSession);
 	Button_StartGame->OnClicked.AddDynamic(this, &ThisClass::OnClick_StartGame);
@@ -52,7 +52,7 @@ void UNASessionListWidget::RefreshSessionList()
 	{
 		SessionSearch = CachedGameInstance->GetSessionSearch();
 
-		auto Results = SessionSearch->SearchResults;
+		auto Results = SessionSearch.Pin()->SearchResults;
 
 		if (!Results.IsEmpty())
 		{

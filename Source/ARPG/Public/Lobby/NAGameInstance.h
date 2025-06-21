@@ -36,12 +36,12 @@ public:
 	void FindSessions();
 	
 	UFUNCTION()
-	void JoinSession(int32 Index);
+	void JoinSessionByIndex(int32 Index);
 	
 	UFUNCTION()
 	void JoinSession_Wrapped();
 
-	void JoinSession(class FOnlineSessionSearchResult* InResult);
+	virtual bool JoinSession(ULocalPlayer* LocalPlayer, const FOnlineSessionSearchResult& SearchResult) override;
 	
 	UFUNCTION()
 	void CreateSession(FName SessionName, bool bIsLAN);

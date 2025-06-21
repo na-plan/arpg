@@ -31,7 +31,7 @@ public:
 	FString SessionName;
 	FString TravelAddress;
 	int32 SessionIndex;
-	TSharedPtr<FOnlineSessionSearchResult> SearchResult;
+	TWeakPtr<FOnlineSessionSearchResult> SearchResult;
 };
 
 UCLASS()
@@ -63,8 +63,8 @@ public:
 	void OnClick_Join()
 	{
 		UNAGameInstance* GameInstance = Cast<UNAGameInstance>(GetGameInstance());
-		GameInstance->SetReservedIndex(Data->SessionIndex);
-		GameInstance->JoinSession(Data->SearchResult.Get());
+		GameInstance->SetReservedIndex( Data->SessionIndex );
+		GameInstance->JoinSession( GetWorld()->GetFirstLocalPlayerFromController(), *Data->SearchResult.Pin() );
 	}
 	
 public:
@@ -131,6 +131,7 @@ protected:
 	UButton* Button_Refresh;
 	
 protected:
-	UNAGameInstance* CachedGameInstance;
-	TSharedPtr<FOnlineSessionSearch> SessionSearch;
+	TWeakObjectPtr<UNAGameInstance> CachedGameInstance;
+	
+	TWeakPtr<FOnlineSessionSearch> SessionSearch;
 };
