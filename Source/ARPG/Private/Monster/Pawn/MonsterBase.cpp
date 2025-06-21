@@ -250,7 +250,8 @@ void AMonsterBase::DropItem(const FDataTableRowHandle& InDataTableRowHandle)
 					// 드랍하는곳
 					if (RandomDrop < Item.Probability)
 					{
-						const FVector& SpawnLocation = GetActorLocation();
+
+						const FVector& SpawnLocation = GetActorLocation() + FVector(FMath::RandRange(-80,80), FMath::RandRange(-80, 80), FMath::RandRange(150, 300));
 						const FRotator& SpawnRotation = GetActorRotation();
 						AActor* SpawnedItem = GetWorld()->SpawnActor(Item.ItemClasses, &SpawnLocation, &SpawnRotation);
 						SpawnedItem->SetReplicates(true);						
