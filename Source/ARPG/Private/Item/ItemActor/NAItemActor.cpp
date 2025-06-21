@@ -533,8 +533,6 @@ void ANAItemActor::OnActorEndOverlap_Impl(AActor* OverlappedActor, AActor* Other
 
 void ANAItemActor::BeginPlay()
 {
-	ItemWidgetComponent->SetMaterial( 0, WidgetInstance );
-	
 	/**
 	 * @TODO: 플레이 때 서브오브젝트 계층구조 무너지면 이 부분 활성화 하시오
 	 */
