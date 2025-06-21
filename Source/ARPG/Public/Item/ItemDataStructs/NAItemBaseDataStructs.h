@@ -224,14 +224,14 @@ struct FNADropItemPair
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = "MonsterDropTable")
 	TSubclassOf<ANAItemActor> ItemClasses;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = "MonsterDropTable")
 	float Probability;
 };
 
-// 몬스터당 하나씩
+// 몬스터당 하나씩		-> monster Status 쪽에 만들어 놓음
 USTRUCT()
 struct ARPG_API FNATestDropBaseTableRow : public FTableRowBase
 {
