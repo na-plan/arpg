@@ -7,6 +7,7 @@
 #include "NAPlayerState.h"
 #include "Algo/AllOf.h"
 #include "ARPG/ARPG.h"
+#include "ARPG/NAGlobalDelegate.h"
 #include "Combat/UserWidget/NAMissionFailedWidget.h"
 #include "Components/WidgetComponent.h"
 #include "Net/UnrealNetwork.h"
@@ -173,6 +174,8 @@ void ANAGameStateBase::AddPlayerState(APlayerState* PlayerState)
 {
 	const int32 Index = PlayerArray.Num() % 2;
 	Super::AddPlayerState(PlayerState);
+	// 서버방향 PlayerState 추가
+	GOnNewPlayerStateChanged.Broadcast( PlayerState );
 
 	if (ANAPlayerState* CastedPlayerState = Cast<ANAPlayerState>(PlayerState))
 	{
@@ -190,6 +193,12 @@ void ANAGameStateBase::AddPlayerState(APlayerState* PlayerState)
 			++AlivePlayer;
 		}
 	}
+}
+
+void ANAGameStateBase::RemovePlayerState( APlayerState* PlayerState )
+{
+	Super::RemovePlayerState( PlayerState );
+	GOnNewPlayerStateChanged.Broadcast( PlayerState );
 }
 
 void ANAGameStateBase::PreReplication( IRepChangedPropertyTracker& ChangedPropertyTracker )

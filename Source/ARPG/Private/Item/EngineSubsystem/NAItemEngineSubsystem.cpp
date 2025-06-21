@@ -17,6 +17,7 @@ UNAItemEngineSubsystem::UNAItemEngineSubsystem()
 void UNAItemEngineSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	UE_LOG( LogInit, Log, TEXT("%hs"), __FUNCTION__ )
 
 	if (ItemDataTableSources.IsEmpty())
 	{
@@ -31,7 +32,7 @@ void UNAItemEngineSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		}
 	
 		// 2) Registry 안의 SoftObjectPtr<UDataTable> 리스트 순회
-		UE_LOG(LogTemp, Warning, TEXT("[UNAItemGameInstanceSubsystem::Initialize]  아이템 DT LoadSynchronous 시작"));
+		UE_LOG(LogTemp, Log, TEXT("[UNAItemGameInstanceSubsystem::Initialize]  아이템 DT LoadSynchronous 시작"));
 		for (const TSoftObjectPtr<UDataTable>& SoftDT : Registry->ItemDataTables)
 		{
 			UDataTable* ResourceDT = SoftDT.LoadSynchronous(); // 이때 DT 안에 있던 BP 클래스의 CDO가 생성됨(직렬화까지 완료)
@@ -76,7 +77,7 @@ void UNAItemEngineSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	
 	if (!ItemDataTableSources.IsEmpty() && !ItemMetaDataMap.IsEmpty()) {
 		bMetaDataInitialized = true;
-		UE_LOG(LogTemp, Warning, TEXT("[UNAItemEngineSubsystem::Initialize]  아이템 메타데이터 맵 초기화 완료"));
+		UE_LOG(LogTemp, Log, TEXT("[UNAItemEngineSubsystem::Initialize]  아이템 메타데이터 맵 초기화 완료"));
 	}
 }
 

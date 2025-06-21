@@ -53,7 +53,15 @@ void UNAInventoryComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	if (HasAnyFlags(RF_ClassDefaultObject)) return;
+	if ( HasAnyFlags( RF_ClassDefaultObject ) ) return;
+	if ( GetOwner() && GetOwner()->HasAnyFlags( RF_ClassDefaultObject ) )
+	{
+		return;
+	}
+	if ( GetOwner() && GetOwner()->GetClass()->HasAnyClassFlags( CLASS_CompiledFromBlueprint ) )
+	{
+		return;
+	}
 	
 	if (!InventoryWidgetClassRef.IsNull())
 	{

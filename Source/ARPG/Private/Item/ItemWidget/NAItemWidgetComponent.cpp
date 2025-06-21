@@ -42,16 +42,25 @@ UNAItemWidgetComponent::UNAItemWidgetComponent(const FObjectInitializer& ObjectI
 
 	static const FSoftObjectPath ItemWidgetMaterialPath(TEXT("/Engine/EngineMaterials/Widget3DPassThrough_Translucent.Widget3DPassThrough_Translucent"));
 	ItemWidgetMaterialRef = ItemWidgetMaterialPath;
-
 }
 
 void UNAItemWidgetComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
 
+	if ( HasAnyFlags( RF_ClassDefaultObject ) ) return;
+	if ( GetOwner() && GetOwner()->HasAnyFlags( RF_ClassDefaultObject ) )
+	{
+		return;
+	}
+	if ( GetOwner() && GetOwner()->GetClass()->HasAnyClassFlags( CLASS_CompiledFromBlueprint ) )
+	{
+		return;
+	}
+	
 	if (GetOwner() && GetWidgetClass() == nullptr)
 	{
-		if (!ItemWidgetMaterialRef.IsNull())
+		if ( !ItemWidgetMaterialRef.IsNull() )
 		{
 			SetMaterial(0, ItemWidgetMaterialRef.LoadSynchronous());
 		}
