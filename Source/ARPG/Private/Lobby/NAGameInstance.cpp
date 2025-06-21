@@ -42,7 +42,7 @@ void UNAGameInstance::FindSessions()
 		SessionSearch->TimeoutInSeconds = 1.f;
 		SessionSearch->QuerySettings.Set(SEARCH_LOBBIES, true, EOnlineComparisonOp::Equals);
 
-		Session->FindSessions(0, SessionSearch.ToSharedRef());
+		Session->FindSessions( 0, SessionSearch.ToSharedRef() );
 	}
 }
 
@@ -93,19 +93,38 @@ void UNAGameInstance::CreateSession(FName SessionName, bool bIsLAN = true)
 
 void UNAGameInstance::DestroySession()
 {
+	if ( const TSharedPtr<IOnlineSession>& Session = SessionInterface.Pin() )
+	{
+		Session->DestroySession( MadeSessionName );
+		MadeSessionName = NAME_None;
+
+		if ( HasJoined() )
+		{
+			// todo: 로비 레벨 하드코딩!
+			GetFirstLocalPlayerController()->ClientTravel( TEXT("/Game/00_ProjectNA/02_Level/Level_NALobby"), TRAVEL_Absolute, true );
+			bHasJoined = false;
+		}
+
+		bIsHosting = false;
+	}
 }
 
-void UNAGameInstance::StartSession(FName SessionName)
+void UNAGameInstance::StartSession()
 {
-	if ( const TSharedPtr<IOnlineSession> Session = SessionInterface.Pin() )
+	if ( MadeSessionName == NAME_None )
 	{
-		Session->StartSession(MadeSessionName);
+		return;
+	}
+	
+	if ( const TSharedPtr<IOnlineSession>& Session = SessionInterface.Pin() )
+	{
+		Session->StartSession( MadeSessionName );
 	}
 }
 
 void UNAGameInstance::StartSession_Wrapped()
 {
-	StartSession(MadeSessionName);
+	StartSession();
 }
 
 bool UNAGameInstance::IsHosting() const

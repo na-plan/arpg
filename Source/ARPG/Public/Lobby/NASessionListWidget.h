@@ -130,7 +130,7 @@ public:
 protected:
 	void RefreshSessionList();
 	
-	void UpdatePlayerStates( APlayerState* PlayerState );
+	void UpdatePlayerStates( [[maybe_unused]] APlayerState* PlayerState );
 	
 	FCriticalSection ListMutex;
 	

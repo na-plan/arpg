@@ -3,5 +3,5 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerState.h"
 
-DECLARE_MULTICAST_DELEGATE_OneParam( FOnNewPlayerStateAdded, APlayerState* );
-extern FOnNewPlayerStateAdded GOnNewPlayerStateAdded;
+DECLARE_MULTICAST_DELEGATE_OneParam( FOnNewPlayerStateChanged, APlayerState* );
+extern FOnNewPlayerStateChanged GOnNewPlayerStateChanged;

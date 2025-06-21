@@ -32,6 +32,7 @@ void UNAMissionFailedWidget::Disconnect()
 		
 		if ( ANAPlayerController* PlayerController = Cast<ANAPlayerController>( GetPlayerContext().GetPlayerController() ) )
 		{
+			// todo: 로비 레벨 하드코딩!
 			PlayerController->ClientTravel( TEXT("/Game/00_ProjectNA/02_Level/Level_NALobby"), TRAVEL_Absolute );
 		}
 	}

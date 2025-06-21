@@ -1,3 +1,3 @@
 ﻿#include "NAGlobalDelegate.h"
 
-FOnNewPlayerStateAdded GOnNewPlayerStateAdded;
+FOnNewPlayerStateChanged GOnNewPlayerStateChanged;

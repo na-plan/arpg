@@ -35,7 +35,8 @@ void UNASessionListWidget::NativeOnInitialized()
 	
 	if ( CachedGameInstance->IsHosting() || CachedGameInstance->HasJoined() )
 	{
-		GOnNewPlayerStateAdded.AddUObject( this, &ThisClass::UpdatePlayerStates );
+		UpdatePlayerStates( nullptr );
+		GOnNewPlayerStateChanged.AddUObject( this, &ThisClass::UpdatePlayerStates );
 	}
 }
 
@@ -49,7 +50,7 @@ void UNASessionListWidget::NativeDestruct()
 	Button_Refresh->OnClicked.RemoveAll( this );
 	CachedGameInstance->OnSessionFound.RemoveAll( this );
 
-	GOnNewPlayerStateAdded.RemoveAll( this );
+	GOnNewPlayerStateChanged.RemoveAll( this );
 }
 
 void UNASessionListWidget::OnClick_CreateSession()
@@ -70,6 +71,9 @@ void UNASessionListWidget::OnClick_StartGame()
 
 void UNASessionListWidget::OnClick_Return()
 {
+	CachedGameInstance->DestroySession();
+	Button_Refresh->SetIsEnabled( true );
+	Button_StartGame->SetIsEnabled( false );
 	SetVisibility( ESlateVisibility::Hidden );
 }
 

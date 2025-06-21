@@ -6,6 +6,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "NAGameStateBase.generated.h"
 
+enum class ECharacterStatus : uint8;
 class UWidgetComponent;
 DECLARE_DYNAMIC_DELEGATE( FOnMissionRestartVotePassed );
 
@@ -88,6 +89,8 @@ protected:
 	
 	// PlayerState를 추가하기 전에 플레이어의 캐릭터를 부여
 	virtual void AddPlayerState(APlayerState* PlayerState) override;
+
+	virtual void RemovePlayerState(APlayerState* PlayerState) override;
 
 	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
 

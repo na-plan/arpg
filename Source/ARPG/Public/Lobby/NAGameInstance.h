@@ -50,7 +50,7 @@ public:
 	void DestroySession();
 
 	UFUNCTION()
-	void StartSession(FName SessionName);
+	void StartSession();
 
 	UFUNCTION()
 	void StartSession_Wrapped();

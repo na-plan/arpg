@@ -71,7 +71,7 @@ void ANAPlayerController::OnRep_PlayerState()
 	if ( GetNetMode() == NM_Client )
 	{
 		// 클라이언트 방향 PlayerState Replication 추적
-		GOnNewPlayerStateAdded.Broadcast( GetPlayerState<APlayerState>() );
+		GOnNewPlayerStateChanged.Broadcast( GetPlayerState<APlayerState>() );
 	}
 }
 

@@ -175,7 +175,7 @@ void ANAGameStateBase::AddPlayerState(APlayerState* PlayerState)
 	const int32 Index = PlayerArray.Num() % 2;
 	Super::AddPlayerState(PlayerState);
 	// 서버방향 PlayerState 추가
-	GOnNewPlayerStateAdded.Broadcast( PlayerState );
+	GOnNewPlayerStateChanged.Broadcast( PlayerState );
 
 	if (ANAPlayerState* CastedPlayerState = Cast<ANAPlayerState>(PlayerState))
 	{
@@ -193,6 +193,12 @@ void ANAGameStateBase::AddPlayerState(APlayerState* PlayerState)
 			++AlivePlayer;
 		}
 	}
+}
+
+void ANAGameStateBase::RemovePlayerState( APlayerState* PlayerState )
+{
+	Super::RemovePlayerState( PlayerState );
+	GOnNewPlayerStateChanged.Broadcast( PlayerState );
 }
 
 void ANAGameStateBase::PreReplication( IRepChangedPropertyTracker& ChangedPropertyTracker )
