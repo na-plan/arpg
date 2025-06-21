@@ -6,6 +6,7 @@
 #include "Engine/DataTable.h"
 #include "MonsterOwnTableRow.generated.h"
 
+struct FNADropItemPair;
 /**
  * 
  */
@@ -28,7 +29,17 @@ public:
 	float BaseDamaage = 10;
 	//Own 해야할것들 ->  drop 할 아이템
 	
+	UPROPERTY(EditAnywhere, Category = "Pawn|Status")
+	TArray<FNADropItemPair> ItemClass;
+
+	// 얘로 바꿀까?
+	UPROPERTY(EditAnywhere, Category = "Pawn|Status", meta = (RowType = "/Script/ARPG.NATestDropBaseTableRow"))
+	FDataTableRowHandle MonsterDropDataTable;
 };
+
+
+
+
 
 
 
