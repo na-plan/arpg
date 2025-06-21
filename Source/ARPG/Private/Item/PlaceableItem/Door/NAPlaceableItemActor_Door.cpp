@@ -107,6 +107,19 @@ void ANAPlaceableItemActor_Door::BeginPlay()
 	
 	PivotTF = RootComponent->GetRelativeTransform();
 
+	if (ItemCollision)
+	{
+		if (Door1)
+		{
+			Door1->AttachToComponent(ItemCollision, FAttachmentTransformRules::KeepRelativeTransform);
+		}
+		if (Door2)
+		{
+			Door2->AttachToComponent(ItemCollision, FAttachmentTransformRules::KeepRelativeTransform);
+		}
+	}
+	
+
 	if (ensureAlways(Door1->GetAttachParent() == ItemCollision && Door2->GetAttachParent() == ItemCollision))
 	{
 		DestTF1_Local = OriginTF1_Local;

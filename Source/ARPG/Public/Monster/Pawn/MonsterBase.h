@@ -71,6 +71,8 @@ protected:
 	UFUNCTION()
 	virtual void OnDie();
 
+	void DropItem(const FDataTableRowHandle& InDataTableRowHandle);
+
 	virtual void initializeAttribute(const FOnAttributeChangeData& Data);
 	virtual void OnHealthDepleted();
 

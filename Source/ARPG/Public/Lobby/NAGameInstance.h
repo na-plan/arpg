@@ -36,12 +36,12 @@ public:
 	void FindSessions();
 	
 	UFUNCTION()
-	void JoinSession(int32 Index);
+	void JoinSessionByIndex(int32 Index);
 	
 	UFUNCTION()
 	void JoinSession_Wrapped();
 
-	void JoinSession(class FOnlineSessionSearchResult* InResult);
+	virtual bool JoinSession(ULocalPlayer* LocalPlayer, const FOnlineSessionSearchResult& SearchResult) override;
 	
 	UFUNCTION()
 	void CreateSession(FName SessionName, bool bIsLAN);
@@ -50,12 +50,16 @@ public:
 	void DestroySession();
 
 	UFUNCTION()
-	void StartSession(FName SessionName);
+	void StartSession();
 
 	UFUNCTION()
 	void StartSession_Wrapped();
 
 	bool IsHosting() const;
+
+	bool HasJoined() const;
+
+	TWeakPtr<IOnlineSession> GetCurrentSession() const;
 	
 public:
 	void SetReservedIndex(const int32 InIndex) { ReservedSessionIndex = InIndex; }
@@ -81,6 +85,8 @@ private:
 	int32 ReservedSessionIndex = 0;
 	
 	bool bIsHosting = false;
+
+	bool bHasJoined = false;
 
 public:
 	FOnSessionFound OnSessionFound;

@@ -20,6 +20,7 @@
 
 #include "HP/GameplayEffect/NAGE_Damage.h"
 #include "Monster/DataTable/MonsterOwnTableRow.h"
+#include "Item/ItemDataStructs/NAItemBaseDataStructs.h"
 
 //DEFINE_LOG_CATEGORY(LogTemplateMonster);
 
@@ -219,6 +220,7 @@ void AMonsterBase::OnDie()
 				float CheckLeftTime = AbilitySystemComponent->GetCurrentMontageSectionTimeLeft();
 				if (CheckLeftTime < 0.3f)
 				{
+					DropItem(OwnStatData);
 					Destroy();
 				}
 				//bool bForcheck = true;
@@ -228,6 +230,41 @@ void AMonsterBase::OnDie()
 		{
 			Destroy();
 		}
+	}
+}
+
+void AMonsterBase::DropItem(const FDataTableRowHandle& InDataTableRowHandle)
+{
+	// 서버에서 드랍
+	if (HasAuthority())
+	{
+		// datatable 가져오고
+		if (FMonsterOwnTable* Data = InDataTableRowHandle.GetRow<FMonsterOwnTable>(TEXT("MonsterStatData")))
+		{
+			// 각 아이템 마다 확률로 드랍
+			for (const FNADropItemPair Item: Data->ItemClass)
+			{
+				if (Item.ItemClasses)
+				{
+					float RandomDrop = FMath::RandRange(0.0f,1.0f);
+					// 드랍하는곳
+					if (RandomDrop < Item.Probability)
+					{
+
+						const FVector& SpawnLocation = GetActorLocation() + FVector(FMath::RandRange(-80,80), FMath::RandRange(-80, 80), FMath::RandRange(150, 300));
+						const FRotator& SpawnRotation = GetActorRotation();
+						AActor* SpawnedItem = GetWorld()->SpawnActor(Item.ItemClasses, &SpawnLocation, &SpawnRotation);
+						SpawnedItem->SetReplicates(true);						
+					}
+				}
+				else
+				{
+					// 향상된 for 문 사용하면 몇번째인지 알수는 없네... 그냥 옛날 for문 돌릴까?
+					UE_LOG(LogTemp, Log, TEXT("MonsterStat Item is Null please Check the Item"));
+				}
+			}
+		}
+
 	}
 }
 

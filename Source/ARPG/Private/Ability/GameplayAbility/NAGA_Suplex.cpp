@@ -10,6 +10,7 @@
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Camera/CameraActor.h"
+#include "Kismet/KismetMathLibrary.h"
 
 UNAGA_Suplex::UNAGA_Suplex()
 {
@@ -62,6 +63,8 @@ void UNAGA_Suplex::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 			if (!ActionCamA) return;
 			ACameraActor* ActionCamB = GetWorld()->SpawnActor<ACameraActor>(StartLocation, StartRotation);
 			if (!ActionCamB) return;
+			ACameraActor* ActionCamC = GetWorld()->SpawnActor<ACameraActor>(StartLocation, StartRotation);
+			if (!ActionCamC) return;
 
 
 			FVector RightVec = Character->GetActorRightVector();
@@ -69,56 +72,43 @@ void UNAGA_Suplex::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 			FVector UpVec = Character->GetActorUpVector();
 
 			FVector LocationA = Character->GetActorLocation() + RightVec * 120;
-
-			FRotator RotationA = Character->GetActorRotation() + FRotator(0, -90, 0);
-
+			FRotator RotationA = UKismetMathLibrary::FindLookAtRotation(LocationA, Character->GetActorLocation());
+			FVector LocationB = Character->GetActorLocation() + ForwardVec * 160+UpVec * 80;
+			FVector LocationC = Character->GetActorLocation() + ForwardVec * -200 + RightVec * -250 + UpVec * 100;
+			FRotator RotationB = UKismetMathLibrary::FindLookAtRotation(LocationB, Character->GetActorLocation());
+			// B 카메라 전환
+			ActionCamB->SetActorLocationAndRotation(LocationB, RotationB);
+			FRotator RotationC = UKismetMathLibrary::FindLookAtRotation(LocationC, Character->GetActorLocation());
+			// B 카메라 전환
+			ActionCamC->SetActorLocationAndRotation(LocationC, RotationC);
 			// Test용 바로 setting
 			ActionCamA->SetActorLocationAndRotation(LocationA, RotationA);
-			PlayerController->SetViewTargetWithBlend(ActionCamA, 0.5f);
-
-
+			PlayerController->SetViewTargetWithBlend(ActionCamA, 1.f);
 			FTimerHandle CameraBHandle;
 			GetWorld()->GetTimerManager().SetTimer(CameraBHandle, FTimerDelegate::CreateLambda([=]()
 				{
-					FVector LocationB = LocationA + ForwardVec * 160 + RightVec * -120 + UpVec * -10;
-					FRotator RotationB = RotationA + FRotator(0, -90, 0);
-					// B 카메라 전환
-					ActionCamB->SetActorLocationAndRotation(LocationB, RotationB);
 					PlayerController->SetViewTargetWithBlend(ActionCamB, 1.f);				
 				}), 1.0f, false); // 2초 뒤 실행
+
+			FTimerHandle CameraBHandle4;
+			GetWorld()->GetTimerManager().SetTimer(CameraBHandle4, FTimerDelegate::CreateLambda([=]()
+				{
+					PlayerController->SetViewTargetWithBlend(ActionCamC, 1.f);
+				}), 3.0f, false); // 2초 뒤 실행
+
 
 			FTimerHandle CameraBHandle2;
 			GetWorld()->GetTimerManager().SetTimer(CameraBHandle2, FTimerDelegate::CreateLambda([=]()
 				{
-					PlayerController->SetViewTargetWithBlend(Character, 2.f);
-				}), 4.0f, false); // 2초 뒤 실행
+					PlayerController->SetViewTargetWithBlend(Character, 1.4f, EViewTargetBlendFunction::VTBlend_EaseInOut,2.0f, true);
+				}), 4.1f, false); // 2초 뒤 실행
 			FTimerHandle CameraBHandle3;
 			GetWorld()->GetTimerManager().SetTimer(CameraBHandle3, FTimerDelegate::CreateLambda([=]()
-				{
-					PlayerController->SetViewTargetWithBlend(Character, 1.f);
+				{					
 					ActionCamA->Destroy();
 					ActionCamB->Destroy();	
+					ActionCamC->Destroy();	
 				}), 6.0f, false); // 2초 뒤 실행
-
-
-			//UKismetSystemLibrary::MoveComponentTo(
-			//	ActionCam,
-			//	LocationA,
-			//	RotationA,
-			//	true, true,
-			//	Overtime,
-			//	true,
-			//	EMoveComponentAction::Move,
-			//	LatentInfo
-			//);
-
-
-
-
-
-
-			//PlayerController->SetViewTargetWithBlend(TempCam, 0.3f);
-
 
 		}
 

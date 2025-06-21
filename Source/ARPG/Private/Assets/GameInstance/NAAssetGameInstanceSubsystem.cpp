@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Assets/GameInstance/NAAssetGameInstanceSubsystem.h"
@@ -39,16 +39,9 @@ void UNAAssetGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collect
 {
 	Super::Initialize(Collection);
 
-	// CDO GameInstance 초기화 시점에 엔진 에셋 로딩 Fragment가 없는 관계로 SubObject로 만들지 않고, 동적으로 초기화
-	if (UDataTable* DataTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Script/Engine.DataTable'/Game/00_ProjectNA/04_DataTable/00_Assets/AssetsTable.AssetsTable'"))))
-	{
-		AssetTable = DataTable;
-	}
-	else
-	{
-		ensureMsgf(DataTable, TEXT("Unable to find the asset table"));
-	}
-
+	UE_LOG( LogInit, Log, TEXT("%hs"), __FUNCTION__ )
+	AssetTable = Cast<UDataTable>( StaticLoadObject( UDataTable::StaticClass(), nullptr, TEXT("/Script/Engine.DataTable'/Game/00_ProjectNA/04_DataTable/00_Assets/AssetsTable.AssetsTable'") ) );
+	
 	// 월드의 Actor 스폰을 잡기 위해서
 	// FWorldDelegates::OnPreWorldInitialization.AddUObject(this, &UNAAssetGameInstanceSubsystem::OnPreWorldInitialization);
 	// FWorldDelegates::OnPostWorldCleanup.AddUObject(this, &UNAAssetGameInstanceSubsystem::OnPostWorldCleanup);
