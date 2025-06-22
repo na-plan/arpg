@@ -5,6 +5,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
+#include "ARPG/ARPG.h"
 #include "Net/UnrealNetwork.h"
 #include "Combat/Interface/NAHandActor.h"
 
@@ -30,7 +31,7 @@ void UNACombatComponent::SetAttackAbility(const TSubclassOf<UGameplayAbility>& I
 
 void UNACombatComponent::SetGrabAbility(const TSubclassOf<UGameplayAbility>& InAbility)
 {
-	if (const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker())
+	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker() )
 	{
 		if (AbilitySpecHandle.IsValid() && GetNetMode() != NM_Client)
 		{
@@ -39,6 +40,7 @@ void UNACombatComponent::SetGrabAbility(const TSubclassOf<UGameplayAbility>& InA
 
 		if (InAbility && GetNetMode() != NM_Client)
 		{
+			FGameplayAbilitySpec Spec( InAbility, 1.f );
 			AbilitySpecHandle = Interface->GetAbilitySystemComponent()->GiveAbility(InAbility);
 		}
 	}
@@ -46,22 +48,20 @@ void UNACombatComponent::SetGrabAbility(const TSubclassOf<UGameplayAbility>& InA
 	GrabAbility = InAbility;
 }
 
-void UNACombatComponent::SetZoomAbility(const TSubclassOf<UGameplayAbility>& InAbility)
-{
-}
-
 TSubclassOf<UGameplayEffect> UNACombatComponent::GetAmmoType() const
 {
 	return AmmoType;
 }
 
-void UNACombatComponent::ReplayAttack()
+void UNACombatComponent::OnAbilityEnded( const FAbilityEndedData& AbilityEndedData )
 {
-	bCanAttack = IsAbleToAttack();
-	
-	if (bCanAttack && bAttacking)
+	if ( !AbilityEndedData.bWasCancelled )
 	{
-		OnAttack();
+		if ( bReplay && bAttacking )
+		{
+			UE_LOG( LogTemp, Log, TEXT("[%hs]: Ability replay from %d"), __FUNCTION__, GetNetMode() )
+			StartAttack();
+		}
 	}
 }
 
@@ -78,9 +78,14 @@ void UNACombatComponent::BeginPlay()
 	// 클라이언트의 BeginPlay에 맞춰서 초기화
 	if ( const APawn* Attacker = GetAttacker() )
 	{
-		if ( Attacker->GetController() == GetWorld()->GetFirstPlayerController() )
+		if ( Attacker->IsLocallyControlled() )
 		{
 			Server_RequestAttackAbility();
+			
+			if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker() )
+			{
+				Interface->GetAbilitySystemComponent()->OnAbilityEnded.AddUObject( this, &UNACombatComponent::OnAbilityEnded );
+			}
 		}
 	}
 }
@@ -94,70 +99,84 @@ void UNACombatComponent::EndPlay( const EEndPlayReason::Type EndPlayReason )
 void UNACombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME_CONDITION(UNACombatComponent, bCanAttack, COND_OwnerOnly)
+	DOREPLIFETIME_CONDITION( UNACombatComponent, bCanAttack, COND_OwnerOnly );
+}
+
+void UNACombatComponent::Server_SyncAttack_Implementation( const bool bFlag )
+{
+	bAttacking = bFlag;
 }
 
 void UNACombatComponent::SetActive( bool bNewActive, bool bReset )
 {
+	bool bPrevious = IsActive();
 	Super::SetActive( bNewActive, bReset );
-	if ( !bNewActive )
+
+	if ( bPrevious != bNewActive )
 	{
-		StopAttack();
-		UpdateAttackAbilityToASC( true );
-	}
-	else
-	{
-		UpdateAttackAbilityToASC( false );
+		if ( !bNewActive )
+		{
+			StopAttack();
+			UpdateAttackAbilityToASC( true );
+		}
+		else
+		{
+			UpdateAttackAbilityToASC( false );
+		}
 	}
 }
 
 bool UNACombatComponent::IsAbleToAttack()
 {
 	// Ammo, stamina, montage duration, etc...
-	return AttackAbility != nullptr && IsActive();
-}
+	bool bResult = AttackAbility != nullptr && IsActive();
 
-bool UNACombatComponent::IsAbleToZoom()
-{
-	return false;
+	if ( GetNetMode() != NM_Client )
+	{
+		if ( bResult )
+		{
+			const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker();
+			bResult &= Interface != nullptr;
+
+			if ( Interface )
+			{
+				const FGameplayAbilitySpec* Spec = Interface->GetAbilitySystemComponent()->FindAbilitySpecFromHandle( AbilitySpecHandle );
+				bResult &= Spec != nullptr;
+
+				if ( Spec )
+				{
+					bResult &= !Spec->IsActive();
+				}
+			}
+		}
+	}
+	
+	return bResult;
 }
 
 void UNACombatComponent::SetAttack(const bool NewAttack)
 {
-	if (!bCanAttack && NewAttack)
+	if ( !bCanAttack && NewAttack )
 	{
 		return;
 	}
 
-	if (bAttacking == NewAttack)
+	if ( bAttacking == NewAttack )
 	{
 		return;
 	}
 
-	if (!AttackAbility)
+	if ( !AttackAbility )
 	{
 		return;
 	}
-
 	
-	UE_LOG(LogCombatComponent, Log, TEXT("%hs: Attack from %d to %d by %d"), __FUNCTION__, bAttacking, NewAttack, GetNetMode());
+	UE_LOG( LogCombatComponent, Log, TEXT("%hs: Attack from %d to %d by %d"), __FUNCTION__, bAttacking, NewAttack, GetNetMode() );
+
 	bAttacking = NewAttack;
-	
-	if (GetNetMode() == NM_Client)
+	if ( GetNetMode() == NM_Client )
 	{
-		// 클라이언트일 경우 서버와 동기화 요청
-		Server_SetAttack(bAttacking);
-	}
-	else if (GetNetMode() == NM_Standalone)
-	{
-		// 로컬 플레이일 경우 후처리 수행
-		PostSetAttack();
-	}
-	else
-	{
-		// 서버에서 발생한 경우 클라이언트와 동기화
-		Client_SyncAttack(bAttacking);
-		PostSetAttack();
+		Server_SyncAttack( bAttacking );
 	}
 }
 
@@ -165,7 +184,7 @@ void UNACombatComponent::UpdateAttackAbilityToASC( const bool bOnlyRemove )
 {
 	UWorld* World = GetWorld();
 	
-	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner();
+	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttacker();
 		 World && Interface && World->IsGameWorld() )
 	{
 		if ( AbilitySpecHandle.IsValid() && GetNetMode() != NM_Client )
@@ -180,71 +199,9 @@ void UNACombatComponent::UpdateAttackAbilityToASC( const bool bOnlyRemove )
 	}
 }
 
-void UNACombatComponent::SetZooming(bool NewZoom)
-{
-
-}
-
-void UNACombatComponent::PostSetAttack()
-{
-	if (bAttacking)
-	{
-		// 공격으로 변환했다면 공격 루틴 시작
-		OnAttack();
-	}
-	else
-	{
-		// 아니라면 대기 초기화
-		if (AttackTimerHandler.IsValid())
-		{
-			GetWorld()->GetTimerManager().ClearTimer(AttackTimerHandler);	
-		}
-	}
-}
-
-//void UNACombatComponent::Server_SetZoom_Implementation(const bool NewAttack)
-//{
-//}
-//void UNACombatComponent::Server_SetZoom_Validate(const bool NewAttack)
-//{
-//}
-
-//void UNACombatComponent::Client_SyncZoom_Implementation(const bool NewFire)
-//{
-//}
-
-void UNACombatComponent::Server_SetAttack_Implementation(const bool NewAttack)
-{
-	bCanAttack = IsAbleToAttack();
-	if (NewAttack == bAttacking)
-	{
-		return;
-	}
-	
-	if (!bCanAttack && NewAttack)
-	{
-		Client_SyncAttack(false);
-		return;
-	}
-	
-	bAttacking = NewAttack;
-	PostSetAttack();
-}
-
-bool UNACombatComponent::Server_SetAttack_Validate(const bool NewAttack)
-{
-	return true;
-}
-
-
-void UNACombatComponent::Client_SyncAttack_Implementation(const bool NewFire)
-{
-	bAttacking = NewFire;
-}
-
 void UNACombatComponent::StartAttack()
 {
-	UE_LOG(LogCombatComponent, Log, TEXT("%hs: Try attack"), __FUNCTION__);
+	UE_LOG( LogCombatComponent, Log, TEXT("%hs: Try attack, Is Client?: %d"), __FUNCTION__, GetNetMode() == NM_Client );
 
 	if ( !IsActive() )
 	{
@@ -252,9 +209,25 @@ void UNACombatComponent::StartAttack()
 	}
 	
 	bCanAttack = IsAbleToAttack();
-	if (bCanAttack && !bAttacking)
+
+	if ( !bCanAttack )
 	{
-		SetAttack(true);
+		SetAttack( false );
+		StopAttack();
+	}
+
+	UpdateAttackOrientation();
+	
+	// 공격을 수행하고
+	if ( const TScriptInterface<IAbilitySystemInterface> Interface = GetAttacker();
+		 Interface && Interface->GetAbilitySystemComponent()->TryActivateAbilityByClass( AttackAbility ) )
+	{
+		SetAttack( true );
+	}
+	else
+	{
+		// Commit Ability에서 실패할 경우에도 공격을 중단
+		SetAttack( false );
 	}
 }
 
@@ -262,102 +235,44 @@ APawn* UNACombatComponent::GetAttacker() const
 {
 	if ( bConsiderChildActor )
 	{
-		return Cast<APawn>( GetOwner()->GetAttachParentActor() );
+		if ( APawn* Pawn = Cast<APawn>( GetOwner()->GetAttachParentActor() ) )
+		{
+			return Pawn;
+		}
+		if ( const USceneComponent* ParentComponent = GetOwner()->GetParentComponent() )
+		{
+			if ( APawn* ComponentPawn = Cast<APawn>( ParentComponent->GetOwner() ) )
+			{
+				return ComponentPawn;
+			}
+		}
 	}
 	
 	return Cast<APawn>( GetOwner() );
 }
 
-void UNACombatComponent::OnAttack()
+void UNACombatComponent::StopAttack()
 {
-	if (GetNetMode() != NM_Client)
+	bAttacking = false;
+
+	if ( GetNetMode() == NM_Client )
 	{
-		bCanAttack = IsAbleToAttack();
-
-		// 이번 회차에서 공격을 할 수 없다면 공격 중단
-		if (!bCanAttack)
-		{
-			UE_LOG(LogCombatComponent, Log, TEXT("Unable to attack, bCanAttack is false"));
-			StopAttack();
-			return;
-		}
-
-		// 공격이 가능하고 공격을 시도하는 중이라면
-		if (bCanAttack && bAttacking&& !bCanGrab)
-		{
-			// 공격을 수행하고
-			if ( const TScriptInterface<IAbilitySystemInterface> Interface = GetOwner();
-				 Interface && Interface->GetAbilitySystemComponent()->TryActivateAbilityByClass( AttackAbility ) )
-			{
-				OnAttack_Implementation();
-
-				// 만약 재수행이 설정돼 있다면 Timer로 예약
-				if (bReplay)
-				{
-					const float NextTime = GetNextAttackTime();
-					GetWorld()->GetTimerManager().SetTimer
-					(
-						AttackTimerHandler,
-						this,
-						&UNACombatComponent::ReplayAttack,
-						NextTime,
-						true
-					);
-				}
-				else
-				{
-					// 아니라면 공격을 강제 중단
-					SetAttack(false);	
-				}
-			}
-			else
-			{
-				// Commit Ability에서 실패할 경우에도 공격을 중단
-				SetAttack(false);
-			}
-		}
-		//잡기 가능하면
-		else if (bAttacking && bCanGrab)
-		{
-			if (const TScriptInterface<IAbilitySystemInterface> Interface = GetOwner();
-				Interface && Interface->GetAbilitySystemComponent()->TryActivateAbilityByClass(AttackAbility))
-			{
-				OnAttack_Implementation();
-
-				// 만약 재수행이 설정돼 있다면 Timer로 예약
-				if (bReplay)
-				{
-					const float NextTime = GetNextAttackTime();
-					GetWorld()->GetTimerManager().SetTimer
-					(
-						AttackTimerHandler,
-						this,
-						&UNACombatComponent::ReplayAttack,
-						NextTime,
-						true
-					);
-				}
-				else
-				{
-					// 아니라면 공격을 강제 중단
-					SetAttack(false);
-				}
-			}
-			else
-			{
-				// Commit Ability에서 실패할 경우에도 공격을 중단
-				SetAttack(false);
-			}
-		}
+		Server_SyncAttack( bAttacking );
 	}
 }
 
 void UNACombatComponent::OnRep_CanAttack()
 {
-	if (!bCanAttack && bAttacking)
+	if ( !bCanAttack && bAttacking )
 	{
 		StopAttack();
 	}
+}
+
+void UNACombatComponent::UpdateAttackOrientation()
+{
+	AttackOrientation = GetAttacker()->GetControlRotation();
+	Server_CommitAttackOrientation( GetAttacker()->GetControlRotation() );
 }
 
 void UNACombatComponent::SetConsiderChildActor(const bool InConsiderChildActor)
@@ -370,9 +285,9 @@ TSubclassOf<UGameplayAbility> UNACombatComponent::GetAttackAbility() const
 	return AttackAbility;
 }
 
-void UNACombatComponent::Server_RequestZoom_Implementation()
+FRotator UNACombatComponent::GetAttackOrientation() const
 {
-	//SetZoomAbility(ZoomAbility);
+	return AttackOrientation;
 }
 
 void UNACombatComponent::Server_RequestAttackAbility_Implementation()
@@ -380,17 +295,9 @@ void UNACombatComponent::Server_RequestAttackAbility_Implementation()
 	UpdateAttackAbilityToASC( false );
 }
 
-void UNACombatComponent::StopAttack()
+void UNACombatComponent::Server_CommitAttackOrientation_Implementation( const FRotator& Rotator )
 {
-	if (bAttacking)
-	{
-		SetAttack( false );
-	}
-}
-
-void UNACombatComponent::ZoomToggle()
-{
-
+	AttackOrientation = Rotator;
 }
 
 // Called every frame
