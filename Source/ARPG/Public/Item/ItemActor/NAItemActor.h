@@ -205,7 +205,7 @@ public:
 	
 	virtual bool CanPerformInteractionWith(AActor* Interactor) const override;
 
-	virtual bool TryInteract_Implementation(AActor* Interactor) override final;
+	virtual bool TryInteract_Implementation(AActor* Interactor) override;
 	
 protected:
 	virtual bool BeginInteract_Implementation(AActor* Interactor) override;

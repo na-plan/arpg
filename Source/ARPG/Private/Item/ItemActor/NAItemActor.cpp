@@ -14,28 +14,28 @@
 ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	if (HasAnyFlags(RF_ClassDefaultObject))
-	{
-		if (GetClass()->HasAllClassFlags(CLASS_CompiledFromBlueprint))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  C++ CDO 생성자 (%s)"), *GetName());
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  BP CDO 생성자 (%s)"), *GetName());
-		}
-	}
-	else
-	{
-		if (GetClass()->HasAllClassFlags(CLASS_CompiledFromBlueprint))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  C++ 인스턴스 생성자 (%s)"), *GetName());
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  BP 인스턴스 생성자 (%s)"), *GetName());
-		}
-	}
+	// if (HasAnyFlags(RF_ClassDefaultObject))
+	// {
+	// 	if (GetClass()->HasAllClassFlags(CLASS_CompiledFromBlueprint))
+	// 	{
+	// 		UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  C++ CDO 생성자 (%s)"), *GetName());
+	// 	}
+	// 	else
+	// 	{
+	// 		UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  BP CDO 생성자 (%s)"), *GetName());
+	// 	}
+	// }
+	// else
+	// {
+	// 	if (GetClass()->HasAllClassFlags(CLASS_CompiledFromBlueprint))
+	// 	{
+	// 		UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  C++ 인스턴스 생성자 (%s)"), *GetName());
+	// 	}
+	// 	else
+	// 	{
+	// 		UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  BP 인스턴스 생성자 (%s)"), *GetName());
+	// 	}
+	// }
 	
 	ItemCollision = CreateOptionalDefaultSubobject<USphereComponent>(TEXT("ItemCollision(Sphere)"));
 	ItemMesh = CreateOptionalDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh(Static)"));
@@ -59,7 +59,7 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	TriggerSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap); 
 	TriggerSphere->SetSimulatePhysics(false);
 	
-	ItemWidgetComponent = CreateDefaultSubobject<UNAItemWidgetComponent>(TEXT("ItemWidgetComponent"));
+	ItemWidgetComponent = CreateOptionalDefaultSubobject<UNAItemWidgetComponent>(TEXT("ItemWidgetComponent"));
 	
 	ItemDataID = NAME_None;
 
@@ -697,6 +697,11 @@ bool ANAItemActor::CanInteract_Implementation() const
 			&& InteractableInterfaceRef != nullptr && bIsFocused;
 }
 
+bool ANAItemActor::IsOnInteract_Implementation() const
+{
+	return bIsOnInteract;
+}
+
 void ANAItemActor::NotifyInteractableFocusBegin_Implementation(AActor* InteractableActor, AActor* InteractorActor)
 {
 	if (UNAInteractionComponent* InteractionComp = GetInteractionComponent(InteractorActor))
@@ -769,11 +774,6 @@ bool ANAItemActor::ExecuteInteract_Implementation(AActor* InteractorActor)
 }
 
 bool ANAItemActor::EndInteract_Implementation(AActor* InteractorActor)
-{
-	return bIsOnInteract;
-}
-
-bool ANAItemActor::IsOnInteract_Implementation() const
 {
 	return bIsOnInteract;
 }
