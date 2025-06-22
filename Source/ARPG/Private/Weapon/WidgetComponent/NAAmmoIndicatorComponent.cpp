@@ -109,6 +109,21 @@ void UNAAmmoIndicatorComponent::CleanupAmmoAdded( const FActiveGameplayEffect& A
 	}
 }
 
+AActor* UNAAmmoIndicatorComponent::GetAttachedParentActor() const
+{
+	if ( AActor* AttachedParent = GetOwner()->GetAttachParentActor() )
+	{
+		return AttachedParent;
+	}
+
+	if ( const USceneComponent* AttachedComponent = GetOwner()->GetParentComponent() )
+	{
+		return AttachedComponent->GetOwner();
+	}
+
+	return nullptr;
+}
+
 
 // Called when the game starts
 void UNAAmmoIndicatorComponent::BeginPlay()
@@ -116,15 +131,12 @@ void UNAAmmoIndicatorComponent::BeginPlay()
 	Super::BeginPlay();
 
 	bool HasParent = false;
-	if ( const USceneComponent* ParentComp = GetOwner()->GetParentComponent() )
+	if ( const APawn* OwningPawn = Cast<APawn>( GetAttachedParentActor() ) )
 	{
-		if ( const APawn* ParentActor = Cast<APawn>( ParentComp->GetOwner() ) )
+		if ( OwningPawn->IsLocallyControlled() )
 		{
-			if ( ParentActor->IsLocallyControlled() )
-			{
-				// 총알 위젯은 실제 캐릭터가 장착했을때만 뜨도록
-				HasParent = true;
-			}
+			// 총알 위젯은 실제 캐릭터가 장착했을때만 뜨도록
+			HasParent = true;
 		}
 	}
 	SetVisibility( HasParent );
@@ -156,7 +168,7 @@ void UNAAmmoIndicatorComponent::BeginPlay()
 			}
 		}
 
-		if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner()->GetParentComponent()->GetOwner() )
+		if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttachedParentActor() )
 		{
 			if ( const ANAWeapon* Weapon = Cast<ANAWeapon>( GetOwner() ) )
 			{
@@ -197,7 +209,7 @@ void UNAAmmoIndicatorComponent::EndPlay( const EEndPlayReason::Type EndPlayReaso
 {
 	Super::EndPlay( EndPlayReason );
 
-	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetOwner()->GetAttachParentActor() )
+	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetAttachedParentActor() )
 	{
 		Interface->GetAbilitySystemComponent()->OnActiveGameplayEffectAddedDelegateToSelf.RemoveAll( this );
 		Interface->GetAbilitySystemComponent()->OnAnyGameplayEffectRemovedDelegate().RemoveAll( this );

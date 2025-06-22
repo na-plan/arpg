@@ -56,6 +56,8 @@ protected:
 
 	UFUNCTION()
 	void CleanupAmmoAdded( const FActiveGameplayEffect& ActiveGameplayEffect );
+
+	AActor* GetAttachedParentActor() const;
 	
 	// Called when the game starts
 	virtual void BeginPlay() override;

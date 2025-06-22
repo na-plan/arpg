@@ -43,13 +43,6 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
-	
-	virtual void OnAttack_Implementation() override;
-
-	UFUNCTION(NetMulticast, Reliable)
-	void Multi_PlaySound() const;
-
-	virtual float GetNextAttackTime() override;
 
 public:
 	// Called every frame

@@ -8,15 +8,31 @@
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "Combat/Interface/NAHandActor.h"
 #include "HP/GameplayEffect/NAGE_Damage.h"
+#include "Net/UnrealNetwork.h"
+#include "Weapon/AbilityTask/NAAT_WaitRotation.h"
 
-UNAGA_FireGun::UNAGA_FireGun()
+UNAGA_FireGun::UNAGA_FireGun(): WaitRotationTask( nullptr ), WhichHand()
 {
 	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateYes;
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+	AbilityTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Firing" ) );
+}
+
+int32 UNAGA_FireGun::GetRemainingAmmo( const UAbilitySystemComponent* InAbilitySystemComponent, const TSubclassOf<UGameplayEffect>& InAmmoType )
+{
+	if ( InAbilitySystemComponent )
+	{
+		FGameplayEffectQuery Query;
+		Query.EffectDefinition = InAmmoType;
+		return InAbilitySystemComponent->GetActiveEffects( Query ).Num();
+	}
+
+	return 0;
 }
 
 bool UNAGA_FireGun::ConsumeAmmo( UAbilitySystemComponent* InAbilitySystemComponent,
-	const TSubclassOf<UGameplayEffect>& InAmmoType )
+                                 const TSubclassOf<UGameplayEffect>& InAmmoType )
 {
 	if ( InAbilitySystemComponent )
 	{
@@ -33,92 +49,118 @@ void UNAGA_FireGun::OnMontageEnded( UAnimMontage* AnimMontage, bool bInterrupted
 {
 	if ( const FGameplayAbilityActorInfo* ActorInfo = GetCurrentActorInfo() )
 	{
-		bool bSuccessfullyEnded = false;
-		
-		if ( UNAMontageCombatComponent* CombatComponent = ActorInfo->AvatarActor->GetComponentByClass<UNAMontageCombatComponent>() )
+		if ( MontageToCheck.Contains( AnimMontage ) && !bInterrupted )
 		{
-			if ( CombatComponent->GetMontage() == AnimMontage && !bInterrupted )
-			{
-				bSuccessfullyEnded = true;
-				EndAbility( GetCurrentAbilitySpecHandle(), ActorInfo, GetCurrentActivationInfo(), true, false );
-			}
+			MontageToCheck.Remove( AnimMontage );
 		}
-
-		if ( USkeletalMeshComponent* MeshComponent = ActorInfo->OwnerActor->GetComponentByClass<USkeletalMeshComponent>() )
-		{
-			if ( UAnimInstance* AnimInstance = MeshComponent->GetAnimInstance() )
-			{
-				AnimInstance->OnMontageEnded.RemoveAll( this );
-			}
-		}
-		
-		if ( !bSuccessfullyEnded )
+		else
 		{
 			EndAbility( GetCurrentAbilitySpecHandle(), ActorInfo, GetCurrentActivationInfo(), true, true );
+		}
+
+		if ( MontageToCheck.IsEmpty() )
+		{
+			if ( const USkeletalMeshComponent* MeshComponent = ActorInfo->OwnerActor->GetComponentByClass<USkeletalMeshComponent>() )
+			{
+				if ( UAnimInstance* AnimInstance = MeshComponent->GetAnimInstance() )
+				{
+					AnimInstance->OnMontageEnded.RemoveAll( this );
+				}
+			}
+			
+			EndAbility( GetCurrentAbilitySpecHandle(), ActorInfo, GetCurrentActivationInfo(), true, false );
 		}
 	}
 }
 
-void UNAGA_FireGun::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
-                                    const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
+void UNAGA_FireGun::CancelAbilityProxy( FGameplayTag GameplayTag, int Count )
 {
-	if ( !CommitAbility(Handle, ActorInfo, ActivationInfo) )
+	if ( Count >= 1 )
 	{
-		EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
-		return;
+		CancelAbility( GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true );
 	}
+}
 
-	UNAMontageCombatComponent* CombatComponent = ActorInfo->AvatarActor->GetComponentByClass<UNAMontageCombatComponent>();
+void UNAGA_FireGun::OnRotationCompleted()
+{
+	Fire();
+}
+
+void UNAGA_FireGun::Fire()
+{
+	const auto& Predicate = [ & ]( const EHandActorSide Check )
+	{
+		if ( EnumHasAnyFlags( WhichHand, Check ) )
+		{
+			AActor* TargetActor = nullptr;
+			if ( EnumHasAnyFlags( WhichHand, EHandActorSide::Left ) )
+			{
+				TargetActor = CachedHandInterface->GetLeftHandChildActorComponent()->GetChildActor();
+			}
+			else if ( EnumHasAnyFlags( WhichHand, EHandActorSide::Right ) )
+			{
+				TargetActor = CachedHandInterface->GetRightHandChildActorComponent()->GetChildActor();
+			}
+
+			if ( TargetActor )
+			{
+				FireOnce( TargetActor->GetComponentByClass<UNAMontageCombatComponent>() );	
+			}
+		}
+	};
+	
+	const TArray ToCheck { EHandActorSide::Left, EHandActorSide::Right };
+	for ( const EHandActorSide Check : ToCheck )
+	{
+		Predicate( Check );
+	}
+}
+
+void UNAGA_FireGun::FireOnce( UNAMontageCombatComponent* CombatComponent )
+{
 	if ( !CombatComponent )
 	{
-		EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
 		return;
 	}
 
-	if ( HasAuthority( &ActivationInfo ) )
+	const FVector HeadLocation = GetActorInfo().AvatarActor->GetComponentByClass<USkeletalMeshComponent>()->GetSocketLocation(
+		INAHandActor::HeadSocketName );
+	const FVector ForwardVector = GetActorInfo().PlayerController->GetControlRotation().Vector().GetSafeNormal();
+	const FVector EndLocation = HeadLocation + ForwardVector * 1000.f; // todo: Range 하드코딩
+
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.AddIgnoredActor( GetActorInfo().AvatarActor.Get() );
+	CollisionParams.AddIgnoredActor( CombatComponent->GetOwner() );
+	
+	FGameplayEffectContextHandle ContextHandle = GetCurrentActorInfo()->AbilitySystemComponent->MakeEffectContext();
+	ContextHandle.AddInstigator(GetCurrentActorInfo()->OwnerActor.Get(), GetCurrentActorInfo()->AvatarActor.Get());
+	ContextHandle.SetAbility(this);
+
+	TArray<FHitResult> HitResults;
+	float SphereSize = 30.f;
+	FCollisionShape SweepShape = FCollisionShape::MakeSphere( SphereSize ); // 또는 MakeBox, MakeCapsule 등
+	bool bMultiHit = GetWorld()->SweepMultiByChannel( HitResults, HeadLocation, EndLocation, FQuat::Identity, ECC_Pawn,
+	                                                  SweepShape, CollisionParams );
+
+	const FGameplayAbilityActivationInfo& Info = GetCurrentActivationInfo();
+	if ( HasAuthority( &Info ) )
 	{
-		FGameplayEffectContextHandle ContextHandle = ActorInfo->AbilitySystemComponent->MakeEffectContext();
-		ContextHandle.AddInstigator(ActorInfo->OwnerActor.Get(), ActorInfo->AvatarActor.Get());
-		ContextHandle.SetAbility(this);
-
-		const UWorld* World = ActorInfo->OwnerActor->GetWorld();
-		const APawn* ControlledPawn = Cast<APawn>( ActorInfo->OwnerActor );
-
-		if ( !ControlledPawn )
+		if ( !HitResults.IsEmpty() )
 		{
-			EndAbility( Handle, ActorInfo, ActivationInfo, true, false );
-			return;
-		}
-		
-		const FVector HeadLocation = ControlledPawn->GetComponentByClass<USkeletalMeshComponent>()->GetSocketLocation(INAHandActor::HeadSocketName);
-		const FVector ForwardVector = ControlledPawn->Controller->GetControlRotation().Vector().GetSafeNormal();
-		const FVector EndLocation = HeadLocation + ForwardVector * 1000.f; // todo: Range 하드코딩
-
-		FCollisionQueryParams CollisionParams;
-		CollisionParams.AddIgnoredActor( ControlledPawn );
-		CollisionParams.AddIgnoredActor( ActorInfo->AvatarActor.Get() );
-
-		FHitResult Result;
-		//bool bHit = World->LineTraceSingleByChannel( Result, HeadLocation, EndLocation, ECC_Pawn, CollisionParams );
-
-
-		TArray<FHitResult> HitResults;
-		float SphereSize = 30.f;
-		FCollisionShape SweepShape = FCollisionShape::MakeSphere(SphereSize); // 또는 MakeBox, MakeCapsule 등
-		bool bMultiHit = GetWorld()->SweepMultiByChannel(HitResults, HeadLocation, EndLocation, FQuat::Identity, ECC_Pawn, SweepShape, CollisionParams);
-		if (!HitResults.IsEmpty())
-		{
-			for (const FHitResult HitResult : HitResults)
+			for ( const FHitResult HitResult : HitResults )
 			{
-				if (TScriptInterface<IAbilitySystemInterface> TargetInterface = HitResult.GetActor())
+				if ( TScriptInterface<IAbilitySystemInterface> TargetInterface = HitResult.GetActor() )
 				{
-					FGameplayEffectSpecHandle SpecHandle = ActorInfo->AbilitySystemComponent->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1.f, ContextHandle);
-					SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(TEXT("Data.Damage")), -CombatComponent->GetBaseDamage());
-					ActorInfo->AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetInterface->GetAbilitySystemComponent());
+					FGameplayEffectSpecHandle SpecHandle = GetCurrentActorInfo()->AbilitySystemComponent->MakeOutgoingSpec(
+						UNAGE_Damage::StaticClass(), 1.f, ContextHandle );
+					SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( TEXT( "Data.Damage" ) ),
+															  -CombatComponent->GetBaseDamage() );
+					GetCurrentActorInfo()->AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(
+						*SpecHandle.Data.Get(), TargetInterface->GetAbilitySystemComponent() );
 #if WITH_EDITOR || UE_BUILD_DEBUG
 					DrawDebugSphere(
 						GetWorld(),
-						HitResult.ImpactPoint,     // 또는 Hit.Location
+						HitResult.ImpactPoint, // 또는 Hit.Location
 						SphereSize,
 						12,
 						FColor::Green,
@@ -128,53 +170,164 @@ void UNAGA_FireGun::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 						1.5f
 					);
 #endif
-
 				}
 			}
 		}
-		bool bHit = World->LineTraceSingleByProfile(Result, HeadLocation, EndLocation, TEXT("FireGun"), CollisionParams);
-		bool FinalPrediction = bHit || Result.IsValidBlockingHit();
-		//if ( FinalPrediction )
-		//{
-		//    ContextHandle.AddHitResult(Result, true);
-		//    if ( TScriptInterface<IAbilitySystemInterface> TargetInterface = Result.GetActor() )
-		//    {
-		//        FGameplayEffectSpecHandle SpecHandle = ActorInfo->AbilitySystemComponent->MakeOutgoingSpec(UNAGE_Damage::StaticClass(), 1.f, ContextHandle);
-		//        SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( TEXT( "Data.Damage" ) ), -CombatComponent->GetBaseDamage() );
-		//        ActorInfo->AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetInterface->GetAbilitySystemComponent());
-		//    }
-		//}
+	}
+
+	FHitResult Result;
+	bool bHit = GetWorld()->
+		LineTraceSingleByProfile( Result, HeadLocation, EndLocation, TEXT( "FireGun" ), CollisionParams );
+	bool FinalPrediction = bHit || Result.IsValidBlockingHit();
 
 #if WITH_EDITOR || UE_BUILD_DEBUG
-		DrawDebugLine( GetWorld(), HeadLocation, EndLocation, FinalPrediction ? FColor::Green : FColor::Red, false, 2.f );
+	DrawDebugLine( GetWorld(), HeadLocation, EndLocation, FinalPrediction ? FColor::Green : FColor::Red, false, 2.f );
 #endif
 
-		if ( USkeletalMeshComponent* MeshComponent = ControlledPawn->GetComponentByClass<USkeletalMeshComponent>() )
+	if ( HasAuthority( &Info ))
+	{
+		if ( USkeletalMeshComponent* MeshComponent = GetCurrentActorInfo()->AvatarActor->GetComponentByClass<USkeletalMeshComponent>() )
 		{
 			if ( UAnimInstance* AnimInstance = MeshComponent->GetAnimInstance() )
 			{
 				AnimInstance->OnMontageEnded.AddUniqueDynamic( this, &UNAGA_FireGun::OnMontageEnded );
 			}
+		}	
+	}
+
+	MontageToCheck.Emplace( CombatComponent->GetMontage() );
+	
+	FGameplayCueParameters Parameters;
+	Parameters.Instigator = GetCurrentActorInfo()->AvatarActor;
+	Parameters.SourceObject = CombatComponent->GetOwner();
+	if ( FinalPrediction )
+	{
+		Parameters.Normal = Result.Normal;
+		Parameters.Location = Result.Location;
+	}
+	else
+	{
+		Parameters.Normal = ForwardVector;
+		Parameters.Location = EndLocation;
+	}
+	
+	GetCurrentActorInfo()->AbilitySystemComponent->ExecuteGameplayCue(
+		FGameplayTag::RequestGameplayTag( TEXT( "GameplayCue.Gun.Fire" ) ), Parameters );
+}
+
+UNAMontageCombatComponent* UNAGA_FireGun::GetCombatComponent( const UChildActorComponent* InChildActorComponent )
+{
+	if ( InChildActorComponent && InChildActorComponent->GetChildActor() )
+	{
+		return InChildActorComponent->GetChildActor()->GetComponentByClass<UNAMontageCombatComponent>();
+	}
+
+	return nullptr;
+}
+
+UNAMontageCombatComponent* UNAGA_FireGun::GetCombatComponent( EHandActorSide InHandActorSide ) const
+{
+	switch ( InHandActorSide )
+	{
+	case EHandActorSide::None:
+		return nullptr;
+	case EHandActorSide::Left:
+		return GetCombatComponent( CachedHandInterface->GetLeftHandChildActorComponent() );
+	case EHandActorSide::Right:
+		return GetCombatComponent( CachedHandInterface->GetRightHandChildActorComponent() );
+	}
+
+	return nullptr;
+}
+
+void UNAGA_FireGun::ActivateAbility( const FGameplayAbilitySpecHandle Handle,
+                                     const FGameplayAbilityActorInfo* ActorInfo,
+                                     const FGameplayAbilityActivationInfo ActivationInfo,
+                                     const FGameplayEventData* TriggerEventData )
+{
+	if ( HasAuthorityOrPredictionKey( ActorInfo, &ActivationInfo ) )
+	{
+		if ( !CommitAbility( Handle, ActorInfo, ActivationInfo ) )
+		{
+			EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
+			return;
 		}
 
-		FGameplayCueParameters Parameters;
-		Parameters.Instigator = GetAvatarActorFromActorInfo();
-		if ( FinalPrediction )
+		CachedHandInterface = ActorInfo->AvatarActor.Get();
+
+		if ( HasAuthority( &ActivationInfo ) )
 		{
-			Parameters.Normal = Result.Normal;
-			Parameters.Location = Result.Location;	
+			bool HasAmmoConsumed = false;
+			const AActor* Left = CachedHandInterface->GetLeftHandChildActorComponent()->GetChildActor();
+			const AActor* Right = CachedHandInterface->GetRightHandChildActorComponent()->GetChildActor();
+				
+			if ( Left != nullptr && EnumHasAnyFlags( WhichHand, EHandActorSide::Left ) )
+			{
+				const UNAMontageCombatComponent* LeftCombatComponent = Left->GetComponentByClass<UNAMontageCombatComponent>();
+				HasAmmoConsumed = ConsumeAmmo(  ActorInfo->AbilitySystemComponent.Get(), LeftCombatComponent->GetAmmoType() );
+			}
+			if ( !HasAmmoConsumed && Right != nullptr && EnumHasAnyFlags( WhichHand, EHandActorSide::Right ) )
+			{
+				const UNAMontageCombatComponent* RightCombatComponent = Right->GetComponentByClass<UNAMontageCombatComponent>();
+				ConsumeAmmo( ActorInfo->AbilitySystemComponent.Get(), RightCombatComponent->GetAmmoType() );
+			}
+		}
+
+		const APawn* ControlledPawn = Cast<APawn>( ActorInfo->AvatarActor );
+		UAbilitySystemComponent* AbilitySystemComponent = ControlledPawn->GetComponentByClass<UAbilitySystemComponent>();
+		
+		if ( !ControlledPawn || !AbilitySystemComponent )
+		{
+			EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
+			return;
+		}
+		
+		FGameplayTagContainer FailingTags;
+		FailingTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.KnockDown" ) );
+		FailingTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Dead" ) );
+		FailingTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Stun" ) );
+
+		if ( AbilitySystemComponent->HasAnyMatchingGameplayTags( FailingTags ) )
+		{
+			EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
+			return;
+		}
+
+		const UNAMontageCombatComponent* CombatComponent = GetCombatComponent( WhichHand );
+		
+		const FVector PawnForwardVector = ControlledPawn->GetActorForwardVector();
+		const FRotator ControlForwardVector = { 0, CombatComponent->GetAttackOrientation().Yaw, 0 };
+		const float Delta = ControlForwardVector.Vector().Dot( PawnForwardVector );
+		
+		if ( !FMath::IsNearlyEqual( Delta, 1, 0.1f ) )
+		{
+			UE_LOG( LogTemp, Log, TEXT("[%hs]: Rotation required %d"), __FUNCTION__, GetWorld()->GetNetMode() );
+			if ( WaitRotationTask )
+			{
+				WaitRotationTask->EndTask();
+				WaitRotationTask = nullptr;
+			}
+			
+			WaitRotationTask = UNAAT_WaitRotation::WaitRotation( this, TEXT( "WaitRotationForFireGun" ),
+			                                                     ControlForwardVector.Quaternion() );
+			WaitRotationTask->OnRotationCompleted.BindDynamic( this, &UNAGA_FireGun::OnRotationCompleted );
+			WaitRotationTask->ReadyForActivation();
+			
+			if ( HasAuthority( &ActivationInfo ) )
+			{
+				AbilitySystemComponent->RegisterGameplayTagEvent(
+					FGameplayTag::RequestGameplayTag( "Player.Status.KnockDown" ) ).AddUObject(
+					this, &UNAGA_FireGun::CancelAbilityProxy );
+				AbilitySystemComponent->RegisterGameplayTagEvent( FGameplayTag::RequestGameplayTag( "Player.Status.Dead" ) )
+									  .AddUObject( this, &UNAGA_FireGun::CancelAbilityProxy );
+				AbilitySystemComponent->RegisterGameplayTagEvent( FGameplayTag::RequestGameplayTag( "Player.Status.Stun" ) )
+									  .AddUObject( this, &UNAGA_FireGun::CancelAbilityProxy );
+			}
 		}
 		else
 		{
-			Parameters.Normal = ForwardVector;
-			Parameters.Location = EndLocation;
-		}
-		ActorInfo->AbilitySystemComponent->ExecuteGameplayCue( FGameplayTag::RequestGameplayTag( TEXT( "GameplayCue.Gun.Fire" ) ), Parameters );
-	}
-
-	if ( const TScriptInterface<IAbilitySystemInterface> Interface = ActorInfo->OwnerActor.Get() )
-	{
-		Interface->GetAbilitySystemComponent()->PlayMontage( this, ActivationInfo, CombatComponent->GetMontage(), CombatComponent->GetMontagePlayRate() );
+			Fire();
+		}	
 	}
 }
 
@@ -183,28 +336,46 @@ bool UNAGA_FireGun::CommitAbility(const FGameplayAbilitySpecHandle Handle, const
 {
 	bool bResult = true;
 	
-	if ( const TScriptInterface<INAHandActor> HandActor = ActorInfo->OwnerActor.Get() )
+	if ( const TScriptInterface<INAHandActor>& HandActor = ActorInfo->AvatarActor.Get() )
 	{
-		bool HasAmmoConsumed = false;
+		bool bCanConsume = false;
 		const AActor* Left = HandActor->GetLeftHandChildActorComponent()->GetChildActor();
 		const AActor* Right = HandActor->GetRightHandChildActorComponent()->GetChildActor();
-
-		const TScriptInterface<IAbilitySystemInterface> AbilityInterface = ActorInfo->OwnerActor.Get();
 		
 		if ( Left )
 		{
 			const UNAMontageCombatComponent* LeftCombatComponent = Left->GetComponentByClass<UNAMontageCombatComponent>();
-			HasAmmoConsumed = ConsumeAmmo( AbilityInterface->GetAbilitySystemComponent(), LeftCombatComponent->GetAmmoType() );
+			bCanConsume = GetRemainingAmmo( ActorInfo->AbilitySystemComponent.Get(), LeftCombatComponent->GetAmmoType() ) > 0;
+			if ( bCanConsume )
+			{
+				EnumAddFlags( WhichHand, EHandActorSide::Left );	
+			}
 		}
-		if ( !HasAmmoConsumed && Right )
+		if ( !bCanConsume && Right )
 		{
 			const UNAMontageCombatComponent* RightCombatComponent = Right->GetComponentByClass<UNAMontageCombatComponent>();
-			HasAmmoConsumed = ConsumeAmmo( AbilityInterface->GetAbilitySystemComponent(), RightCombatComponent->GetAmmoType() );
+			bCanConsume = GetRemainingAmmo( ActorInfo->AbilitySystemComponent.Get(), RightCombatComponent->GetAmmoType() ) > 0;
+			EnumAddFlags( WhichHand, EHandActorSide::Right );	
 		}
 
 		bResult &= Left || Right;
-		bResult &= HasAmmoConsumed;
+		bResult &= bCanConsume;
 	}
 
 	return bResult;
+}
+
+void UNAGA_FireGun::EndAbility( const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled )
+{
+	Super::EndAbility( Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled );
+
+	MontageToCheck.Empty();
+	WhichHand = EHandActorSide::None;
+	
+	if ( WaitRotationTask )
+	{
+		WaitRotationTask->EndTask();
+		WaitRotationTask = nullptr;
+	}
 }

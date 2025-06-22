@@ -110,12 +110,6 @@ void ANAPlayerState::UpdatePossessAssetByName()
 	{
 		Interface->SetAssetName( PossessAssetName );
 	}
-
-	// 중간에 에셋이 바뀐 경우이니, 다시 ASC를 업데이트
-	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = GetPawn() )
-	{
-		Interface->GetAbilitySystemComponent()->InitAbilityActorInfo( this, GetPawn() );
-	}
 }
 
 void ANAPlayerState::OnPlayerStatusChanged( ECharacterStatus Old, ECharacterStatus New )
