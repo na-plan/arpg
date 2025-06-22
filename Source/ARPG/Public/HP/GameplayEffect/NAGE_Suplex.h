@@ -6,6 +6,7 @@
 #include "GameplayEffect.h"
 #include "NAGE_Suplex.generated.h"
 
+class UTargetTagsGameplayEffectComponent;
 class UAssetTagsGameplayEffectComponent;
 /**
  * 
