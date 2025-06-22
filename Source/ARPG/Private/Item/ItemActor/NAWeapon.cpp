@@ -49,19 +49,30 @@ void ANAWeapon::BeginPlay()
 	
 	MuzzleFlashComponent->SetActive( false );
 
-	if ( !HasAuthority() )
+	if ( const USceneComponent* ParentActorComponent = GetParentComponent() )
 	{
-		if ( AActor* Actor = GetAttachParentActor() )
+		if ( AActor* OwningActor = ParentActorComponent->GetOwner() )
 		{
-			AbilitySystemComponent->InitAbilityActorInfo( Actor, this );
+			SetOwner( OwningActor );
 
-			// 클라이언트에 Child Actor 리플리케이션이 발생한 경우에 대한 대응
-			// 만약 해당 무기 액터의 소유권자가 클라이언트 자신이라면 공격 Ability 부여 요청을 재시도
-			if ( const APawn* Pawn = Cast<APawn>( Actor );
-				 Pawn->GetController() == GetWorld()->GetFirstPlayerController() )
+			if ( const APawn* Pawn = Cast<APawn>( OwningActor );
+				 Pawn->IsLocallyControlled() )
 			{
 				CombatComponent->Server_RequestAttackAbility();
 			}
+		}
+	}
+	
+	if ( AActor* Actor = GetAttachParentActor() )
+	{
+		AbilitySystemComponent->InitAbilityActorInfo( Actor, this );
+
+		// 클라이언트에 Child Actor 리플리케이션이 발생한 경우에 대한 대응
+		// 만약 해당 무기 액터의 소유권자가 클라이언트 자신이라면 공격 Ability 부여 요청을 재시도
+		if ( const APawn* Pawn = Cast<APawn>( Actor );
+			 Pawn->IsLocallyControlled() )
+		{
+			CombatComponent->Server_RequestAttackAbility();
 		}
 	}
 }

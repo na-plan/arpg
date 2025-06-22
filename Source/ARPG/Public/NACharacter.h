@@ -84,7 +84,10 @@ class ANACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_Zoom, Category = "AnimInstance", meta = (AllowPrivateAccess = "true"))
 	bool bIsZoom;
 
-	
+	bool bStopOverrideControlRotation;
+
+	FRotator CustomControlRotation;
+
 // Default MappingContext & Input Actions //////////////////////////////////////////////////////////////////////////////
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Default Input", meta = (AllowPrivateAccess = "true"))
@@ -167,9 +170,11 @@ public:
 
 	FRotator GetReplicatedControlRotation() const;
 
+	void SetStopOverrideControlRotation( bool bFlag, const FRotator& Rotator );
+
 protected:
-	void SetChildActorOwnership( AActor* Actor );
-	
+	void InitializeChildActor( AActor* Actor );
+
 	virtual void SetAssetNameDerivedImplementation(const FName& InAssetName) override { AssetName = InAssetName; }
 
 	virtual FName GetAssetName() const override { return AssetName; }
@@ -177,6 +182,8 @@ protected:
 	virtual void RetrieveAsset(const AActor* InCDO) override;
 
 	virtual void OnRep_PlayerState() override;
+
+	virtual	void FaceRotation(FRotator NewControlRotation, float DeltaTime = 0) override;
 
 	// 블루프린트 타입 CDO로부터 컴포넌트 부착 정보를 알아올 수 없음
 	// 모든 네이티브 및 블루프린트 정보가 적용된 후 호출하여 구조를 유지
@@ -281,7 +288,7 @@ protected:
 	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
 
 	bool PredicateControlRotationReplication() const;
-
+	
 	virtual void PossessedBy(AController* NewController) override;
 
 	UFUNCTION( Server, Reliable )

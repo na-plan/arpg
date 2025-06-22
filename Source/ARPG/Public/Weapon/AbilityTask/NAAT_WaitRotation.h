@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/Tasks/AbilityTask.h"
-#include "NAGA_WaitRotation.generated.h"
+#include "NAAT_WaitRotation.generated.h"
 
 DECLARE_DYNAMIC_DELEGATE( FOnRotationCompleted );
 
@@ -18,12 +18,22 @@ class ARPG_API UNAAT_WaitRotation : public UAbilityTask
 	
 	FQuat TargetRotation;
 
+	FRotator TargetRotator;
+
+	FVector TargetForward;
+
+	void Rotate();
+	
 public:
 	
 	UNAAT_WaitRotation();
 	
 	virtual void Activate() override;
 
+	void ForceRotate() const;
+	
+	virtual void OnDestroy(bool bInOwnerFinished) override;
+	
 	virtual void TickTask(float DeltaTime) override;
 	
 	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "true"))
