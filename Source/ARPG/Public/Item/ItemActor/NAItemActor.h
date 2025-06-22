@@ -34,8 +34,8 @@ public:
 	virtual void PostLoad() override;
 	virtual void PostActorCreated() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
-
 	virtual void Destroyed() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -149,6 +149,7 @@ protected:
 private:
 	void InitItemData();
 	void VerifyInteractableData();
+	void UpdatePhysics();
 
 protected:
 	// Optional Subobject
@@ -158,6 +159,10 @@ protected:
 
 	// Optional Subobject
 	uint8 bWasItemMeshCreated :1 = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category="Item Actor | Collision")
+	bool bWasChildActor = false;
+	
 	UPROPERTY(Instanced, VisibleAnywhere, Category = "Item Actor | Mesh")
 	TObjectPtr<UMeshComponent> ItemMesh;
 
