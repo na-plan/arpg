@@ -7,6 +7,7 @@
 #include "NiagaraComponent.h"
 #include "Abilities/GameplayAbility.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
+#include "Item/ItemDataStructs/NAWeaponDataStructs.h"
 #include "Net/UnrealNetwork.h"
 #include "Weapon/WidgetComponent/NAAmmoIndicatorComponent.h"
 
@@ -36,6 +37,11 @@ ANAWeapon::ANAWeapon() : ANAPickableItemActor(FObjectInitializer::Get())
 		AmmoIndicatorComponent->AttachToComponent( ItemMesh, FAttachmentTransformRules::KeepRelativeTransform, TEXT("Indicator") );
 		MuzzleFlashComponent->AttachToComponent( ItemMesh, FAttachmentTransformRules::KeepRelativeTransform, TEXT( "Muzzle" ) );
 	}
+}
+
+EFireArmType ANAWeapon::GetFireArmType() const
+{
+	return FireArmType;
 }
 
 // Called when the game starts or when spawned
@@ -105,6 +111,11 @@ void ANAWeapon::OnConstruction( const FTransform& Transform )
 		}
 		
 		AmmoIndicatorComponent->AttachToComponent( ItemMesh, FAttachmentTransformRules::KeepRelativeTransform, TEXT("Indicator") );	
+	}
+
+	if ( const FNAWeaponTableRow* WeaponTable = static_cast<const FNAWeaponTableRow*>( UNAItemEngineSubsystem::Get()->GetItemMetaDataByClass( GetClass() ) ) )
+	{
+		FireArmType = WeaponTable->FirearmStatistics.FireArmType;
 	}
 }
 

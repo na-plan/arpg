@@ -9,6 +9,7 @@
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "NAWeapon.generated.h"
 
+enum class EFireArmType : uint8;
 class UNAAmmoIndicatorComponent;
 class UGameplayEffect;
 class UNiagaraComponent;
@@ -34,10 +35,16 @@ class ARPG_API ANAWeapon : public ANAPickableItemActor, public IAbilitySystemInt
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category="Widget", meta=(AllowPrivateAccess="true"))
 	UNAAmmoIndicatorComponent* AmmoIndicatorComponent;
 
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category="Combat", meta=(AllowPrivateAccess="true") )
+	EFireArmType FireArmType;
+
 public:
 	// Sets default values for this actor's properties
 	ANAWeapon();
 
+	UFUNCTION(BlueprintCallable)
+	EFireArmType GetFireArmType() const;
+	
 	FORCEINLINE virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent; }
 
 protected:
