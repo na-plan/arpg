@@ -187,3 +187,9 @@ bool UNAItemData::GetInteractableData(FNAInteractableData& OutData) const
 	}
 	return false;
 }
+
+bool UNAItemData::IsCurrencyItem() const
+{
+	return GetItemType() == EItemType::IT_UpgradeNode
+		|| GetItemType() == EItemType::IT_Credit;
+}

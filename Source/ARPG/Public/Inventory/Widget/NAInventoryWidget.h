@@ -68,19 +68,14 @@ protected:
 public:
 	bool HaveInvenSlotWidgetsBound() const { return bHaveInvenSlotsMapped; }
 	bool HaveWeaponSlotWidgetsBound() const { return bHaveWeaponSlotsMapped; }
-
-	void SetOwningInventoryComponent(class UNAInventoryComponent* InInventoryComponent)
-	{
-		if (InInventoryComponent != nullptr)
-		{
-			OwningInventoryComponent = InInventoryComponent;
-		}
-	}
+	
 	void ReleaseInventoryWidget();
 	void CollapseInventoryWidget();
 
 protected:
 	friend class UNAInventoryComponent;
+
+	virtual void InitInventoryWidget(UNAInventoryComponent* OwningWidgetComp);
 	
 	bool ParseSlotIDToInvenGrid(const FName& SlotID, int32& OutRow, int32& OutCol) const;
 	bool ParseSlotIDToWeaponIndex(const FName& SlotID, int32& OutIndex) const;
@@ -98,6 +93,9 @@ protected:
 	UButton* GetWeaponSlotButton(const FName& SlotID) const;
 
 	void RefreshSingleSlotWidget(const FName& SlotID, const UNAItemData* SlotData);
+
+	void RefreshNodesQuantityWidget(const FText& NewQty);
+	void RefreshCreditsQuantityWidget(const FText& NewQty);
 	
 	void RefreshSlotWidgets(const TMap<FName, TWeakObjectPtr<UNAItemData>>& InventoryItems,
 		const TMap<FName, TWeakObjectPtr<UNAItemData>>& WeaponItems);
@@ -418,7 +416,7 @@ protected:
 	TObjectPtr<UImage> Nodes_Icon;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Nodes Menu")
-	TObjectPtr<UTextBlock> Nodes_Desc;
+	TObjectPtr<UTextBlock> Nodes_Qty;
 
 	// Credits Menu ////////////////////////////////////////////////////////////////////////////////////////////////////
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Credits Menu")

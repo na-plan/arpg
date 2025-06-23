@@ -498,6 +498,19 @@ void UNAInventoryWidget::CollapseInventoryWidget()
 	PlayAnimationReverse(Widget_Appear, 1.3f);
 }
 
+void UNAInventoryWidget::InitInventoryWidget(UNAInventoryComponent* OwningWidgetComp)
+{
+	if (!OwningWidgetComp) return;
+
+	OwningInventoryComponent = OwningWidgetComp;
+	
+	FText NodesQtyText = FText::AsNumber(OwningInventoryComponent->GetNodesCount());
+	FText CreditsQtyText = FText::AsNumber(OwningInventoryComponent->GetCreditsCount());
+	
+	RefreshNodesQuantityWidget(NodesQtyText);
+	RefreshCreditsQuantityWidget(CreditsQtyText);
+}
+
 void UNAInventoryWidget::OnInventoryWidgetCollapsed()
 {
 	if (!OwningInventoryComponent || !Widget_Appear) return;
@@ -747,6 +760,7 @@ void UNAInventoryWidget::OnItemSlotFocusReceived(UButton* Button)
 					// 아이템 Desc title에 띄울 아이콘은 일단 보류
 					Item_Desc_Name_Title->SetText(FText::FromString(ItemData->GetItemName()));
 					Item_Desc_Content->SetText(ItemData->GetItemDescription());
+					InvalidateLayoutAndVolatility();
 					if (!Item_Desc_Menu->IsVisible())
 					{
 						Item_Desc_Menu->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
@@ -755,10 +769,6 @@ void UNAInventoryWidget::OnItemSlotFocusReceived(UButton* Button)
 							bReleaseItemDesc = true;
 							PlayAnimationForward(Item_Desc_Popup);
 						}
-					}
-					else
-					{
-						InvalidateLayoutAndVolatility();
 					}
 				}
 			}
@@ -847,6 +857,24 @@ void UNAInventoryWidget::RefreshSingleSlotWidget(const FName& SlotID, const UNAI
 	}
 	
 	InvalidateLayoutAndVolatility();
+}
+
+void UNAInventoryWidget::RefreshNodesQuantityWidget(const FText& NewQty)
+{
+	if (Nodes_Qty)
+	{
+		Nodes_Qty->SetText(NewQty);
+		InvalidateLayoutAndVolatility();
+	}
+}
+
+void UNAInventoryWidget::RefreshCreditsQuantityWidget(const FText& NewQty)
+{
+	if (Credits_Qty)
+	{
+		Credits_Qty->SetText(NewQty);
+		InvalidateLayoutAndVolatility();
+	}
 }
 
 void UNAInventoryWidget::RefreshSlotWidgets(const TMap<FName, TWeakObjectPtr<UNAItemData>>& InventoryItems

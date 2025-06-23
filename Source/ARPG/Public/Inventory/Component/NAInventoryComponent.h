@@ -205,6 +205,8 @@ protected:
 	FNAItemAddResult AddStackableItem(UNAItemData* InputItem, const TArray<FName>& PartialSlots,
 	                                  const TArray<FName>& EmptySlots);
 
+	FNAItemAddResult AddCurrencyItem(UNAItemData* InputItem);
+
 private:
 	UFUNCTION(BlueprintCallable, Category = "Inventory Component")
 	bool HandleAddNewItem(UNAItemData* NewItemToAdd, const FName& SlotID);
@@ -307,6 +309,12 @@ protected:
 
 	// @TODO: 장착 중인 수트의 레벨에 따라 인벤토리의 총 용량이 달라지도록
 
+	UPROPERTY(VisibleAnywhere, Category = "Inventory Component")
+	int32 NodesCount = 0;
+
+	UPROPERTY(VisibleAnywhere, Category = "Inventory Component")
+	int32 CreditsCount = 0;
+
 public:
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //  Inventory Widget  ///////////////////////////////////////////////////////////////////////////////
@@ -326,4 +334,10 @@ public:
 	void SelectInventorySlotButton();
 
 	void RequestRedrawSingleSlot(UNAItemData* ItemData);
+
+	void RequestRedrawNodesQuantity();
+	void RequestRedrawCreditsQuantity();
+
+	int32 GetNodesCount() const { return NodesCount; }
+	int32 GetCreditsCount() const { return CreditsCount; }
 };
