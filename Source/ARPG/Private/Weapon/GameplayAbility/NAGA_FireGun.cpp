@@ -47,26 +47,7 @@ bool UNAGA_FireGun::ConsumeAmmo( UAbilitySystemComponent* InAbilitySystemCompone
 
 void UNAGA_FireGun::OnMontageEnded( UAnimMontage* AnimMontage, bool bInterrupted )
 {
-	if ( const FGameplayAbilityActorInfo* ActorInfo = GetCurrentActorInfo() )
-	{
-		if ( MontageToCheck.Contains( AnimMontage ) && !bInterrupted )
-		{
-			MontageToCheck.Remove( AnimMontage );
-		}
-
-		if ( MontageToCheck.IsEmpty() )
-		{
-			if ( const USkeletalMeshComponent* MeshComponent = ActorInfo->OwnerActor->GetComponentByClass<USkeletalMeshComponent>() )
-			{
-				if ( UAnimInstance* AnimInstance = MeshComponent->GetAnimInstance() )
-				{
-					AnimInstance->OnMontageEnded.RemoveAll( this );
-				}
-			}
-			
-			EndAbility( GetCurrentAbilitySpecHandle(), ActorInfo, GetCurrentActivationInfo(), true, false );
-		}
-	}
+	EndAbility( GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, bInterrupted );
 }
 
 void UNAGA_FireGun::CancelAbilityProxy( FGameplayTag GameplayTag, int Count )
@@ -180,19 +161,6 @@ void UNAGA_FireGun::FireOnce( UNAMontageCombatComponent* CombatComponent )
 #if WITH_EDITOR || UE_BUILD_DEBUG
 	DrawDebugLine( GetWorld(), HeadLocation, EndLocation, FinalPrediction ? FColor::Green : FColor::Red, false, 2.f );
 #endif
-
-	if ( HasAuthority( &Info ))
-	{
-		if ( USkeletalMeshComponent* MeshComponent = GetCurrentActorInfo()->AvatarActor->GetComponentByClass<USkeletalMeshComponent>() )
-		{
-			if ( UAnimInstance* AnimInstance = MeshComponent->GetAnimInstance() )
-			{
-				AnimInstance->OnMontageEnded.AddUniqueDynamic( this, &UNAGA_FireGun::OnMontageEnded );
-			}
-		}	
-	}
-
-	MontageToCheck.Emplace( CombatComponent->GetMontage() );
 	
 	FGameplayCueParameters Parameters;
 	Parameters.Instigator = GetCurrentActorInfo()->AvatarActor;
@@ -210,6 +178,17 @@ void UNAGA_FireGun::FireOnce( UNAMontageCombatComponent* CombatComponent )
 	
 	GetCurrentActorInfo()->AbilitySystemComponent->ExecuteGameplayCue(
 		FGameplayTag::RequestGameplayTag( TEXT( "GameplayCue.Gun.Fire" ) ), Parameters );
+
+	if ( HasAuthority( &Info ))
+	{
+		if ( USkeletalMeshComponent* MeshComponent = GetCurrentActorInfo()->AvatarActor->GetComponentByClass<USkeletalMeshComponent>() )
+		{
+			if ( UAnimInstance* AnimInstance = MeshComponent->GetAnimInstance() )
+			{
+				AnimInstance->Montage_GetEndedDelegate( CombatComponent->GetMontage() )->BindUObject( this, &UNAGA_FireGun::OnMontageEnded );
+			}
+		}
+	}
 }
 
 UNAMontageCombatComponent* UNAGA_FireGun::GetCombatComponent( const UChildActorComponent* InChildActorComponent )
@@ -367,7 +346,6 @@ void UNAGA_FireGun::EndAbility( const FGameplayAbilitySpecHandle Handle, const F
 {
 	Super::EndAbility( Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled );
 
-	MontageToCheck.Empty();
 	WhichHand = EHandActorSide::None;
 	
 	if ( WaitRotationTask )

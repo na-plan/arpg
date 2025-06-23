@@ -50,9 +50,6 @@ class ARPG_API UNAGA_FireGun : public UGameplayAbility
 
 	EHandActorSide WhichHand;
 
-	UPROPERTY()
-	TArray<UAnimMontage*> MontageToCheck;
-
 	TScriptInterface<INAHandActor> CachedHandInterface;
 
 protected:
