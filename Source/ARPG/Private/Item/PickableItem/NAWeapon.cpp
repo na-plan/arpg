@@ -52,6 +52,12 @@ void ANAWeapon::BeginPlay()
 	// 몽타주랑 공격이 설정되어 있는지 확인
 	check( CombatComponent->GetMontage() && CombatComponent->GetAttackAbility() );
 	CombatComponent->SetActive( true );
+
+	MuzzleFlashComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+	MuzzleFlashComponent->SetGenerateOverlapEvents( false );
+
+	AmmoIndicatorComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+	AmmoIndicatorComponent->SetGenerateOverlapEvents( false );
 	
 	MuzzleFlashComponent->SetActive( false );
 
