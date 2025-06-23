@@ -70,8 +70,7 @@ bool ANAPlaceableItemActor_Door::ExecuteInteract_Implementation(AActor* Interact
 {
 	Super::ExecuteInteract_Implementation(Interactor);
 
-	//ActiveDoor();
-	ToggleDoor();
+	Server_ToggleDoor();
 	return true;
 }
 
@@ -277,6 +276,17 @@ void ANAPlaceableItemActor_Door::ToggleDoor()
 				LatentInfo
 			);
 	}
+}
+
+void ANAPlaceableItemActor_Door::Server_ToggleDoor_Implementation()
+{
+	ToggleDoor();
+	Multi_ToggleDoor();
+}
+
+void ANAPlaceableItemActor_Door::Multi_ToggleDoor_Implementation()
+{
+	ToggleDoor();
 }
 
 void ANAPlaceableItemActor_Door::OnDoorOpeningFinished()

@@ -20,6 +20,8 @@ DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(bool, FOnGimicClear, AActor*, InActor);
 UCLASS()
 class ARPG_API ANAPlaceableItemActor_Door : public ANAPlaceableItemActor
 {
+	friend class ANAPlayerController;
+	
 	GENERATED_BODY()
 	
 public:
@@ -52,6 +54,12 @@ private:
 
 	void ToggleDoor();
 
+	UFUNCTION( Server, Reliable )
+	void Server_ToggleDoor();
+
+	UFUNCTION( NetMulticast, Reliable )
+	void Multi_ToggleDoor();
+	
 	UFUNCTION()
 	void OnDoorOpeningFinished();
 	UFUNCTION()
