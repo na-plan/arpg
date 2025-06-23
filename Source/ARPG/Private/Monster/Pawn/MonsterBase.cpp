@@ -114,14 +114,16 @@ void AMonsterBase::BeginPlay()
 
 	//TSubclassOf<AAIController> MainAIControllerClass = AMonsterAIController::StaticClass();
 	//AIControllerClass = MainAIControllerClass;
-
-	if (AbilitySystemComponent) 
+	if (HasAuthority())
 	{
-		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_MonsterAttack::StaticClass(), 1, 0));
-		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_Spawning::StaticClass(), 1, 0));
-		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_UseSkill::StaticClass(), 1, 0));
-		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UNAGA_Death::StaticClass(), 1, 0));
-		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UNAGA_Suplexed::StaticClass(), 1, 0));
+		if (AbilitySystemComponent) 
+		{
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_MonsterAttack::StaticClass(), 1, 0));
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_Spawning::StaticClass(), 1, 0));
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UGA_UseSkill::StaticClass(), 1, 0));
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UNAGA_Death::StaticClass(), 1, 0));
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(UNAGA_Suplexed::StaticClass(), 1, 0));
+		}
 	}
 
 }
