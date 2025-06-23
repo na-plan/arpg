@@ -16,7 +16,7 @@ UNAGA_Suplex::UNAGA_Suplex()
 {
 	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateYes;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
-
+	BlockAbilitiesWithTag.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Firing" ) );
 }
 
 void UNAGA_Suplex::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)

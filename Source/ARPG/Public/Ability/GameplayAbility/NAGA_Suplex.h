@@ -6,6 +6,8 @@
 #include "Abilities/GameplayAbility.h"
 #include "NAGA_Suplex.generated.h"
 
+class USpringArmComponent;
+class UCameraComponent;
 /**
  * 
  */
@@ -26,7 +28,12 @@ public:
 	UPROPERTY(EditDefaultsOnly)
 	UAnimMontage* SuplexingMontage;
 
+	UPROPERTY()
 	UCameraComponent* ActionCamera;
+
+	UPROPERTY()
 	ACameraActor* ActionCam;
+
+	UPROPERTY()
 	USpringArmComponent* ActionBoom;
 };

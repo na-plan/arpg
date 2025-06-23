@@ -30,6 +30,15 @@ enum class  EWeaponType : uint8
 	WT_Firearm     UMETA(DisplayName = "Firearm")     // 총기: 권총, 소총, 산탄총 등
 };
 
+UENUM( BlueprintType )
+enum class EFireArmType : uint8
+{
+	FAT_None UMETA( Hidden ),
+
+	FAT_Pistol UMETA( DisplayName = "Pistol" ),
+	FAT_Rifle UMETA( DisplayName = "Rifle" )
+};
+
 USTRUCT()
 struct FNAWeaponStatistics
 {
@@ -53,6 +62,9 @@ struct FNAFirearmStatistics
 
 	//UPROPERTY(EditAnywhere, Category = "Firearm Statistics")
 	//TSubclassOf<ANAProjectile> ProjectileClass;	// 발사체 클래스
+
+	UPROPERTY(EditAnywhere, Category = "Firing Statistics")
+	EFireArmType FireArmType = EFireArmType::FAT_None;
 
 	UPROPERTY(EditAnywhere, Category= "Firearm Statistics")
 	UAnimMontage* FirearmMontage = nullptr;
@@ -104,7 +116,10 @@ struct ARPG_API FNAWeaponTableRow : public FNAItemBaseTableRow
 	UPROPERTY(EditAnywhere, Category = "Weapon")
 	FNAWeaponStatistics WeaponStatistics;
 
-	UPROPERTY(EditAnywhere, Category = "Weapon|Firearm",
-		meta = (EditCondition = "WeaponType == EWeaponType::WT_Firearm", EditConditionHides))
+	UPROPERTY(EditAnywhere, Category = "Firearm",
+		meta = (EditCondition = "WeaponType==EWeaponType::WT_Firearm", EditConditionHides))
 	FNAFirearmStatistics FirearmStatistics;
+
+	UPROPERTY(EditAnywhere, Category = "Weapon")
+	FTransform AttachmentTransform;
 };

@@ -6,6 +6,7 @@
 #include "Animation/AnimInstance.h"
 #include "DefaultAnimInstance.generated.h"
 
+enum class EFireArmType : uint8;
 /**
  * 
  */
@@ -41,6 +42,12 @@ protected:
 	
 	UPROPERTY(BlueprintReadOnly)
 	bool bRightHandEmpty = true;
+
+	UPROPERTY(BlueprintReadOnly)
+	EFireArmType RightFireArmType;
+	
+	UPROPERTY(BlueprintReadOnly)
+	EFireArmType LeftFireArmType;
 
 	/*쓸지 안쓸지 고민중 + fall anim not exist */
 	UPROPERTY(BlueprintReadOnly)
