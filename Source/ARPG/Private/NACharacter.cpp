@@ -24,7 +24,7 @@
 #include "Ability/GameplayAbility/NAGA_Suplex.h"
 #include "Interaction/NAInteractionComponent.h"
 #include "Inventory/Component/NAInventoryComponent.h"
-#include "Item/ItemActor/NAWeapon.h"
+#include "Item/PickableItem//NAWeapon.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Weapon/PickableItemActor/NAWeaponAmmoBox.h"
 

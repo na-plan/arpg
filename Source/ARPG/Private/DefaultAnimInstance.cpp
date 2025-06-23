@@ -9,7 +9,7 @@
 #include "Ability/AttributeSet/NAAttributeSet.h"
 #include "Combat/Interface/NAHandActor.h"
 #include "GameFramework/PawnMovementComponent.h"
-#include "Item/ItemActor/NAWeapon.h"
+#include "Item/PickableItem/NAWeapon.h"
 #include "Kismet/KismetMathLibrary.h"
 
 void UDefaultAnimInstance::NativeInitializeAnimation()
