@@ -7,7 +7,7 @@
 #include "NAInGameWidget.generated.h"
 
 class UNAHPWidget;
-
+class UButton;
 /**
  * 
  */
@@ -16,4 +16,20 @@ class ARPG_API UNAInGameWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
+public:
+	virtual void NativeConstruct() override;
+	
+protected:
+	UFUNCTION()
+	void OnClick_Continue();
+
+	UFUNCTION()
+	void OnClick_Quit();
+
+protected:
+	UPROPERTY(EditAnywhere, meta = (BindWidget))
+	UButton* Button_Continue;
+
+	UPROPERTY(EditAnywhere, meta = (BindWidget))
+	UButton* Button_Quit;
 };

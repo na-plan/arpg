@@ -20,6 +20,27 @@ ANAInGameHUD::ANAInGameHUD(): InGameWidget(nullptr)
 	}
 }
 
+void ANAInGameHUD::OnEscapeDown()
+{
+	if ( InGameWidget->IsVisible() )
+	{
+		InGameWidget->SetVisibility(ESlateVisibility::Hidden);
+		FInputModeGameOnly InputMode;
+		GetOwningPlayerController()->SetInputMode( InputMode );
+		GetOwningPlayerController()->SetShowMouseCursor( false );
+	}
+	else
+	{
+		InGameWidget->SetVisibility(ESlateVisibility::Visible);
+		FInputModeGameAndUI InputMode;
+		InputMode.SetLockMouseToViewportBehavior( EMouseLockMode::DoNotLock );
+		InputMode.SetWidgetToFocus( InGameWidget->TakeWidget() );
+		InputMode.SetHideCursorDuringCapture( false );
+		GetOwningPlayerController()->SetShowMouseCursor( true );
+		GetOwningPlayerController()->SetInputMode( InputMode );
+	}
+}
+
 void ANAInGameHUD::BeginPlay()
 {
 	Super::BeginPlay();
@@ -28,7 +49,10 @@ void ANAInGameHUD::BeginPlay()
 	{
 		InGameWidget = CreateWidget<UNAInGameWidget>(GetWorld(), InGameWidgetType);
 		InGameWidget->AddToPlayerScreen();
+		InGameWidget->SetVisibility(ESlateVisibility::Hidden);
 	}
+
+	GetOwningPlayerController()->InputComponent->BindKey( EKeys::Escape, IE_Pressed, this, &ANAInGameHUD::OnEscapeDown );
 }
 
 void ANAInGameHUD::EndPlay(const EEndPlayReason::Type EndPlayReason)
