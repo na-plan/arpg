@@ -43,23 +43,26 @@ void UNAAnimNotifyState_SphereOverlapTest::NotifyBegin( USkeletalMeshComponent* 
 			SpecHandle = SourceInterface->GetAbilitySystemComponent()->MakeOutgoingSpec( UNAGE_Damage::StaticClass(), 1.f, ContextHandle );
 			if ( const UNAMontageCombatComponent* CombatComponent = MeshComp->GetOwner()->GetComponentByClass<UNAMontageCombatComponent>() )
 			{
-				SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( "Data.Damage" ), -CombatComponent->GetBaseDamage() );	
+				//SpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( "Data.Damage" ), -CombatComponent->GetBaseDamage() );	
 				BaseDamage = CombatComponent->GetBaseDamage();
 			}
 			// Monster Not Owning CombatComp
 			else
 			{
 				//Monster 가져와서 damage 넣고싶지는 않은데... 일단 땜빵으로 
-				AMonsterBase* Monster = Cast<AMonsterBase>(MeshComp->GetOwner());
-				if (Monster->GetBaseDamage())
+				if ( AMonsterBase* Monster = Cast<AMonsterBase>(MeshComp->GetOwner()) )
 				{
-					BaseDamage = Monster->GetBaseDamage();
-					bool CheckDmg = true;
-				}
-				else
-				{
-					BaseDamage = 10;
-					UE_LOG(LogTemp, Log, TEXT("GetBaseDamage is Empty Please Check the Monster Stat DataTable Or Create Monster Stat"));
+					bIsMonsterInstigator = true;
+					if (Monster->GetBaseDamage())
+					{
+						BaseDamage = Monster->GetBaseDamage();
+						bool CheckDmg = true;
+					}
+					else
+					{
+						BaseDamage = 10;
+						UE_LOG(LogTemp, Log, TEXT("GetBaseDamage is Empty Please Check the Monster Stat DataTable Or Create Monster Stat"));
+					}
 				}
 			}
 
@@ -177,36 +180,31 @@ void UNAAnimNotifyState_SphereOverlapTest::NotifyTick( USkeletalMeshComponent* M
 								}
 								else
 								{
-									if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(MeshComp->GetOwner()))
+									if ( AMonsterBase* Monster =  Cast<AMonsterBase>( OverlapResult.GetActor() );
+										 Monster && bIsMonsterInstigator )
 									{
-										//Monster가 Monster에게 데미지를 입히려고 하면
-										if (AMonsterBase* TargetMonster = Cast<AMonsterBase>(OverlapResult.GetActor()))
+										//데미지를 주지 않고 이미 준걸로 처리
+										AppliedActors.Add(OverlapResult.GetActor());
+										continue;
+									}
+									
+									// Item쪽에서 충돌해서 handle 날라가던거 해결, 체력이 있는 대상에 대해서만
+									if ( const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>(TargetInterface->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()));
+										AttributeSet )
+									{
+										SourceInterface->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget
+										(
+											*SpecHandle.Data.Get(),
+											TargetInterface->GetAbilitySystemComponent()
+										);
+
+										// Damage 이벤트 보고 및 UAISense_Damage로 callback 함수 등록: 여기서 TargetActor는 피해를 입은 액터
+
+										if (AActor* TargetActor = OverlapResult.GetActor())
 										{
-											//데미지를 주지 않고 이미 준걸로 처리
+											UAISense_Damage::ReportDamageEvent(GetWorld(), TargetActor, MeshComp->GetOwner(), BaseDamage, TargetActor->GetActorLocation(), MeshComp->GetOwner()->GetActorLocation());
 											AppliedActors.Add(OverlapResult.GetActor());
 										}
-									}
-									else
-									{
-										// Item쪽에서 충돌해서 handle 날라가던거 해결
-										if (float HP = Cast<UNAAttributeSet>(SourceInterface->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth())
-										{
-											SourceInterface->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget
-											(
-												*SpecHandle.Data.Get(),
-												TargetInterface->GetAbilitySystemComponent()
-											);
-
-											// Damage 이벤트 보고 및 UAISense_Damage로 callback 함수 등록: 여기서 TargetActor는 피해를 입은 액터
-
-											if (AActor* TargetActor = OverlapResult.GetActor())
-											{
-												UAISense_Damage::ReportDamageEvent(GetWorld(), TargetActor, MeshComp->GetOwner(), BaseDamage, TargetActor->GetActorLocation(), MeshComp->GetOwner()->GetActorLocation());
-												AppliedActors.Add(OverlapResult.GetActor());
-											}
-
-										}
-
 									}
 								}
 								float HP2 = Cast<UNAAttributeSet>(PlayerASC->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();

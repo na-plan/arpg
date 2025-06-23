@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameplayEffectTypes.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
+#include "Monster/Pawn/MonsterBase.h"
 #include "NAAnimNotifyState_QuickDash.generated.h"
 
 /**
@@ -54,5 +55,6 @@ class ARPG_API UNAAnimNotifyState_QuickDash : public UAnimNotifyState
 	FGameplayEffectContextHandle ContextHandle;
 
 	FGameplayEffectSpecHandle SpecHandle;
-	
+
+	bool bIsMonsterInstigator = false;
 };
