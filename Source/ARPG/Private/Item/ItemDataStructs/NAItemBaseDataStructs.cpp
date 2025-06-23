@@ -1,5 +1,5 @@
 #include "Item/ItemDataStructs/NAItemBaseDataStructs.h"
-#include "Item/ItemActor/NAWeapon.h"
+#include "Item/PickableItem/NAWeapon.h"
 #include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
 #include "Item/ItemActor/NAPlaceableItemActor.h"
 #include "Misc/StringUtils.h"

@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Item/PlaceableItem/UpgradeBench/NAUpgradeBenchWidget.h"
+#include "Item/PlaceableItem/UpgradeBench/Widget/NAUpgradeBenchWidget.h"
 
 #include "Item/PlaceableItem/UpgradeBench/NAUpgradeBenchComponent.h"
 
