@@ -63,6 +63,10 @@ void UNACombatComponent::OnAbilityEnded( const FAbilityEndedData& AbilityEndedDa
 			StartAttack();
 		}
 	}
+	else
+	{
+		UE_LOG( LogTemp, Log, TEXT("[%hs]: Ability cancelled"), __FUNCTION__ )
+	}
 }
 
 // Called when the game starts
