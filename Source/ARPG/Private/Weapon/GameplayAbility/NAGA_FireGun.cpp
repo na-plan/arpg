@@ -53,10 +53,6 @@ void UNAGA_FireGun::OnMontageEnded( UAnimMontage* AnimMontage, bool bInterrupted
 		{
 			MontageToCheck.Remove( AnimMontage );
 		}
-		else
-		{
-			EndAbility( GetCurrentAbilitySpecHandle(), ActorInfo, GetCurrentActivationInfo(), true, true );
-		}
 
 		if ( MontageToCheck.IsEmpty() )
 		{
@@ -77,6 +73,7 @@ void UNAGA_FireGun::CancelAbilityProxy( FGameplayTag GameplayTag, int Count )
 {
 	if ( Count >= 1 )
 	{
+		UE_LOG( LogTemp, Log, TEXT("[%hs]: Ability cancelled due to the failing tags"), __FUNCTION__ );
 		CancelAbility( GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true );
 	}
 }
