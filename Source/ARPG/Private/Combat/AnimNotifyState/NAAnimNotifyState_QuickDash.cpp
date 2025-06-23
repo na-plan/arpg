@@ -45,6 +45,8 @@ void UNAAnimNotifyState_QuickDash::NotifyBegin(USkeletalMeshComponent* MeshComp,
 		//Use Monster
 		if (AMonsterAIController* OwnerMonsterController = Cast<AMonsterAIController>(MeshComp->GetOwner()->GetInstigatorController()))
 		{
+			bIsMonsterInstigator = true;
+			
 			if (UBlackboardComponent* MonsterAIBB = OwnerMonsterController->GetBlackboardComponent())
 			{
 				if (UObject* DetectedPlayer = MonsterAIBB->GetValueAsObject(TEXT("DetectPlayer")))
@@ -155,15 +157,14 @@ void UNAAnimNotifyState_QuickDash::NotifyTick(USkeletalMeshComponent* MeshComp, 
 
 					for (const FOverlapResult& OverlapResult : OverlapResults)
 					{
-						if (AMonsterBase* OwnerMonster = Cast<AMonsterBase>(MeshComp->GetOwner()))
+						if ( AMonsterBase* Monster =  Cast<AMonsterBase>( OverlapResult.GetActor() );
+										 Monster && bIsMonsterInstigator )
 						{
-							//Monster가 Monster에게 데미지를 입히려고 하면
-							if (AMonsterBase* TargetMonster = Cast<AMonsterBase>(OverlapResult.GetActor()))
-							{
-								//데미지를 주지 않고 이미 준걸로 처리
-								AppliedActors.Add(OverlapResult.GetActor());
-							}
+							//데미지를 주지 않고 이미 준걸로 처리
+							AppliedActors.Add(OverlapResult.GetActor());
+							continue;
 						}
+						
 						if (const TScriptInterface<IAbilitySystemInterface>& TargetInterface = OverlapResult.GetActor())
 						{
 							if (!AppliedActors.Contains(OverlapResult.GetActor()))
@@ -177,14 +178,16 @@ void UNAAnimNotifyState_QuickDash::NotifyTick(USkeletalMeshComponent* MeshComp, 
 								}
 								else
 								{
-									// Item쪽에서 충돌해서 handle 날라가던거 해결
-									if (float HP = Cast<UNAAttributeSet>(SourceInterface->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth())
+									// Item쪽에서 충돌해서 handle 날라가던거 해결, 체력이 있는 대상에 대해서만
+									if ( const UNAAttributeSet* AttributeSet = Cast<UNAAttributeSet>(TargetInterface->GetAbilitySystemComponent()->GetAttributeSet(UNAAttributeSet::StaticClass()));
+										AttributeSet )
 									{
 										SourceInterface->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget
 										(
 											*SpecHandle.Data.Get(),
 											TargetInterface->GetAbilitySystemComponent()
 										);
+
 										// player 확인후 날리기
 										if (ANACharacter* Player = Cast<ANACharacter>(OverlapResult.GetActor()))
 										{
@@ -195,10 +198,7 @@ void UNAAnimNotifyState_QuickDash::NotifyTick(USkeletalMeshComponent* MeshComp, 
 										}
 										AppliedActors.Add(OverlapResult.GetActor());
 									}
-
-
 								}
-
 							}
 						}
 					}

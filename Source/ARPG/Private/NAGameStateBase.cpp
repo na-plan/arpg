@@ -198,6 +198,7 @@ void ANAGameStateBase::AddPlayerState(APlayerState* PlayerState)
 void ANAGameStateBase::RemovePlayerState( APlayerState* PlayerState )
 {
 	Super::RemovePlayerState( PlayerState );
+	--AlivePlayer;
 	GOnNewPlayerStateChanged.Broadcast( PlayerState );
 }
 

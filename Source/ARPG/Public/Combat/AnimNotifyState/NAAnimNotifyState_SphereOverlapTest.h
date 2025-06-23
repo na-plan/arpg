@@ -36,6 +36,8 @@ class ARPG_API UNAAnimNotifyState_SphereOverlapTest : public UAnimNotifyState
 
 	UPROPERTY()
 	TSet<AActor*> AppliedActors;
+
+	bool bIsMonsterInstigator = false;
 	
 	FGameplayEffectContextHandle ContextHandle;
 
