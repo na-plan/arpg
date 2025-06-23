@@ -16,11 +16,19 @@ enum class EItemType : uint8
 
 	IT_Ammo					UMETA(DisplayName = "Ammo"),
 	IT_Consumable			UMETA(DisplayName = "Consumable"),
-	IT_WeaponEnhancement	UMETA(DisplayName = "Weapon Upgrade Material"),
-	IT_ArmorEnhancement		UMETA(DisplayName = "Armor Upgrade Material"),
+	
+	//IT_WeaponEnhancement	UMETA(DisplayName = "Weapon Upgrade Material"),
+	//IT_ArmorEnhancement	UMETA(DisplayName = "Armor Upgrade Material"),
+
+// Currency Item ///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	IT_UpgradeNode			UMETA(DisplayName = "Upgrade Node"),
+	IT_Credit				UMETA(DisplayName = "Credit"),
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
+
 	IT_Material				UMETA(DisplayName = "Material"),
 	IT_QuestItem			UMETA(DisplayName = "Quest Item"),
-	IT_Currency				UMETA(DisplayName = "Currency"),
+	
 	IT_Misc					UMETA(DisplayName = "Miscellaneous"),
 
 	IT_EnvObject			UMETA(DisplayName = "Environment Object"),

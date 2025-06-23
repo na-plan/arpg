@@ -318,6 +318,38 @@ FNAItemAddResult UNAInventoryComponent::AddStackableItem(UNAItemData* InputItem,
 	}
 }
 
+FNAItemAddResult UNAInventoryComponent::AddCurrencyItem(UNAItemData* InputItem)
+{
+	if (InputItem->GetItemType() == EItemType::IT_UpgradeNode)
+	{
+		NodesCount += InputItem->GetQuantity();
+		return FNAItemAddResult::AddedAll(
+			InputItem->GetQuantity(),
+			FText::Format(
+				FText::FromString(TEXT("파워 노드 {0}개를 전부 인벤토리에 추가했습니다. 현재 보유한 파워 노드 수량: {1}")),
+				InputItem->GetQuantity(),
+				NodesCount
+			)
+		);
+	}
+	if (InputItem->GetItemType() == EItemType::IT_Credit)
+	{
+		CreditsCount += InputItem->GetQuantity();
+		return FNAItemAddResult::AddedAll(
+			InputItem->GetQuantity(),
+			FText::Format(
+				FText::FromString(TEXT("크레딧 {0}개를 전부 인벤토리에 추가했습니다. 현재 보유한 크레딧 수량: {1}")),
+				InputItem->GetQuantity(),
+				CreditsCount
+			)
+		);
+	}
+
+	return FNAItemAddResult::AddedNone(
+		   FText::FromString(TEXT("Currency 아이템 추가 실패"))
+	   );
+}
+
 int32 UNAInventoryComponent::GetNumToFillSlot(const FName& SlotID) const
 {
 	if (!InvenSlotContents.Contains(SlotID) || IsEmptySlot(SlotID))
@@ -463,7 +495,11 @@ int32 UNAInventoryComponent::TryAddItem(UNAItemData* ItemToAdd)
 	
 	FNAItemAddResult Result;
 
-	if (bIsStackable)
+	if (ItemToAdd->IsCurrencyItem())
+	{
+		Result = AddCurrencyItem(ItemToAdd);
+	}
+	else if (bIsStackable)
 	{
 		// ─────────────────────────────────────────────────
 		// 1) Stackable인 경우: Weapon/Inven 구분 한 뒤, 각 항목의 Partial 슬롯 + Empty 슬롯 수집
@@ -501,14 +537,32 @@ int32 UNAInventoryComponent::TryAddItem(UNAItemData* ItemToAdd)
 		// 3) Internal 함수 호출
 		Result = AddNonStackableItem(ItemToAdd, EmptySlots);
 	}
-
+	
 	// 반환값을 OriginalQuantity – ActualAmountAdded 형태로 계산
 	if (Result.OperationResult == ENAItemAddStatus::IAS_AddedAll ||
 		Result.OperationResult == ENAItemAddStatus::IAS_AddedPartial)
 	{
-		// 성공(전부 혹은 일부 추가)이므로 정렬 실행
-		SortInvenSlotItems();
-
+		if (ItemToAdd->IsCurrencyItem())
+		{
+			if (ItemToAdd->GetItemType() == EItemType::IT_UpgradeNode)
+			{
+				RequestRedrawNodesQuantity();
+			}
+			if (ItemToAdd->GetItemType() == EItemType::IT_Credit)
+			{
+				RequestRedrawCreditsQuantity();
+			}
+			if (Result.OperationResult == ENAItemAddStatus::IAS_AddedAll)
+			{
+				UNAItemEngineSubsystem::Get()->DestroyRuntimeItemData(ItemToAdd);
+			}
+		}
+		else
+		{
+			// 성공(전부 혹은 일부 추가)이므로 정렬 실행
+			SortInvenSlotItems();
+		}
+		
 		const int32 Added = Result.ActualAmountAdded;
 		// “전부 추가”인 경우 Added == OriginalQuantity 이므로 (Remaining = 0) 
 		// “부분 추가”인 경우 Remaining > 0
@@ -1187,7 +1241,7 @@ void UNAInventoryComponent::InitWidget()
 	{
 		if (UNAInventoryWidget* InventoryWidget = Cast<UNAInventoryWidget>(GetWidget()))
 		{
-			InventoryWidget->SetOwningInventoryComponent(this);
+			InventoryWidget->InitInventoryWidget(this);
 		}
 	}
 }
@@ -1273,5 +1327,19 @@ void UNAInventoryComponent::RequestRedrawSingleSlot(UNAItemData* ItemData)
 	if (SlotID.IsNone()) return;
 
 	GetInventoryWidget()->RefreshSingleSlotWidget(SlotID, ItemData);
+}
+
+void UNAInventoryComponent::RequestRedrawNodesQuantity()
+{
+	if (!GetInventoryWidget()) return;
+	
+	GetInventoryWidget()->RefreshNodesQuantityWidget(FText::AsNumber(NodesCount));
+}
+
+void UNAInventoryComponent::RequestRedrawCreditsQuantity()
+{
+	if (!GetInventoryWidget()) return;
+
+	GetInventoryWidget()->RefreshCreditsQuantityWidget(FText::AsNumber(CreditsCount));
 }
 

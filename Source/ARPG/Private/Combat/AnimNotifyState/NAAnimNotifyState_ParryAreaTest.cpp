@@ -110,11 +110,21 @@ void UNAAnimNotifyState_ParryAreaTest::NotifyEnd(USkeletalMeshComponent* MeshCom
 						const TScriptInterface<IAbilitySystemInterface>& SourceInterface = MeshComp->GetOwner();
 						
 						UAbilitySystemComponent* PlayerASC = Player->GetAbilitySystemComponent();
-						SourceInterface->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget
+						float HP = Cast<UNAAttributeSet>(PlayerASC->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();
+						FGameplayTag SuplexTag = FGameplayTag::RequestGameplayTag("Player.Status.Suplex");
+						//PlayerASC로 이미 플레이어로 고정해서 몬스터끼리 데미지는 주지 않는다
+						//suplex 중이 아닐때만 데미지를 입히도록 한다
+						if (!PlayerASC->HasMatchingGameplayTag(SuplexTag))
+						{
+							SourceInterface->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget
 							(
 								*SpecHandle.Data.Get(),
 								PlayerASC
-							);				
+							);
+						}
+						float HP2 = Cast<UNAAttributeSet>(PlayerASC->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();
+						bool check = false;
+
 					}
 				}
 
