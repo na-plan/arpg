@@ -43,7 +43,7 @@ bool ANAPortal::ExecuteInteract_Implementation(AActor* Interactor)
 {
 	TeleportToDest(Interactor);
 	
-	return Super::ExecuteInteract_Implementation(Interactor);
+	return true;
 }
 
 bool ANAPortal::EndInteract_Implementation(AActor* Interactor)

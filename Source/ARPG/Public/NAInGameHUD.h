@@ -16,9 +16,11 @@ class ARPG_API ANAInGameHUD : public AHUD
 	GENERATED_BODY()
 
 	ANAInGameHUD();
+
+	void OnEscapeDown();
 	
 	virtual void BeginPlay() override;
-
+	
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
