@@ -71,8 +71,11 @@ class UNAUpgradeBenchWidget* UNAUpgradeBenchComponent::GetUpgradeBenchWidget() c
 
 void UNAUpgradeBenchComponent::InitItemWidgetClass()
 {
-	ensureAlways(GetOwner() && GetOwner()->IsA<ANAUpgradeBench>());
-	
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		ensureAlways(GetOwner() && GetOwner()->IsA<ANAUpgradeBench>());
+	}
+
 	Super::InitItemWidgetClass();
 	OwningUpgradeBenchActor = Cast<ANAUpgradeBench>(GetOwner());
 }

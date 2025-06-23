@@ -36,7 +36,7 @@ void UNAMessageBox::OnClick_No()
 	RemoveFromParent();
 }
 
-void UNAMessageBox::Init(EMessageBoxType InType, const FString& InTitle, const FString& InDesc,
+void UNAMessageBox::ShowMessage(EMessageBoxType InType, const FString& InTitle, const FString& InDesc,
 	TFunction<void()> InCallback)
 {
 	switch (InType)

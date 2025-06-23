@@ -11,12 +11,5 @@ public class ARPGTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V5;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_4;
 		ExtraModuleNames.Add("ARPG");
-
-		if (Configuration == UnrealTargetConfiguration.Shipping)
-		{
-			BuildEnvironment = TargetBuildEnvironment.Unique;
-			bUseChecksInShipping = true;
-			bUseLoggingInShipping = true;
-		}
 	}
 }

@@ -25,20 +25,21 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
 public:
-	UFUNCTION()
-	void OpenWidget(const FString& InWidgetName);
+	template<class WidgetType>
+	WidgetType* OpenWidget();
 
-	UFUNCTION()
 	void CloseWidget(const FString& InWidgetName);
 	
 public:
-	UFUNCTION()
-	void ShowMessageBox(EMessageBoxType Type, const FString& InTitle, const FString& InDesc);
+	static void ShowMessageBox(const UWorld* WorldContext, EMessageBoxType Type, const FString& InTitle, const FString& InDesc, TFunction<void()> InFunction);
 	
 protected:
 	UPROPERTY()
 	FString WidgetFolderPath;
 
 	UPROPERTY()
-	TMap<FString, UUserWidget*> CachedWidgets;
+	TMap<FString, TSubclassOf<UUserWidget>> CachedWidgets;
+
+	UPROPERTY()
+	TMap<FString, UUserWidget*> ActiveWidgets;
 };

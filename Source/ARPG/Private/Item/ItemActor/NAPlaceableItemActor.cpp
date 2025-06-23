@@ -71,4 +71,11 @@ void ANAPlaceableItemActor::SetInteractionPhysicsEnabled(const bool bEnabled)
 void ANAPlaceableItemActor::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (ItemCollision)
+	{
+		ItemCollision->SetSimulatePhysics(false);
+		ItemCollision->SetGenerateOverlapEvents(false);
+		ItemCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
 }

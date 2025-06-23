@@ -46,7 +46,7 @@ public:
 	void OnClick_No();
 
 public:
-	void Init(EMessageBoxType InType, const FString& InTitle, const FString& InDesc, TFunction<void()> InCallback);
+	void ShowMessage(EMessageBoxType InType, const FString& InTitle, const FString& InDesc, TFunction<void()> InCallback);
 
 	UFUNCTION()
 	void AwaitClick();
