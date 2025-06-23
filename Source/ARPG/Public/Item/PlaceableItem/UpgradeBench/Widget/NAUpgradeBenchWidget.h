@@ -28,4 +28,7 @@ public:
 protected:
 	virtual void OnItemWidgetReleased() override;
 	virtual void OnItemWidgetCollapsed() override;
+
+protected:
+	
 };

@@ -118,6 +118,7 @@ void UNAItemWidget::InitItemWidget(UNAItemWidgetComponent* OwningComp, UNAItemDa
 	{
 		FString ItemTypeStr = FStringUtils::EnumToDisplayString(ItemData->GetItemType());
 		ItemTypeStr.RemoveFromStart("IT_");
+		ItemTypeStr = FStringUtils::InsertSpacesBeforeUppercaseSmart(ItemTypeStr);
 		Item_Type->SetText(FText::FromString(ItemTypeStr));
 	}
 	if (Interaction_Name)

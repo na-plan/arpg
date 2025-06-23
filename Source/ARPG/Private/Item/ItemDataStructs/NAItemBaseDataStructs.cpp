@@ -2,7 +2,9 @@
 #include "Item/PickableItem/NAWeapon.h"
 #include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
 #include "Item/ItemActor/NAPlaceableItemActor.h"
+#include "Item/PickableItem/NAUpgradeNode.h"
 #include "Misc/StringUtils.h"
+#include "Item/PickableItem/NAUpgradeNode.h"
 
 FNAItemBaseTableRow::FNAItemBaseTableRow(UClass* InItemClass)
 {
@@ -81,6 +83,23 @@ void FNAItemBaseTableRow::OnDataTableChanged(const UDataTable* InDataTable, cons
 		{
 			InteractableData.bIsUnlimitedInteractable = true;
 			InteractableData.InteractableCount = 0;
+		}
+
+		if (ItemClass && ItemClass->IsChildOf<ANAUpgradeNode>())
+		{
+			ItemType = EItemType::IT_UpgradeNode;
+		}
+
+		if (ItemType == EItemType::IT_Credit || ItemType == EItemType::IT_UpgradeNode)
+		{
+			NumericData.bIsStackable = true;
+			NumericData.MaxSlotStackSize = 0;
+			NumericData.MaxInventoryHoldCount = 0;
+			
+			if (InteractableData.InteractableType == ENAInteractableType::None)
+			{
+				InteractableData.InteractableType = ENAInteractableType::Pickup;
+			}
 		}
 	}
 }

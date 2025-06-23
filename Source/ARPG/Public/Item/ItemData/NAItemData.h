@@ -93,6 +93,8 @@ public:
 	bool TryUseItem(AActor* User);
 
 	bool GetInteractableData(FNAInteractableData& OutData) const;
+
+	bool IsCurrencyItem() const;
 	
 private:
 	UPROPERTY(DuplicateTransient,

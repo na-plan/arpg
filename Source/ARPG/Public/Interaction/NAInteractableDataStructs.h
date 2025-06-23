@@ -43,7 +43,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Item Interactable Data", meta=(ClampMin="0.0"))
 	float InteractionDelayTime;
 
-	// 상호작용 가능한 횟: 단발성이면 1
+	// 상호작용 가능한 횟수: 단발성이면 1
 	UPROPERTY(EditAnywhere, Category = "Item Interactable Data", meta=(ClampMin="0"))
 	int32 InteractableCount;
 
