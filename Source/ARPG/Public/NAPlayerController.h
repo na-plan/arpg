@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "NAPlayerController.generated.h"
 
+class ANAPlaceableItemActor_Door;
 class UNASessionListEntryData;
 /**
  * 
@@ -13,6 +14,7 @@ class UNASessionListEntryData;
 UCLASS()
 class ARPG_API ANAPlayerController : public APlayerController
 {
+	
 	GENERATED_BODY()
 
 public:
@@ -23,7 +25,13 @@ public:
 
 	UFUNCTION( NetMulticast, Reliable )
 	void Multi_RemoveFailedWidget();
-	
+
+	UFUNCTION( Server, Reliable )
+	void Server_ToggleDoor( ANAPlaceableItemActor_Door* Door );
+
+	UFUNCTION( NetMulticast, Reliable )
+	void Multi_ToggleDoor( ANAPlaceableItemActor_Door* Door );
+
 protected:
 	virtual void BeginPlay() override;
 	

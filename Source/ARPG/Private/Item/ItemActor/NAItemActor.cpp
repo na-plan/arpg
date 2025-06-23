@@ -95,7 +95,7 @@ void ANAItemActor::PostLoad()
 void ANAItemActor::PostActorCreated()
 {
 	Super::PostActorCreated();
-	UpdatePhysics();
+	InitCheckIfChildActor();
 }
 
 #if WITH_EDITOR
@@ -494,27 +494,30 @@ void ANAItemActor::VerifyInteractableData()
 	}
 }
 
-void ANAItemActor::UpdatePhysics()
+void ANAItemActor::InitCheckIfChildActor()
 {
 	// ChildActorComponent에 의해 생성된 경우
 	if ( bWasChildActor || GetAttachParentActor() || ( RootComponent && RootComponent->GetAttachParent() && RootComponent->GetAttachParent()->IsA<UChildActorComponent>() ) )
 	{
 		if (ItemCollision)
 		{
+			ItemCollision->Deactivate();
 			ItemCollision->SetSimulatePhysics(false);
 			ItemCollision->SetGenerateOverlapEvents(false);
 			ItemCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		}
 		if (TriggerSphere)
 		{
+			TriggerSphere->Deactivate();
+			TriggerSphere->SetSimulatePhysics(false);
 			TriggerSphere->SetGenerateOverlapEvents(false);
 			TriggerSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			TriggerSphere->Deactivate();
 		}
 		if (ItemWidgetComponent)
 		{
-			ItemWidgetComponent->SetVisibility(false);
+			CollapseItemWidgetComponent();
 			ItemWidgetComponent->Deactivate();
+			ItemWidgetComponent->SetVisibility(false);
 		}
 		if (ItemMesh)
 		{
@@ -634,16 +637,15 @@ void ANAItemActor::BeginPlay()
 		GetRootComponent()->SetWorldTransform(PreviousTransform);
 	}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	
 	Super::BeginPlay();
-
+	
 	if ( HasAuthority() )
 	{
 		bWasChildActor = IsChildActor();
 	}
 	
-	UpdatePhysics();
-		
+	InitCheckIfChildActor();
+	
 	if (InteractableInterfaceRef)
 	{
 		OnActorBeginOverlap.AddUniqueDynamic(this, &ThisClass::OnActorBeginOverlap_Impl);

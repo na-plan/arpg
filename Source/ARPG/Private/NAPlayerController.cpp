@@ -8,6 +8,7 @@
 #include "NAGameStateBase.h"
 #include "ARPG/NAGlobalDelegate.h"
 #include "Combat/PhysicsHandleComponent/NAKineticComponent.h"
+#include "Item/PlaceableItem/Door/NAPlaceableItemActor_Door.h"
 #include "Lobby/NASessionListWidget.h"
 
 
@@ -39,6 +40,16 @@ void ANAPlayerController::Multi_RemoveFailedWidget_Implementation()
 	{
 		GameStateBase->RemoveFailedWidget();
 	}
+}
+
+void ANAPlayerController::Server_ToggleDoor_Implementation( ANAPlaceableItemActor_Door* Door )
+{
+	Multi_ToggleDoor( Door );
+}
+
+void ANAPlayerController::Multi_ToggleDoor_Implementation( ANAPlaceableItemActor_Door* Door )
+{
+	Door->ToggleDoor();
 }
 
 void ANAPlayerController::BeginPlay()

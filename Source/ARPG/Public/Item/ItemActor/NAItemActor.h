@@ -149,7 +149,7 @@ protected:
 private:
 	void InitItemData();
 	void VerifyInteractableData();
-	void UpdatePhysics();
+	void InitCheckIfChildActor();
 
 protected:
 	// Optional Subobject
