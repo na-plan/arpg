@@ -102,6 +102,13 @@ void ANAPlaceableItemActor_Door::BeginPlay()
 			Door2 = Comp;
 	}
 	
+	if (ItemCollision)
+	{
+		ItemCollision->SetSimulatePhysics(false);
+		ItemCollision->SetGenerateOverlapEvents(false);
+		ItemCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	
 	OriginTF1_Local = Door1->GetRelativeTransform();
 	OriginTF2_Local = Door2->GetRelativeTransform();
 	

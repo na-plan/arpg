@@ -30,7 +30,7 @@ public class ARPG : ModuleRules
 		
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			"Slate", "SlateCore", "CinematicCamera"
+			"Slate", "SlateCore", "CinematicCamera", "AssetRegistry"
 		});
 
 		if (Target.bBuildEditor)

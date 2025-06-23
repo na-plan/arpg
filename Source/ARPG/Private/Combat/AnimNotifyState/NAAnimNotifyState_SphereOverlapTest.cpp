@@ -209,8 +209,8 @@ void UNAAnimNotifyState_SphereOverlapTest::NotifyTick( USkeletalMeshComponent* M
 
 									}
 								}
-								float HP2 = Cast<UNAAttributeSet>(PlayerASC->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();
-								bool check = false;
+								// float HP2 = Cast<UNAAttributeSet>(PlayerASC->GetAttributeSet(UNAAttributeSet::StaticClass()))->GetHealth();
+								// bool check = false;
 
 							}
 						}

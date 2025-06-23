@@ -2,6 +2,8 @@
 
 
 #include "Lobby/NAGameInstance.h"
+
+#include "NAPlayerState.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSessionSettings.h"
 #include "OnlineSubsystemUtils.h"
@@ -164,7 +166,11 @@ void UNAGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCom
 		{
 			APlayerController* PC = GetFirstLocalPlayerController();
 			if (PC)
+			{
+				auto PlayerState = PC->GetPlayerState<ANAPlayerState>();
+				PlayerState->bInSession = true;
 				PC->ClientTravel(Str, TRAVEL_Absolute);
+			}
 		}
 	}
 }
