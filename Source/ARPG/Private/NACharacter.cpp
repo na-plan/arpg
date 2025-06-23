@@ -24,7 +24,7 @@
 #include "Ability/GameplayAbility/NAGA_Suplex.h"
 #include "Interaction/NAInteractionComponent.h"
 #include "Inventory/Component/NAInventoryComponent.h"
-#include "Item/ItemActor/NAWeapon.h"
+#include "Item/PickableItem//NAWeapon.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Weapon/PickableItemActor/NAWeaponAmmoBox.h"
 
@@ -82,7 +82,7 @@ ANACharacter::ANACharacter()
 	// Configure character movement
 	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f); // ...at this rotation rate
-
+	
 	// Note: For faster iteration times these variables, and many more, can be tweaked in the Character Blueprint
 	// instead of recompiling to adjust them
 	GetCharacterMovement()->JumpZVelocity = 700.f;
@@ -202,8 +202,8 @@ void ANACharacter::BeginPlay()
 	Super::BeginPlay();
 	if ( HasAuthority() )
 	{
-		LeftHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
-		RightHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::SetChildActorOwnership );
+		LeftHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::InitializeChildActor );
+		RightHandChildActor->OnChildActorCreated().AddUObject( this, &ANACharacter::InitializeChildActor );
 	}
 
 	if ( GetController() == GetWorld()->GetFirstPlayerController() )
@@ -380,15 +380,30 @@ void ANACharacter::RetrieveAsset(const AActor* InCDO)
 			USceneComponent* NewChild;
 		};
 
+		const TArray WhiteList
+		{
+			UInputComponent::StaticClass(), // 만들어질때 초기화됨
+			UAbilitySystemComponent::StaticClass() // Replicate된 Instance가 파괴됨
+		};
+		
 		TSet<USceneComponent*> Initialized;
 		TArray<LazyUpdatePair> LazyUpdates;
 		
 		// 블루프린트의 컴포넌트 속성 복사
 		for ( TFieldIterator<FObjectProperty> It(GetClass()); It; ++It  )
 		{
-			if ( It->PropertyClass->IsChildOf( UActorComponent::StaticClass() ) &&
-				 !It->PropertyClass->IsChildOf( UInputComponent::StaticClass() ) )
+			if ( It->PropertyClass->IsChildOf( UActorComponent::StaticClass() ) )
 			{
+				bool bSkip = WhiteList.ContainsByPredicate( [ &It ]( const UClass* Class )
+				{
+					return It->PropertyClass->IsChildOf( Class );
+				} );
+
+				if ( bSkip )
+				{
+					continue;
+				}
+					
 				UActorComponent* ThisComponent = Cast<UActorComponent>( It->GetObjectPropertyValue_InContainer( this ) );
 				UActorComponent* OriginComponent = Cast<UActorComponent>( It->GetObjectPropertyValue_InContainer( DefaultAsset ) );
 
@@ -473,6 +488,12 @@ void ANACharacter::RetrieveAsset(const AActor* InCDO)
 			}
 		}
 
+		// 블루프린트 기존에 있던 ASC 초기화 값 복사
+		for ( const FAttributeDefaults& Attribute : DefaultAsset->GetAbilitySystemComponent()->DefaultStartingData )
+		{
+			GetAbilitySystemComponent()->InitStats( Attribute.Attributes, Attribute.DefaultStartingTable );
+		}
+		
 		check( LazyUpdates.IsEmpty() );
 		
 		ApplyAttachments();
@@ -488,13 +509,21 @@ void ANACharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
 
-	if ( ANAPlayerState* Casted = GetPlayerState<ANAPlayerState>() )
+	GetAbilitySystemComponent()->InitAbilityActorInfo
+	(
+		GetPlayerState<APlayerState>(),
+		this
+	);
+}
+
+void ANACharacter::FaceRotation( FRotator NewControlRotation, float DeltaTime )
+{
+	if ( HasAuthority() )
 	{
-		GetAbilitySystemComponent()->InitAbilityActorInfo
-		(
-			Casted,
-			this
-		);	
+		if ( !bStopOverrideControlRotation )
+		{
+			Super::FaceRotation( NewControlRotation, DeltaTime );	
+		}
 	}
 }
 
@@ -515,9 +544,25 @@ FRotator ANACharacter::GetReplicatedControlRotation() const
 	return ReplicatedControlRotation.Rotation();
 }
 
-void ANACharacter::SetChildActorOwnership( AActor* Actor )
+void ANACharacter::SetStopOverrideControlRotation( bool bFlag, const FRotator& Rotator )
+{
+	bStopOverrideControlRotation = bFlag;
+
+	if ( bStopOverrideControlRotation )
+	{
+		CustomControlRotation = Rotator;
+		SetActorRotation( CustomControlRotation );
+	}
+}
+
+void ANACharacter::InitializeChildActor( AActor* Actor )
 {
 	Actor->SetOwner( this );
+
+	if ( UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>( Actor->GetRootComponent() ) )
+	{
+		PrimitiveComponent->SetSimulatePhysics( false );
+	}
 
 	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = Actor )
 	{
@@ -572,24 +617,30 @@ void ANACharacter::StartLeftMouseAttack()
 	{
 		return;
 	}
-	
-	if ( !TryAttack( RightHandChildActor->GetChildActor() ) )
+
+	if ( RightHandChildActor->GetChildActor() )
 	{
-		if ( DefaultCombatComponent->IsAbleToAttack() && !DefaultCombatComponent->IsAttacking() )
-		{
-			DefaultCombatComponent->StartAttack();	
-		}
+		TryAttack( RightHandChildActor->GetChildActor() );
+		return;
+	}
+	
+	if ( DefaultCombatComponent->IsAbleToAttack() && !DefaultCombatComponent->IsAttacking() )
+	{
+		DefaultCombatComponent->StartAttack();	
 	}
 }
 
 void ANACharacter::StopLeftMouseAttack()
 {
-	if ( !TryStopAttack( RightHandChildActor->GetChildActor() ) )
+	if ( RightHandChildActor->GetChildActor() )
 	{
-		if ( DefaultCombatComponent->IsAttacking() )
-		{
-			DefaultCombatComponent->StopAttack();	
-		}
+		TryStopAttack( RightHandChildActor->GetChildActor() );
+		return;
+	}
+
+	if ( DefaultCombatComponent->IsAttacking() )
+	{
+		DefaultCombatComponent->StopAttack();	
 	}
 }
 

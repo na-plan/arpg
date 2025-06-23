@@ -3,6 +3,7 @@
 
 #include "NASpectatorPawn.h"
 
+#include "NACharacter.h"
 #include "NAPlayerState.h"
 #include "Camera/CameraComponent.h"
 #include "Components/SphereComponent.h"

@@ -48,47 +48,60 @@ void UNAItemWidgetComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
 
+	InitItemWidgetClass();
+	InitItemWidgetTransform();
+}
+
+void UNAItemWidgetComponent::InitItemWidgetClass()
+{
 	if (GetOwner() && GetWidgetClass() == nullptr)
 	{
 		if (GetOwner()->GetClass()->IsChildOf<ANAPickableItemActor>())
 		{
-			if (!PickableItemWidgetClassRef.IsNull())
-			{
-				SetWidgetClass(PickableItemWidgetClassRef.LoadSynchronous());
-			}
-
-			PickableWidgetRelativeOffset = FVector(0.f, 80.f, 170.f);
-			SetRelativeLocation(PickableWidgetRelativeOffset);
+			if (PickableItemWidgetClassRef.IsNull()) return;
 			
-			PickableWidgetRelativeRotation = FRotator(10.f, 180.0f,0.0f );
-			SetRelativeRotation(PickableWidgetRelativeRotation);
-			
-			SetRelativeScale3D(FVector(0.4f));
-			SetDrawSize(FVector2D(340, 410));
+			SetWidgetClass(PickableItemWidgetClassRef.LoadSynchronous());
 		}
 		else if (GetOwner()->GetClass()->IsChildOf<ANAPlaceableItemActor>())
 		{
-			if (!PlaceableItemWidgetClassRef.IsNull())
-			{
-				SetWidgetClass(PlaceableItemWidgetClassRef.LoadSynchronous());
-			}
-
-			FVector ForwardLoc = FVector(80.f, 0.f, 0.f);
-			FRotator ForwardRot = FRotator(0.f, 0.f, 0.f);
-
-			FVector BackwardLoc = FVector(-80.f, 0.f, 0.f);
-			FRotator BackwardRot = FRotator(0.f, 180.f, 0.f);
-			
-			PlaceableWidgetRelativeForwardTransform.SetLocation(ForwardLoc);
-			PlaceableWidgetRelativeForwardTransform.SetRotation(ForwardRot.Quaternion());
-			
-			PlaceableWidgetRelativeBackwardTransform.SetLocation(BackwardLoc);
-			PlaceableWidgetRelativeBackwardTransform.SetRotation(BackwardRot.Quaternion());
-			
-			SetRelativeTransform(PlaceableWidgetRelativeBackwardTransform);
-			
-			SetDrawSize(FVector2D(260, 50));
+			if (PlaceableItemWidgetClassRef.IsNull()) return;
+			SetWidgetClass(PlaceableItemWidgetClassRef.LoadSynchronous());
 		}
+	}
+}
+
+void UNAItemWidgetComponent::InitItemWidgetTransform()
+{
+	if (!GetWidgetClass()) return;
+	
+	if (GetOwner()->GetClass()->IsChildOf<ANAPickableItemActor>())
+	{
+		PickableWidgetRelativeOffset = FVector(0.f, 80.f, 170.f);
+		SetRelativeLocation(PickableWidgetRelativeOffset);
+
+		PickableWidgetRelativeRotation = FRotator(10.f, 180.0f, 0.0f);
+		SetRelativeRotation(PickableWidgetRelativeRotation);
+
+		SetRelativeScale3D(FVector(0.4f));
+		SetDrawSize(FVector2D(340, 410));
+	}
+	else if (GetOwner()->GetClass()->IsChildOf<ANAPlaceableItemActor>())
+	{
+		FVector ForwardLoc = FVector(80.f, 0.f, 0.f);
+		FRotator ForwardRot = FRotator(0.f, 0.f, 0.f);
+
+		FVector BackwardLoc = FVector(-80.f, 0.f, 0.f);
+		FRotator BackwardRot = FRotator(0.f, 180.f, 0.f);
+
+		PlaceableWidgetRelativeForwardTransform.SetLocation(ForwardLoc);
+		PlaceableWidgetRelativeForwardTransform.SetRotation(ForwardRot.Quaternion());
+
+		PlaceableWidgetRelativeBackwardTransform.SetLocation(BackwardLoc);
+		PlaceableWidgetRelativeBackwardTransform.SetRotation(BackwardRot.Quaternion());
+
+		SetRelativeTransform(PlaceableWidgetRelativeBackwardTransform);
+
+		SetDrawSize(FVector2D(260, 50));
 	}
 }
 

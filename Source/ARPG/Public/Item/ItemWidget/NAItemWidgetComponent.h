@@ -17,15 +17,6 @@ public:
 	UNAItemWidgetComponent(const FObjectInitializer& ObjectInitializer);
 	virtual void PostInitProperties() override;
 
-private:
-	UPROPERTY(EditAnywhere)
-	TSoftClassPtr<class UNAItemWidget> PickableItemWidgetClassRef;
-	UPROPERTY(EditAnywhere)
-	TSoftClassPtr<class UNAItemWidget> PlaceableItemWidgetClassRef;
-
-	UPROPERTY(EditAnywhere)
-	TSoftObjectPtr<UMaterialInterface> ItemWidgetMaterialRef;
-
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -39,8 +30,8 @@ public:
 
 	class UNAItemData* GetItemDataFromOwner() const;
 	
-	void ReleaseItemWidgetPopup();
-	void CollapseItemWidgetPopup();
+	virtual void ReleaseItemWidgetPopup();
+	virtual void CollapseItemWidgetPopup();
 
 	class UNAItemWidget* GetItemWidget() const;
 
@@ -49,6 +40,9 @@ public:
 	void SetEnableUpdateTransform(const bool bEnable);
 	
 protected:
+	virtual void InitItemWidgetClass();
+	virtual void InitItemWidgetTransform();
+	
 	void UpdateTransformFacingCamera();
 	void UpdateTransformFacingCharacter();
 
@@ -74,4 +68,13 @@ private:
 
 	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true"))
 	TSoftClassPtr<UNAItemWidget> ItemWidgetClass;
+
+protected:
+	UPROPERTY(EditAnywhere)
+	TSoftClassPtr<class UNAItemWidget> PickableItemWidgetClassRef;
+	UPROPERTY(EditAnywhere)
+	TSoftClassPtr<class UNAItemWidget> PlaceableItemWidgetClassRef;
+
+	UPROPERTY(EditAnywhere)
+	TSoftObjectPtr<UMaterialInterface> ItemWidgetMaterialRef;
 };

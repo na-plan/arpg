@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Item/PlaceableItem/NAButtonSwitch.h"
+#include "Item/PlaceableItem/ButtonSwitch/NAButtonSwitch.h"
 
 
 // Sets default values

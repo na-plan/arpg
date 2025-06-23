@@ -44,36 +44,6 @@ bool UNAMontageCombatComponent::IsAbleToAttack()
 	return bResult;
 }
 
-void UNAMontageCombatComponent::OnAttack_Implementation()
-{
-	// note: 몽타주 재생 및 전파는 GAS의 Ability를 통해 수행!
-	// Ability에서 Montage Combat Component가 들고 있는 데이터를 가지고서 수행해야 작동이 맞음
-	
-	if (AttackSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(GetWorld(), AttackSound, GetOwner()->GetActorLocation());
-
-		// 서버 구동일 경우에는 사운드 재생을 전파
-		if (GetNetMode() != NM_Standalone)
-		{
-			Multi_PlaySound();
-		}
-	}
-}
-
-void UNAMontageCombatComponent::Multi_PlaySound_Implementation() const
-{
-	if (AttackSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(GetWorld(), AttackSound, GetOwner()->GetActorLocation());
-	}
-}
-
-float UNAMontageCombatComponent::GetNextAttackTime()
-{
-	return AttackMontage->GetPlayLength() * (1 / AttackMontage->RateScale) * MontagePlayRate;
-}
-
 // Called every frame
 void UNAMontageCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                               FActorComponentTickFunction* ThisTickFunction)

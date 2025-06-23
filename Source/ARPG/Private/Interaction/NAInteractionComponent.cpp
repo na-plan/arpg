@@ -8,7 +8,7 @@
 #include "Inventory/Component/NAInventoryComponent.h"
 #include "Item/ItemActor/NAPickableItemActor.h"
 #include "Item/ItemActor/NAPlaceableItemActor.h"
-#include "Item/ItemActor/NAWeapon.h"
+#include "Item/PickableItem/NAWeapon.h"
 
 
 // Sets default values for this component's properties

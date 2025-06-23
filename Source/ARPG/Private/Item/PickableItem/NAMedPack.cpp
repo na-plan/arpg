@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Item/ItemActor/NAMedPack.h"
+#include "Item/PickableItem/NAMedPack.h"
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
@@ -54,7 +54,7 @@ bool ANAMedPack::UseItem(UNAItemData* InItemData, AActor* User, int32& UsedAmoun
 	if (!InItemData || !User) return false;
 	if (InItemData->GetItemActorClass() != GetClass()) return false;
 
-	if (const FNARecoveryPackDataStructs* RecoveryPackData = InItemData->GetItemMetaDataStruct<FNARecoveryPackDataStructs>())
+	if (const FNARecoveryPackTableRow* RecoveryPackData = InItemData->GetItemMetaDataStruct<FNARecoveryPackTableRow>())
 	{
 		float RecoveryAmount = RecoveryPackData->RecoveryAmount;
 		if (RecoveryPackData->bIsPercentRecovery)
@@ -96,7 +96,7 @@ EMedPackGrade ANAMedPack::GetMedPackGrade() const
 {
 	if (GetItemData())
 	{
-		if (const FNARecoveryPackDataStructs* RecoveryDataStructs = GetItemData()->GetItemMetaDataStruct<FNARecoveryPackDataStructs>())
+		if (const FNARecoveryPackTableRow* RecoveryDataStructs = GetItemData()->GetItemMetaDataStruct<FNARecoveryPackTableRow>())
 		{
 			return RecoveryDataStructs->MedPackGrade;
 		}

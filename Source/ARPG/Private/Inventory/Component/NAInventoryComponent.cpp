@@ -4,12 +4,12 @@
 #include "Inventory/Component/NAInventoryComponent.h"
 
 #include "Blueprint/WidgetTree.h"
+#include "Components/Button.h"
 #include "Inventory/GameInstance/NAInventoryGameInstanceSubsystem.h"
 #include "Item/EngineSubsystem/NAItemEngineSubsystem.h"
 #include "Inventory/Widget/NAInventoryWidget.h"
-#include "Item/ItemActor/NAWeapon.h"
-#include "Components/Button.h"
-#include "Item/ItemActor/NAMedPack.h"
+#include "Item/PickableItem/NAWeapon.h"
+#include "Item/PickableItem/NAMedPack.h"
 
 // Sets default values for this component's properties
 UNAInventoryComponent::UNAInventoryComponent()
@@ -373,8 +373,8 @@ void UNAInventoryComponent::UseMedPackAutomatically(AActor* User)
 		const UNAItemData* ItemA = InvenSlotContents[A].Get();
 		const UNAItemData* ItemB = InvenSlotContents[B].Get();
 
-		const FNARecoveryPackDataStructs* RecoveryDataA = ItemA->GetItemMetaDataStruct<FNARecoveryPackDataStructs>();
-		const FNARecoveryPackDataStructs* RecoveryDataB = ItemB->GetItemMetaDataStruct<FNARecoveryPackDataStructs>();
+		const FNARecoveryPackTableRow* RecoveryDataA = ItemA->GetItemMetaDataStruct<FNARecoveryPackTableRow>();
+		const FNARecoveryPackTableRow* RecoveryDataB = ItemB->GetItemMetaDataStruct<FNARecoveryPackTableRow>();
 
 		EMedPackGrade GradeA = RecoveryDataA->MedPackGrade;
 		EMedPackGrade GradeB = RecoveryDataB->MedPackGrade;

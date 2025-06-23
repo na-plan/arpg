@@ -9,6 +9,7 @@
 #include "Ability/AttributeSet/NAAttributeSet.h"
 #include "Combat/Interface/NAHandActor.h"
 #include "GameFramework/PawnMovementComponent.h"
+#include "Item/PickableItem/NAWeapon.h"
 #include "Kismet/KismetMathLibrary.h"
 
 void UDefaultAnimInstance::NativeInitializeAnimation()
@@ -45,10 +46,19 @@ void UDefaultAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	//
 	Direction = CalculateDirection(MovementComponent->Velocity, Rotation);
 
-	if (const TScriptInterface<INAHandActor>& HandActor = Pawn)
+	if ( const TScriptInterface<INAHandActor>& HandActor = Pawn )
 	{
 		bLeftHandEmpty = HandActor->GetLeftHandChildActorComponent()->GetChildActor() == nullptr;
 		bRightHandEmpty = HandActor->GetRightHandChildActorComponent()->GetChildActor() == nullptr;
+
+		if ( const ANAWeapon* LeftWeapon = Cast<ANAWeapon>( HandActor->GetLeftHandChildActorComponent()->GetChildActor() ) )
+		{
+			LeftFireArmType = LeftWeapon->GetFireArmType();
+		}
+		if ( const ANAWeapon* RightWeapon = Cast<ANAWeapon>( HandActor->GetRightHandChildActorComponent()->GetChildActor() ) )
+		{
+			RightFireArmType = RightWeapon->GetFireArmType();
+		}
 	}
 
 	if ( const ANACharacter* Character = Cast<ANACharacter>( Pawn ) )

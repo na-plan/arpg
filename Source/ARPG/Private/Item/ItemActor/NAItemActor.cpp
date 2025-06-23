@@ -8,33 +8,34 @@
 #include "GeometryCollection/GeometryCollectionObject.h"
 #include "Item/ItemWidget/NAItemWidgetComponent.h"
 #include "Materials/MaterialInstanceConstant.h"
+#include "Net/UnrealNetwork.h"
 
 
 ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	if (HasAnyFlags(RF_ClassDefaultObject))
-	{
-		if (GetClass()->HasAllClassFlags(CLASS_CompiledFromBlueprint))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  C++ CDO 생성자 (%s)"), *GetName());
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  BP CDO 생성자 (%s)"), *GetName());
-		}
-	}
-	else
-	{
-		if (GetClass()->HasAllClassFlags(CLASS_CompiledFromBlueprint))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  C++ 인스턴스 생성자 (%s)"), *GetName());
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  BP 인스턴스 생성자 (%s)"), *GetName());
-		}
-	}
+	// if (HasAnyFlags(RF_ClassDefaultObject))
+	// {
+	// 	if (GetClass()->HasAllClassFlags(CLASS_CompiledFromBlueprint))
+	// 	{
+	// 		UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  C++ CDO 생성자 (%s)"), *GetName());
+	// 	}
+	// 	else
+	// 	{
+	// 		UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  BP CDO 생성자 (%s)"), *GetName());
+	// 	}
+	// }
+	// else
+	// {
+	// 	if (GetClass()->HasAllClassFlags(CLASS_CompiledFromBlueprint))
+	// 	{
+	// 		UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  C++ 인스턴스 생성자 (%s)"), *GetName());
+	// 	}
+	// 	else
+	// 	{
+	// 		UE_LOG(LogTemp, Warning, TEXT("[ANAItemActor]  BP 인스턴스 생성자 (%s)"), *GetName());
+	// 	}
+	// }
 	
 	ItemCollision = CreateOptionalDefaultSubobject<USphereComponent>(TEXT("ItemCollision(Sphere)"));
 	ItemMesh = CreateOptionalDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh(Static)"));
@@ -58,7 +59,7 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	TriggerSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap); 
 	TriggerSphere->SetSimulatePhysics(false);
 	
-	ItemWidgetComponent = CreateDefaultSubobject<UNAItemWidgetComponent>(TEXT("ItemWidgetComponent"));
+	ItemWidgetComponent = CreateOptionalDefaultSubobject<UNAItemWidgetComponent>(TEXT("ItemWidgetComponent"));
 	
 	ItemDataID = NAME_None;
 
@@ -94,35 +95,7 @@ void ANAItemActor::PostLoad()
 void ANAItemActor::PostActorCreated()
 {
 	Super::PostActorCreated();
-
-	// ChildActorComponent에 의해 생성된 경우
-	if (IsChildActor())
-	{
-		if (ItemCollision)
-		{
-			ItemCollision->SetSimulatePhysics(false);
-			ItemCollision->SetGenerateOverlapEvents(false);
-			ItemCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			ItemCollision->Deactivate();
-		}
-		if (TriggerSphere)
-		{
-			TriggerSphere->SetGenerateOverlapEvents(false);
-			TriggerSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			TriggerSphere->Deactivate();
-		}
-		if (ItemWidgetComponent)
-		{
-			ItemWidgetComponent->SetVisibility(false);
-			ItemWidgetComponent->Deactivate();
-		}
-		if (ItemMesh)
-		{
-			ItemMesh->SetCollisionEnabled( ECollisionEnabled::NoCollision );
-			ItemMesh->SetSimulatePhysics( false );
-			ItemMesh->SetGenerateOverlapEvents(false);
-		}
-	}
+	UpdatePhysics();
 }
 
 #if WITH_EDITOR
@@ -433,25 +406,19 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		}
 	}
 
-	if (!IsChildActor())
+	// BeginPlay 시점에서 물리 설정
+	if ( ItemCollision )
 	{
-		// 트랜스폼 및 콜리전, 피직스 등등 설정 여기에
-		if (ItemCollision)
-		{
-			ItemCollision->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-			ItemCollision->SetCollisionProfileName(TEXT("BlockAllDynamic"));
-			ItemCollision->SetSimulatePhysics( true );
-			ItemCollision->SetIsReplicated( true );
-		}
-		if ( ItemMesh )
-		{
-			ItemMesh->SetCollisionEnabled( ECollisionEnabled::NoCollision );
-			ItemMesh->SetSimulatePhysics( false );
-			ItemMesh->SetGenerateOverlapEvents(false);
-		}
-	
-		GetRootComponent()->SetWorldTransform(PreviousTransform);
+		ItemCollision->SetSimulatePhysics( false );
+		ItemCollision->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 	}
+	if ( ItemMesh )
+	{
+		ItemMesh->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+		ItemMesh->SetSimulatePhysics( false );
+	}
+		
+	GetRootComponent()->SetWorldTransform(PreviousTransform);
 }
 
 void ANAItemActor::Destroyed()
@@ -460,6 +427,12 @@ void ANAItemActor::Destroyed()
 
 	if (!HasActorBegunPlay()) return;
 	CollapseItemWidgetComponent();
+}
+
+void ANAItemActor::GetLifetimeReplicatedProps( TArray<FLifetimeProperty>& OutLifetimeProps ) const
+{
+	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
+	DOREPLIFETIME( ANAItemActor, bWasChildActor );
 }
 
 void ANAItemActor::InitItemData()
@@ -518,6 +491,52 @@ void ANAItemActor::VerifyInteractableData()
 	else
 	{
 		ensureAlways(false);
+	}
+}
+
+void ANAItemActor::UpdatePhysics()
+{
+	// ChildActorComponent에 의해 생성된 경우
+	if ( bWasChildActor || GetAttachParentActor() || ( RootComponent && RootComponent->GetAttachParent() && RootComponent->GetAttachParent()->IsA<UChildActorComponent>() ) )
+	{
+		if (ItemCollision)
+		{
+			ItemCollision->SetSimulatePhysics(false);
+			ItemCollision->SetGenerateOverlapEvents(false);
+			ItemCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+		if (TriggerSphere)
+		{
+			TriggerSphere->SetGenerateOverlapEvents(false);
+			TriggerSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+		if (ItemWidgetComponent)
+		{
+			ItemWidgetComponent->SetVisibility(false);
+		}
+		if (ItemMesh)
+		{
+			ItemMesh->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+			ItemMesh->SetSimulatePhysics( false );
+			ItemMesh->SetGenerateOverlapEvents(false);
+		}
+	}
+	else
+	{
+		// 트랜스폼 및 콜리전, 피직스 등등 설정 여기에
+		if (ItemCollision)
+		{
+			ItemCollision->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			ItemCollision->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+			ItemCollision->SetSimulatePhysics( true );
+			ItemCollision->SetIsReplicated( true );
+		}
+		if ( ItemMesh )
+		{
+			ItemMesh->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+			ItemMesh->SetSimulatePhysics( false );
+			ItemMesh->SetGenerateOverlapEvents(false);
+		}
 	}
 }
 
@@ -615,7 +634,14 @@ void ANAItemActor::BeginPlay()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	Super::BeginPlay();
+
+	if ( HasAuthority() )
+	{
+		bWasChildActor = IsChildActor();
+	}
 	
+	UpdatePhysics();
+		
 	if (InteractableInterfaceRef)
 	{
 		OnActorBeginOverlap.AddUniqueDynamic(this, &ThisClass::OnActorBeginOverlap_Impl);
@@ -669,6 +695,11 @@ bool ANAItemActor::CanInteract_Implementation() const
 {
 	return IsValid(TriggerSphere)
 			&& InteractableInterfaceRef != nullptr && bIsFocused;
+}
+
+bool ANAItemActor::IsOnInteract_Implementation() const
+{
+	return bIsOnInteract;
 }
 
 void ANAItemActor::NotifyInteractableFocusBegin_Implementation(AActor* InteractableActor, AActor* InteractorActor)
@@ -743,11 +774,6 @@ bool ANAItemActor::ExecuteInteract_Implementation(AActor* InteractorActor)
 }
 
 bool ANAItemActor::EndInteract_Implementation(AActor* InteractorActor)
-{
-	return bIsOnInteract;
-}
-
-bool ANAItemActor::IsOnInteract_Implementation() const
 {
 	return bIsOnInteract;
 }
