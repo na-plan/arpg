@@ -38,6 +38,8 @@ class ARPG_API ANAWeapon : public ANAPickableItemActor, public IAbilitySystemInt
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category="Combat", meta=(AllowPrivateAccess="true") )
 	EFireArmType FireArmType;
 
+	FTransform PreviousParentComponentTransform;
+
 public:
 	// Sets default values for this actor's properties
 	ANAWeapon();

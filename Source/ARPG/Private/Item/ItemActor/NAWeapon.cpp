@@ -75,6 +75,7 @@ void ANAWeapon::BeginPlay()
 					// 부착된 상태에서 오프셋 조정
 					// 액터는 초기에 생성된 시점에서 ChildActorComponent에 부착된 상태가 아니라서
 					// 설정한 상대 위치가 소실되므로 대신에 ChildActorComponent의 상대 위치를 조정.
+					PreviousParentComponentTransform = ParentActorComponent->GetRelativeTransform();
 					ParentActorComponent->SetRelativeTransform( WeaponTable->AttachmentTransform );
 				}
 			}
@@ -103,7 +104,7 @@ void ANAWeapon::EndPlay( const EEndPlayReason::Type EndPlayReason )
 
 	if ( USceneComponent* ParentActorComponent = GetParentComponent() )
 	{
-		ParentActorComponent->SetRelativeTransform( FTransform::Identity );
+		ParentActorComponent->SetRelativeTransform( PreviousParentComponentTransform );
 	}
 }
 
