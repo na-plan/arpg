@@ -18,22 +18,7 @@ UNAGA_Melee::UNAGA_Melee(): bUseGrabMontage( false )
 
 void UNAGA_Melee::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	// 델레게이션을 지우고, 효과를 종료함 (가정: 어빌리티가 인스턴싱 되는 경우)
-	const FGameplayAbilityActivationInfo Info = GetCurrentActivationInfo();
-
-	if ( const UNAMontageCombatComponent* CombatComponent = GetCurrentActorInfo()->AvatarActor->GetComponentByClass<UNAMontageCombatComponent>() )
-	{
-		if ( CombatComponent->GetMontage() == Montage )
-		{
-			// 추적하던 몽타주를 해제
-			GetCurrentActorInfo()->AbilitySystemComponent->AbilityActorInfo->GetAnimInstance()->OnMontageEnded.RemoveAll(this);
-			
-			EndAbility( GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, bInterrupted );
-			return;
-		}
-	}
-
-	EndAbility( GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, true );
+	EndAbility( GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, bInterrupted );
 }
 
 void UNAGA_Melee::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
@@ -44,12 +29,6 @@ void UNAGA_Melee::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 		if ( !CommitAbility(Handle, ActorInfo, ActivationInfo) )
 		{
 			EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-		}
-
-		if ( UAnimInstance* AnimInstance = ActorInfo->AbilitySystemComponent->AbilityActorInfo->GetAnimInstance() )
-		{
-			// 효과는 몽타주가 끝나는 시점에 종료 판정이 남
-			AnimInstance->OnMontageEnded.AddUniqueDynamic( this, &UNAGA_Melee::OnMontageEnded );
 		}
 
 		if ( HasAuthority( &ActivationInfo ) )
@@ -64,6 +43,7 @@ void UNAGA_Melee::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 
 	if (UNAMontageCombatComponent* CombatComponent = ActorInfo->AvatarActor->GetComponentByClass<UNAMontageCombatComponent>())
 	{
+		UAnimMontage* PlayedMontage = nullptr;
 		// grabmontage 이면 montage 바꾸도록 하기
 		if (bUseGrabMontage)
 		{
@@ -74,6 +54,8 @@ void UNAGA_Melee::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 				CombatComponent->GetGrabMontage(),
 				CombatComponent->GetMontagePlayRate()
 			);
+
+			PlayedMontage = CombatComponent->GetGrabMontage();
 		}
 		else
 		{
@@ -84,6 +66,19 @@ void UNAGA_Melee::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 				CombatComponent->GetMontage(),
 				CombatComponent->GetMontagePlayRate()
 			);
+
+			PlayedMontage = CombatComponent->GetMontage();
+		}
+		
+		if ( HasAuthority( &ActivationInfo ) && PlayedMontage )
+		{
+			if ( const USkeletalMeshComponent* MeshComp = ActorInfo->AvatarActor->GetComponentByClass<USkeletalMeshComponent>() )
+			{
+				if ( UAnimInstance* AnimInstance = MeshComp->GetAnimInstance() )
+				{
+					AnimInstance->Montage_GetEndedDelegate( PlayedMontage )->BindUObject( this, &UNAGA_Melee::OnMontageEnded );
+				}
+			}
 		}
 	}
 }
