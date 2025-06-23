@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
-#include "NAPickableItemActor.h"
+#include "Item/ItemActor/NAPickableItemActor.h"
 #include "GameFramework/Actor.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "NAWeapon.generated.h"

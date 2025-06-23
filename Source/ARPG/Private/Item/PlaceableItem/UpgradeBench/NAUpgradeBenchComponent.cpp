@@ -4,7 +4,7 @@
 #include "Item/PlaceableItem/UpgradeBench/NAUpgradeBenchComponent.h"
 
 #include "Item/PlaceableItem/UpgradeBench/NAUpgradeBench.h"
-#include "Item/PlaceableItem/UpgradeBench/NAUpgradeBenchWidget.h"
+#include "Item/PlaceableItem/UpgradeBench/Widget/NAUpgradeBenchWidget.h"
 
 
 // Sets default values for this component's properties

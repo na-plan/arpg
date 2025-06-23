@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Item/ItemActor/NAWeapon.h"
+#include "Item/PickableItem//NAWeapon.h"
 
 #include "AbilitySystemComponent.h"
 #include "NiagaraComponent.h"

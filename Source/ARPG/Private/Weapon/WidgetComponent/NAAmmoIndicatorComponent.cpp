@@ -8,7 +8,7 @@
 #include "ARPG/ARPG.h"
 #include "Combat/ActorComponent/NAMontageCombatComponent.h"
 #include "Components/TextBlock.h"
-#include "Item/ItemActor/NAWeapon.h"
+#include "Item/PickableItem//NAWeapon.h"
 #include "Weapon/Widget/NAAmmoWidget.h"
 
 FLinearColor UNAAmmoIndicatorComponent::EnoughColor = {0.322917, 0.75036, 1.0, 0.5};

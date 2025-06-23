@@ -30,7 +30,7 @@ enum class EMedPackGrade : uint8
 
 // 회복 팩: 별도의 사용 단축키 존재(인벤 안켜고 단축키로 바로 사용 가능)
 USTRUCT()
-struct ARPG_API FNARecoveryPackDataStructs : public FNAItemBaseTableRow
+struct ARPG_API FNARecoveryPackTableRow : public FNAItemBaseTableRow
 {
 	GENERATED_BODY()
 	

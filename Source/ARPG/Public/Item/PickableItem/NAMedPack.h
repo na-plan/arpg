@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "NAPickableItemActor.h"
+#include "Item/ItemActor/NAPickableItemActor.h"
 #include "Item/ItemDataStructs/NARecoveryPackDataStructs.h"
 #include "NAMedPack.generated.h"
 
