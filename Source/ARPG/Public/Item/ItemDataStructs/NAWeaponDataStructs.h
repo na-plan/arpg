@@ -119,4 +119,7 @@ struct ARPG_API FNAWeaponTableRow : public FNAItemBaseTableRow
 	UPROPERTY(EditAnywhere, Category = "Firearm",
 		meta = (EditCondition = "WeaponType==EWeaponType::WT_Firearm", EditConditionHides))
 	FNAFirearmStatistics FirearmStatistics;
+
+	UPROPERTY(EditAnywhere, Category = "Weapon")
+	FTransform AttachmentTransform;
 };

@@ -55,31 +55,55 @@ void ANAWeapon::BeginPlay()
 	
 	MuzzleFlashComponent->SetActive( false );
 
-	if ( const USceneComponent* ParentActorComponent = GetParentComponent() )
+	// 서버에서 막 ChildActorComponent에 의해 스폰된 경우
+	if ( HasAuthority() )
 	{
-		if ( AActor* OwningActor = ParentActorComponent->GetOwner() )
+		if ( USceneComponent* ParentActorComponent = GetParentComponent() )
 		{
-			SetOwner( OwningActor );
+			if ( AActor* OwningActor = ParentActorComponent->GetOwner() )
+			{
+				SetOwner( OwningActor );
 
-			if ( const APawn* Pawn = Cast<APawn>( OwningActor );
+				if ( const APawn* Pawn = Cast<APawn>( OwningActor );
+					 Pawn->IsLocallyControlled() )
+				{
+					CombatComponent->Server_RequestAttackAbility();
+				}
+
+				if ( const FNAWeaponTableRow* WeaponTable = static_cast<const FNAWeaponTableRow*>( UNAItemEngineSubsystem::Get()->GetItemMetaDataByClass( GetClass() ) ) )
+				{
+					// 부착된 상태에서 오프셋 조정
+					// 액터는 초기에 생성된 시점에서 ChildActorComponent에 부착된 상태가 아니라서
+					// 설정한 상대 위치가 소실되므로 대신에 ChildActorComponent의 상대 위치를 조정.
+					ParentActorComponent->SetRelativeTransform( WeaponTable->AttachmentTransform );
+				}
+			}
+		}
+	}
+	else
+	{
+		if ( AActor* Actor = GetAttachParentActor() )
+		{
+			AbilitySystemComponent->InitAbilityActorInfo( Actor, this );
+
+			// 클라이언트에 Child Actor 리플리케이션이 발생한 경우에 대한 대응
+			// 만약 해당 무기 액터의 소유권자가 클라이언트 자신이라면 공격 Ability 부여 요청을 재시도
+			if ( const APawn* Pawn = Cast<APawn>( Actor );
 				 Pawn->IsLocallyControlled() )
 			{
 				CombatComponent->Server_RequestAttackAbility();
 			}
 		}
 	}
-	
-	if ( AActor* Actor = GetAttachParentActor() )
-	{
-		AbilitySystemComponent->InitAbilityActorInfo( Actor, this );
+}
 
-		// 클라이언트에 Child Actor 리플리케이션이 발생한 경우에 대한 대응
-		// 만약 해당 무기 액터의 소유권자가 클라이언트 자신이라면 공격 Ability 부여 요청을 재시도
-		if ( const APawn* Pawn = Cast<APawn>( Actor );
-			 Pawn->IsLocallyControlled() )
-		{
-			CombatComponent->Server_RequestAttackAbility();
-		}
+void ANAWeapon::EndPlay( const EEndPlayReason::Type EndPlayReason )
+{
+	Super::EndPlay( EndPlayReason );
+
+	if ( USceneComponent* ParentActorComponent = GetParentComponent() )
+	{
+		ParentActorComponent->SetRelativeTransform( FTransform::Identity );
 	}
 }
 
