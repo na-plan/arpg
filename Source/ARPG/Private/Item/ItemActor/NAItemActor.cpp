@@ -509,10 +509,12 @@ void ANAItemActor::UpdatePhysics()
 		{
 			TriggerSphere->SetGenerateOverlapEvents(false);
 			TriggerSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			TriggerSphere->Deactivate();
 		}
 		if (ItemWidgetComponent)
 		{
 			ItemWidgetComponent->SetVisibility(false);
+			ItemWidgetComponent->Deactivate();
 		}
 		if (ItemMesh)
 		{
