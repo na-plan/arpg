@@ -97,8 +97,12 @@ void UNAGameInstance::DestroySession()
 {
 	if ( const TSharedPtr<IOnlineSession>& Session = SessionInterface.Pin() )
 	{
-		Session->DestroySession( MadeSessionName );
-		MadeSessionName = NAME_None;
+		if ( bIsHosting )
+		{
+			Session->DestroySession( MadeSessionName );
+			MadeSessionName = NAME_None;
+			bIsHosting = false;
+		}
 
 		if ( HasJoined() )
 		{
@@ -106,8 +110,6 @@ void UNAGameInstance::DestroySession()
 			GetFirstLocalPlayerController()->ClientTravel( TEXT("/Game/00_ProjectNA/02_Level/Level_NALobby"), TRAVEL_Absolute, true );
 			bHasJoined = false;
 		}
-
-		bIsHosting = false;
 	}
 }
 
