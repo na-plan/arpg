@@ -30,16 +30,12 @@ class ARPG_API ANAItemActor : public AActor, public INAInteractableInterface, pu
 public:
 	ANAItemActor(const FObjectInitializer& ObjectInitializer);
 	virtual void PostInitProperties() override;
-	virtual void PostReinitProperties() override;
 	virtual void PostLoad() override;
 	virtual void PostActorCreated() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void Destroyed() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	
-#if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	
 protected:
 	virtual void BeginPlay() override;
@@ -144,6 +140,9 @@ protected:
 	UFUNCTION()
 	void OnActorEndOverlap_Impl( AActor* OverlappedActor, AActor* OtherActor );
 
+	UFUNCTION()
+	virtual void OnRep_ItemCollision( UShapeComponent* PreviousComponent );
+
 	virtual void OnFullyAddedToInventoryBeforeDestroy_Impl(AActor* Interactor) {}
 	
 private:
@@ -153,14 +152,18 @@ private:
 
 protected:
 	// Optional Subobject
-	uint8 bWasItemCollisionCreated :1 = false;
-	UPROPERTY(Instanced, VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Collision Shape")
+	uint8 bWasItemCollisionCreated :1 = true;
+	
+	// Optional Subobject
+	uint8 bWasItemMeshCreated :1 = true;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	USceneComponent* FakeRootComponent;
+	
+	UPROPERTY(Instanced, VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_ItemCollision, Category="Item Actor | Collision Shape")
 	TObjectPtr<UShapeComponent> ItemCollision;
 
-	// Optional Subobject
-	uint8 bWasItemMeshCreated :1 = false;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category="Item Actor | Collision")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category="Item Actor")
 	bool bWasChildActor = false;
 	
 	UPROPERTY(Instanced, VisibleAnywhere, Category = "Item Actor | Mesh")
