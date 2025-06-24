@@ -104,6 +104,7 @@ void UNACombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME_CONDITION( UNACombatComponent, bCanAttack, COND_OwnerOnly );
+	DOREPLIFETIME_CONDITION( UNACombatComponent, AttackOrientation, COND_OwnerOnly );
 }
 
 void UNACombatComponent::Server_SyncAttack_Implementation( const bool bFlag )
