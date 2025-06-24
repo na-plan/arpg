@@ -27,13 +27,13 @@ public:
 	UFUNCTION(BlueprintCallable)
 	UDataTable* GetCharacterAttributesDataTable() const
 	{
-		return KineticDataTable;
+		return AttributesDataTable;
 	}
 
 	UFUNCTION(BlueprintCallable)
 	UDataTable* GetKineticAttributesDataTable() const
 	{
-		return AttributesDataTable;
+		return KineticDataTable;
 	}
 
 	// 특정 객체에 대한 Attributes를 담고 있는 테이블을 반환
