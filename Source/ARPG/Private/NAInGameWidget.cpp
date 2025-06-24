@@ -5,6 +5,7 @@
 
 #include "Components/Button.h"
 #include "Kismet/GameplayStatics.h"
+#include "Lobby/NAGameInstance.h"
 
 void UNAInGameWidget::NativeConstruct()
 {
@@ -30,5 +31,6 @@ void UNAInGameWidget::OnClick_Quit()
 	FInputModeGameOnly InputMode;
 	GetOwningPlayer()->SetInputMode( InputMode );
 	GetOwningPlayer()->SetShowMouseCursor( false );
+	Cast<UNAGameInstance>( GetGameInstance() )->DestroySession();
 }
 
