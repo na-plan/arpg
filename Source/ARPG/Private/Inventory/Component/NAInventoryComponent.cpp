@@ -41,11 +41,11 @@ UNAInventoryComponent::UNAInventoryComponent()
 	{
 		InitInventorySlotIDs(this);
 	}
-	
-	static const FSoftClassPath InventoryWidgetClassPath(TEXT("/Game/00_ProjectNA/Inventory/BP_NAInventoryWidget.BP_NAInventoryWidget_C"));
+
+	static const FSoftClassPath InventoryWidgetClassPath(TEXT("/Game/00_ProjectNA/01_Blueprint/01_Widget/Inventory/BP_NAInventoryWidget.BP_NAInventoryWidget_C"));
 	InventoryWidgetClassRef = InventoryWidgetClassPath;
 
-	static const FSoftObjectPath InventoryWidgetMaterialPath(TEXT("/Engine/EngineMaterials/Widget3DPassThrough_Translucent.Widget3DPassThrough_Translucent"));
+	static const FSoftObjectPath InventoryWidgetMaterialPath(TEXT("/Game/00_ProjectNA/01_Blueprint/01_Widget/Inventory/Materials/M_InventoryWidgetDefault.M_InventoryWidgetDefault"));
 	InventoryWidgetMaterialRef = InventoryWidgetMaterialPath;
 }
 

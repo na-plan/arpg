@@ -34,13 +34,13 @@ UNAItemWidgetComponent::UNAItemWidgetComponent(const FObjectInitializer& ObjectI
 	SetBlendMode(EWidgetBlendMode::Masked);
 	SetWindowFocusable(false);
 
-	static const FSoftClassPath PickableItemWidgetClassPath(TEXT("/Game/00_ProjectNA/ItemTest/ItemWidget/BP_NAPickableItemWidget.BP_NAPickableItemWidget_C"));
+	static const FSoftClassPath PickableItemWidgetClassPath(TEXT("/Game/00_ProjectNA/01_Blueprint/01_Widget/Item/BP_NAPickableItemDefaultWidget.BP_NAPickableItemDefaultWidget_C"));
 	PickableItemWidgetClassRef = PickableItemWidgetClassPath;
 	
-	static const FSoftClassPath PlaceableItemWidgetClassPath(TEXT("/Game/00_ProjectNA/ItemTest/ItemWidget/BP_NAPlaceableItemWidget.BP_NAPlaceableItemWidget_C"));
+	static const FSoftClassPath PlaceableItemWidgetClassPath(TEXT("/Game/00_ProjectNA/01_Blueprint/01_Widget/Item/BP_NAPlaceableItemDefaultWidget.BP_NAPlaceableItemDefaultWidget_C"));
 	PlaceableItemWidgetClassRef = PlaceableItemWidgetClassPath;
 
-	static const FSoftObjectPath ItemWidgetMaterialPath(TEXT("/Engine/EngineMaterials/Widget3DPassThrough_Translucent.Widget3DPassThrough_Translucent"));
+	static const FSoftObjectPath ItemWidgetMaterialPath(TEXT("/Game/00_ProjectNA/01_Blueprint/01_Widget/Item/Materials/M_ItemWidgetDefault.M_ItemWidgetDefault"));
 	ItemWidgetMaterialRef = ItemWidgetMaterialPath;
 }
 
