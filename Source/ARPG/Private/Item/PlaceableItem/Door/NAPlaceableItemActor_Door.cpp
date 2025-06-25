@@ -3,7 +3,6 @@
 
 #include "Item/PlaceableItem/Door/NAPlaceableItemActor_Door.h"
 #include "Algo/Find.h"
-#include "Components/BoxComponent.h"
 #include "Components/SphereComponent.h"
 #include "Item/ItemWidget/NAItemWidgetComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -17,26 +16,9 @@ ANAPlaceableItemActor_Door::ANAPlaceableItemActor_Door(const FObjectInitializer&
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	if (UBoxComponent* ItemCollisionBox = CreateOptionalDefaultSubobject<UBoxComponent>(TEXT("ItemCollision(Box)")))
-	{
-		ItemCollisionBox->SetBoxExtent(FVector::ZeroVector);
-		ItemCollision = ItemCollisionBox;
-	}
-	if (ItemCollision)
-	{
-		bNeedItemCollision = true;
-		SetRootComponent(ItemCollision);
-		if (TriggerSphere)
-		{
-			TriggerSphere->SetupAttachment(ItemCollision);
-			TriggerSphere->SetSphereRadius(280);
-			TriggerSphere->SetRelativeLocation(FVector(0.f, 0.f, 0.f));
-		}
-		if (ItemWidgetComponent)
-		{
-			ItemWidgetComponent->SetupAttachment(ItemCollision);
-		}
-	}
+	bNeedItemCollision = false;
+	TriggerSphere->SetSphereRadius(280);
+	TriggerSphere->SetRelativeLocation(FVector(0.f, 0.f, 0.f));
 }
 
 void ANAPlaceableItemActor_Door::PostRegisterAllComponents()
@@ -101,65 +83,42 @@ void ANAPlaceableItemActor_Door::BeginPlay()
 			Door2 = Comp;
 	}
 	
-	if (ItemCollision)
-	{
-		ItemCollision->SetSimulatePhysics(false);
-		ItemCollision->SetGenerateOverlapEvents(false);
-		ItemCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	}
-	
 	OriginTF1_Local = Door1->GetRelativeTransform();
 	OriginTF2_Local = Door2->GetRelativeTransform();
 	
 	PivotTF = RootComponent->GetRelativeTransform();
 
-	if (ItemCollision)
-	{
-		if (Door1)
-		{
-			Door1->AttachToComponent(ItemCollision, FAttachmentTransformRules::KeepRelativeTransform);
-		}
-		if (Door2)
-		{
-			Door2->AttachToComponent(ItemCollision, FAttachmentTransformRules::KeepRelativeTransform);
-		}
-	}
+	DestTF1_Local = OriginTF1_Local;
+	DestTF2_Local = OriginTF2_Local;
 	
-
-	if (ensureAlways(Door1->GetAttachParent() == ItemCollision && Door2->GetAttachParent() == ItemCollision))
+	FVector DestLoc_Door1 = Door1->GetComponentLocation();
+	FVector DestLoc_Door2 = Door2->GetComponentLocation();
+		
+	FVector UpVec = GetActorUpVector();
+	FVector RightVec = GetActorRightVector();
+		
+	switch (DoorType)
 	{
-		DestTF1_Local = OriginTF1_Local;
-		DestTF2_Local = OriginTF2_Local;
-	
-		FVector DestLoc_Door1 = Door1->GetComponentLocation();
-		FVector DestLoc_Door2 = Door2->GetComponentLocation();
-		
-		FVector UpVec = ItemCollision->GetUpVector();
-		FVector RightVec = ItemCollision->GetRightVector();
-		
-		switch (DoorType)
-		{
-		case EDoorType::UpDown:
-			DestLoc_Door1 += UpVec * MoveDist;
-			DestLoc_Door2 += -UpVec * MoveDist;
-			break;
+	case EDoorType::UpDown:
+		DestLoc_Door1 += UpVec * MoveDist;
+		DestLoc_Door2 += -UpVec * MoveDist;
+		break;
 			
-		case EDoorType::LeftRight:
-			DestLoc_Door1 += RightVec * MoveDist;
-			DestLoc_Door2 += -RightVec * MoveDist;
-			break;
+	case EDoorType::LeftRight:
+		DestLoc_Door1 += RightVec * MoveDist;
+		DestLoc_Door2 += -RightVec * MoveDist;
+		break;
 			
-		default:
-			ensureAlways(false);
-			return;
-		}
-
-		DestLoc_Door1 = ItemCollision->GetComponentTransform().InverseTransformPosition(DestLoc_Door1);
-		DestLoc_Door2 = ItemCollision->GetComponentTransform().InverseTransformPosition(DestLoc_Door2);
-
-		DestTF1_Local.SetLocation(DestLoc_Door1);
-		DestTF2_Local.SetLocation(DestLoc_Door2);
+	default:
+		ensureAlways(false);
+		return;
 	}
+
+	DestLoc_Door1 = GetActorTransform().InverseTransformPosition(DestLoc_Door1);
+	DestLoc_Door2 = GetActorTransform().InverseTransformPosition(DestLoc_Door2);
+
+	DestTF1_Local.SetLocation(DestLoc_Door1);
+	DestTF2_Local.SetLocation(DestLoc_Door2);
 }
 
 // Called every frame
@@ -202,10 +161,6 @@ void ANAPlaceableItemActor_Door::ActiveDoor()
 
 void ANAPlaceableItemActor_Door::ToggleDoor()
 {
-	if (!ensureAlways(Door1->GetAttachParent() == ItemCollision && Door2->GetAttachParent() == ItemCollision))
-	{
-		return;
-	}
 	if (DoorType == EDoorType::Max)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[ToggleDoor]  DoorType was Max."));

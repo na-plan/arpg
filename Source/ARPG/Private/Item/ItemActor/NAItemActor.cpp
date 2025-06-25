@@ -1,6 +1,8 @@
 
 #include "Item/ItemActor/NAItemActor.h"
 
+#include "LandscapeGizmoActiveActor.h"
+#include "MovieSceneTracksComponentTypes.h"
 #include "Components/SphereComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -14,19 +16,15 @@
 ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	FakeRootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("FakeRootComponent"));
-	SetRootComponent( FakeRootComponent );
+	StubRootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("FakeRootComponent"));
+	SetRootComponent( StubRootComponent );
 	ItemMesh = CreateOptionalDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh(Static)"));
 	TriggerSphere = CreateDefaultSubobject<USphereComponent>("TriggerSphere");
 	ItemWidgetComponent = CreateOptionalDefaultSubobject<UNAItemWidgetComponent>(TEXT("ItemWidgetComponent"));
 	
-	if ( ItemCollision )
-	{
-		SetRootComponent( ItemCollision );
-	}
 	if ( ItemMesh )
 	{
-		ItemMesh->SetupAttachment( FakeRootComponent );
+		ItemMesh->SetupAttachment( StubRootComponent );
 		ItemMesh->SetSimulatePhysics( false );
 		ItemMesh->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 	}
@@ -38,11 +36,11 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	TriggerSphere->CanCharacterStepUpOn = ECB_No;
 	TriggerSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap); 
 	TriggerSphere->SetSimulatePhysics(false);
-	TriggerSphere->SetupAttachment( FakeRootComponent );
+	TriggerSphere->SetupAttachment( StubRootComponent );
 
 	if ( ItemWidgetComponent )
 	{
-		ItemWidgetComponent->SetupAttachment( FakeRootComponent );	
+		ItemWidgetComponent->SetupAttachment( StubRootComponent );	
 	}
 
 	bReplicateUsingRegisteredSubObjectList = true;
@@ -76,6 +74,58 @@ void ANAItemActor::PostActorCreated()
 {
 	Super::PostActorCreated();
 	InitCheckIfChildActor();
+}
+
+bool ANAItemActor::UpgradeLegacyBlueprints()
+{
+	bool bOldVersion = Version <= 0;
+	if ( Version == 0 )
+	{
+		USceneComponent* LegacyComponent = GetRootComponent();
+		
+		if ( LegacyComponent == ItemCollision ) 
+		{
+			ItemCollision = nullptr;
+		}
+
+		TArray<USceneComponent*> LegacyChildren;
+		const TSet<UActorComponent*>& ActorChildrenComponent = GetComponents();
+
+		for ( auto It = ActorChildrenComponent.begin(); It != ActorChildrenComponent.end(); ++It )
+		{
+			if ( (*It)->GetName().StartsWith( "ItemCollision" ) &&
+				 (*It)->GetClass()->IsChildOf( UShapeComponent::StaticClass() ) )
+			{
+				const USceneComponent* SceneCast = Cast<USceneComponent>( *It );
+				for ( const auto CIt = SceneCast->GetAttachChildren().CreateConstIterator(); CIt; )
+				{
+					LegacyChildren.Add( *CIt );
+					(*CIt)->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
+					
+				}
+				(*It)->ClearFlags(RF_Standalone | RF_Public);
+				(*It)->DestroyComponent();
+				RemoveInstanceComponent( *It );
+				RemoveOwnedComponent( *It );
+			}
+		}
+
+		if ( LegacyChildren.Num() )
+		{
+			for ( USceneComponent* Orphan : LegacyChildren )
+			{
+				Orphan->AttachToComponent( StubRootComponent, FAttachmentTransformRules::KeepRelativeTransform );
+			}
+		}
+
+		SetRootComponent( StubRootComponent );
+
+		// 에셋 업데이트
+		Version = 1;
+		GetPackage()->MarkPackageDirty();
+	}
+
+	return bOldVersion;
 }
 
 EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTableRow* MetaData) const
@@ -194,18 +244,23 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	const FNAItemBaseTableRow* MetaData = UNAItemEngineSubsystem::Get()->GetItemMetaDataByClass(GetClass());
 	if (!MetaData) { return; }
 
-	// 이미 초기화를 수행한 경우
-	if ( !FakeRootComponent )
+    // 이미 초기화를 수행한 경우, 또는 구버전 블루프린트인 경우
+	if ( bool bOldVersion = UpgradeLegacyBlueprints();
+		 !StubRootComponent && !bOldVersion )
 	{
 		return;
 	}
+
+	USceneComponent* CandidateRootComponent = StubRootComponent;
 
 	// 기존 루트의 월드 트랜스폼을 저장
 	const FTransform PreviousTransform = RootComponent->GetComponentTransform();
 	EObjectFlags SubobjFlags = GetMaskedFlags(RF_PropagateToSubObjects);
 
+	// 콜리전 설정 또는 콜리전 생성 요청이 conflict하는 경우
+	check( !((!bNeedItemCollision) ^ (MetaData->CollisionShape == EItemCollisionShape::ICS_None)) );
 	// 아이템 콜리전은 처음에 만들어지지 않기 때문에 한번 체크
-	if ( !ItemCollision && bNeedItemCollision )
+	if ( !ItemCollision && bNeedItemCollision && MetaData->CollisionShape != EItemCollisionShape::ICS_None )
 	{
 		switch (MetaData->CollisionShape)
 		{
@@ -219,14 +274,14 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			ItemCollision = NewObject<UCapsuleComponent>(this, TEXT("ItemCollision(Capsule)"), SubobjFlags);
 			break;
 		default:
-			ensure(false);
 			break;
 		}
 		ensure(ItemCollision != nullptr);
+		CandidateRootComponent = ItemCollision;
 	}
 
 	// 아이템 매시가 ObjectInitializer에서 Optional로 생성되지 않을 수 있음
-	if ( bNeedItemMesh )
+	if ( bNeedItemMesh && MetaData->MeshType != EItemMeshType::IMT_None )
 	{
 		if ( ItemMesh )
 		{
@@ -245,10 +300,14 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		}
 		
 		ensure(ItemMesh != nullptr);
+		if ( !CandidateRootComponent )
+		{
+			CandidateRootComponent = ItemMesh;
+		}
 	}
 	
 	// 어태치먼트
-    if ( GetRootComponent() != ItemCollision )
+    if ( GetRootComponent() != CandidateRootComponent )
 	{
 		TArray<USceneComponent*> ComponentChildren;
     	
@@ -263,14 +322,14 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			}
 
 			// 만약 가짜 루트 컴포넌트였다면 프로퍼티에서 참조되지 않도록 지움
-			if ( RootComponent == FakeRootComponent )
+			if ( RootComponent == StubRootComponent && CandidateRootComponent != StubRootComponent )
 			{
-				FakeRootComponent = nullptr;
+				StubRootComponent = nullptr;
 			}
 			RootComponent = nullptr;
 		}
 		
-		SetRootComponent(ItemCollision);
+		SetRootComponent( CandidateRootComponent );
 		
 		if ( ComponentChildren.Num() )
 		{
@@ -378,7 +437,7 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		ItemMesh->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 		ItemMesh->SetGenerateOverlapEvents( false );
 	}
-		
+	
 	GetRootComponent()->SetWorldTransform(PreviousTransform);
 }
 
