@@ -6,7 +6,7 @@ ANAPlaceableItemActor::ANAPlaceableItemActor(const FObjectInitializer& ObjectIni
 	:Super(ObjectInitializer
 		.DoNotCreateDefaultSubobject(TEXT("ItemMesh(Static)")))
 {
-	bWasItemMeshCreated = false;
+	bNeedItemMesh = false;
 }
 
 void ANAPlaceableItemActor::PostInitProperties()

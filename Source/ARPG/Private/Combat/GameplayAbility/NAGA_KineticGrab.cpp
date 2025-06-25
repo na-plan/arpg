@@ -44,6 +44,13 @@ FVector UNAGA_KineticGrab::GetMinimumDistance( const AActor* OriginActor,
 	return OriginDimensionToForward + TargetDimensionToForward;
 }
 
+UNAGA_KineticGrab::UNAGA_KineticGrab(): PreviousResponse(), APConsumeTask( nullptr ), MoveActorToTask( nullptr )
+{
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
+	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateYes;
+}
+
 bool UNAGA_KineticGrab::CommitAbility( const FGameplayAbilitySpecHandle Handle,
                                        const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
                                        FGameplayTagContainer* OptionalRelevantTags )
@@ -124,7 +131,7 @@ void UNAGA_KineticGrab::ActivateAbility( const FGameplayAbilitySpecHandle Handle
 	{
 		if ( !CommitAbility( Handle, ActorInfo, ActivationInfo ) )
 		{
-			EndAbility( Handle, ActorInfo, ActivationInfo, false, true );
+			EndAbility( Handle, ActorInfo, ActivationInfo, true, true );
 			return;
 		}
 

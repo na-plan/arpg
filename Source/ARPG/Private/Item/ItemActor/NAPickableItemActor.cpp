@@ -90,7 +90,11 @@ void ANAPickableItemActor::SetInteractionPhysicsEnabled(const bool bEnabled)
 	{
 		if (ItemCollision)
 		{
-			ItemCollision->SetSimulatePhysics(true);
+			if ( HasAuthority() )
+			{
+				ItemCollision->SetSimulatePhysics(true);	
+			}
+			
 			ItemCollision->SetGenerateOverlapEvents(true);
 			ItemCollision->SetCollisionProfileName(TEXT("BlockAllDynamic"));
 			ItemCollision->Activate();

@@ -55,17 +55,20 @@ TSubclassOf<UGameplayEffect> UNACombatComponent::GetAmmoType() const
 
 void UNACombatComponent::OnAbilityEnded( const FAbilityEndedData& AbilityEndedData )
 {
-	if ( !AbilityEndedData.bWasCancelled )
+	if ( AbilityEndedData.AbilityThatEnded->IsA( AttackAbility ) )
 	{
-		if ( bReplay && bAttacking )
+		if ( !AbilityEndedData.bWasCancelled )
 		{
-			UE_LOG( LogTemp, Log, TEXT("[%hs]: Ability replay from %d"), __FUNCTION__, GetNetMode() )
-			StartAttack();
+			if ( bReplay && bAttacking )
+			{
+				UE_LOG( LogTemp, Log, TEXT("[%hs]: Ability replay from %d"), __FUNCTION__, GetNetMode() )
+				StartAttack();
+			}
 		}
-	}
-	else
-	{
-		UE_LOG( LogTemp, Log, TEXT("[%hs]: Ability cancelled"), __FUNCTION__ )
+		else
+		{
+			UE_LOG( LogTemp, Log, TEXT("[%hs]: Ability cancelled"), __FUNCTION__ )
+		}
 	}
 }
 
@@ -104,6 +107,7 @@ void UNACombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME_CONDITION( UNACombatComponent, bCanAttack, COND_OwnerOnly );
+	DOREPLIFETIME_CONDITION( UNACombatComponent, AttackOrientation, COND_OwnerOnly );
 }
 
 void UNACombatComponent::Server_SyncAttack_Implementation( const bool bFlag )

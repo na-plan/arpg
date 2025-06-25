@@ -16,6 +16,8 @@ class ARPG_API UNAGA_KineticGrab : public UGameplayAbility
 {
 	GENERATED_BODY()
 
+	UNAGA_KineticGrab();
+
 	ECollisionResponse PreviousResponse;
 	
 	UPROPERTY()
