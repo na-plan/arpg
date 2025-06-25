@@ -6,16 +6,6 @@
 #include "Misc/StringUtils.h"
 #include "Item/PickableItem/NAUpgradeNode.h"
 
-FNAItemBaseTableRow::FNAItemBaseTableRow(UClass* InItemClass)
-{
-	//UE_LOG(LogTemp, Warning, TEXT("[FNAItemBaseTableRow::FNAItemBaseTableRow]  아이템 DT 기본 생성자"));
-
-	if (InItemClass && InItemClass->IsChildOf<ANAItemActor>())
-	{
-		ItemClass = InItemClass;
-	}
-}
-
 #if WITH_EDITOR
 
 void FNAItemBaseTableRow::OnDataTableChanged(const UDataTable* InDataTable, const FName InRowName)
@@ -24,6 +14,8 @@ void FNAItemBaseTableRow::OnDataTableChanged(const UDataTable* InDataTable, cons
 	
 	if (ItemRowStruct == this)
 	{
+		if (!ItemRowStruct->ItemClass.IsValid()) return;
+		
 		if (UNAItemEngineSubsystem::Get()
 			&& UNAItemEngineSubsystem::Get()->IsItemMetaDataInitialized())
 		{
@@ -42,7 +34,7 @@ void FNAItemBaseTableRow::OnDataTableChanged(const UDataTable* InDataTable, cons
 		}
 
 		if (ItemType == EItemType::IT_Weapon
-			|| (ItemClass && ItemClass.Get()->IsChildOf<ANAWeapon>()))
+			|| ItemClass.Get()->IsChildOf<ANAWeapon>())
 		{
 			NumericData.bIsStackable = false;
 			NumericData.MaxSlotStackSize = 1;
@@ -79,13 +71,13 @@ void FNAItemBaseTableRow::OnDataTableChanged(const UDataTable* InDataTable, cons
 			InteractableData.InteractionName = FText::FromString(EnumStr);
 		}
 
-		if (ItemClass && ItemClass->IsChildOf<ANAPlaceableItemActor>())
+		if (ItemClass.Get()->IsChildOf<ANAPlaceableItemActor>())
 		{
 			InteractableData.bIsUnlimitedInteractable = true;
 			InteractableData.InteractableCount = 0;
 		}
 
-		if (ItemClass && ItemClass->IsChildOf<ANAUpgradeNode>())
+		if (ItemClass.Get()->IsChildOf<ANAUpgradeNode>())
 		{
 			ItemType = EItemType::IT_UpgradeNode;
 		}

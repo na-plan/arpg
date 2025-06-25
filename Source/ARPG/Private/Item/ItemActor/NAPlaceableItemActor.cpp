@@ -3,8 +3,7 @@
 #include "Components/ShapeComponent.h"
 
 ANAPlaceableItemActor::ANAPlaceableItemActor(const FObjectInitializer& ObjectInitializer)
-	:Super(ObjectInitializer
-		.DoNotCreateDefaultSubobject(TEXT("ItemMesh(Static)")))
+	:Super(ObjectInitializer)
 {
 	bNeedItemMesh = false;
 }

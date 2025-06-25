@@ -10,8 +10,7 @@
 
 // Sets default values
 ANAPlaceableItemActor_Door::ANAPlaceableItemActor_Door(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer
-		.DoNotCreateDefaultSubobject(TEXT("ItemCollision(Sphere)")))
+	: Super(ObjectInitializer)
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;

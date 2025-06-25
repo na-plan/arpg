@@ -50,6 +50,10 @@ public:
 		
 		return nullptr;
 	}
+
+	FORCEINLINE bool IsSoftItemMetaDataInitialized() const {
+		return bSoftMetaDataInitialized;
+	}
 	
 	FORCEINLINE bool IsItemMetaDataInitialized() const {
 		return bMetaDataInitialized;
@@ -63,7 +67,20 @@ public:
 		{
 			return nullptr;
 		}
-		if (const FDataTableRowHandle* Value = ItemMetaDataMap.Find(InItemActorClass))
+
+		UClass* Key = InItemActorClass;
+#if WITH_EDITOR || WITH_EDITORONLY_DATA
+		if (UBlueprintGeneratedClass* BPClass = Cast<UBlueprintGeneratedClass>(InItemActorClass))
+		{
+			if (UBlueprint* BP = Cast<UBlueprint>(BPClass->ClassGeneratedBy))
+			{
+				Key = BP->GeneratedClass.Get();
+			}
+		}
+#endif
+		Key = Key ? Key : InItemActorClass;
+		
+		if (const FDataTableRowHandle* Value = ItemMetaDataMap.Find(Key))
 		{
 			return Value->GetRow<ItemDTRow_T>(Value->RowName.ToString());
 		}
@@ -178,21 +195,29 @@ public:
 			}
 		}
 	}
+
+	const FDataTableRowHandle* FindSoftItemMetaData(UClass* ItemActorClass) const;
 		
 private:
 	// 실제 사용할 DataTable 포인터 보관
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY()
 	TArray<TObjectPtr<UDataTable>> ItemDataTableSources;
 
+	UPROPERTY()
+	TMap<TSoftClassPtr<ANAItemActor>, FDataTableRowHandle> SoftItemMetaData;
+
+	UPROPERTY()
+	uint8 bSoftMetaDataInitialized : 1 = false;
+	
 	// 메타데이터 매핑
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY()
 	TMap<TSubclassOf<ANAItemActor>, FDataTableRowHandle> ItemMetaDataMap;
 	
-	UPROPERTY(Transient)
+	UPROPERTY()
 	uint8 bMetaDataInitialized : 1 = false;
 
 	// 런타임 데이터 매핑
 	// 아이템 ID: 런타임 때 아이템 데이터 식별용
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY()
 	TMap<FName, TObjectPtr<UNAItemData>> RuntimeItemDataMap;
 };

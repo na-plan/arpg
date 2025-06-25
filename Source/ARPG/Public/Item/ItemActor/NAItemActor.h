@@ -32,7 +32,6 @@ public:
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
 	virtual void PostActorCreated() override;
-	bool UpgradeLegacyBlueprints();
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void Destroyed() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -157,19 +156,13 @@ protected:
 	
 	// Optional Subobject
 	uint8 bNeedItemMesh :1 = true;
-
-	UPROPERTY()
-	int32 Version = 0;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	USceneComponent* StubRootComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category="Item Actor")
+	bool bWasChildActor = false;
 	
 	UPROPERTY(Instanced, VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_ItemCollision, Category="Item Actor | Collision Shape")
 	TObjectPtr<UShapeComponent> ItemCollision;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category="Item Actor")
-	bool bWasChildActor = false;
-	
 	UPROPERTY(Instanced, VisibleAnywhere, Category = "Item Actor | Mesh")
 	TObjectPtr<UMeshComponent> ItemMesh;
 

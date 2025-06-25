@@ -147,8 +147,6 @@ USTRUCT()
 struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 {
 	GENERATED_BODY()
-
-	FNAItemBaseTableRow(UClass* InItemClass = nullptr);
 	
 	UPROPERTY(EditAnywhere, Category ="Item Base Data")
 	EItemType ItemType = EItemType::IT_None;
@@ -157,8 +155,12 @@ struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 	// https://forums.unrealengine.com/t/uproperty-specifier-blueprintbaseonly-is-not-working-this-is-clearly-bug/2334795/6
 	// https://issues.unrealengine.com/issue/UE-210088
 	// 휴먼 에러 주의(c++ 네이티브 클래스 선택하지 말 것)
-	UPROPERTY(EditAnywhere, Category = "Item Base Data", meta=(BlueprintBaseOnly, AllowAbstract="false"))
-	TSubclassOf<ANAItemActor> ItemClass = nullptr;
+	UPROPERTY(EditAnywhere, Category = "Item Base Data", meta=(BlueprintBaseOnly, AllowAbstract="false"
+		, AllowedClasses="/Script/ARPG.ANAItemActor"))
+	TSoftClassPtr<ANAItemActor> ItemClass = nullptr;
+
+	// UPROPERTY(EditAnywhere, Category="Item Base Data", meta = (AllowedClasses="/Script/ARPG.ANAItemActor"))
+	// FSoftClassPath ItemClassPath;
 
 	// None: 기본 생성자에서 DoNotCreateSubobject로 ItemCollision 생성 수정한 경우!! 반다시!! 이 플래그 써야함
 	UPROPERTY(EditAnywhere, Category = "Item Collision Shape")
@@ -215,16 +217,6 @@ struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 protected:
 	virtual void OnDataTableChanged(const UDataTable* InDataTable, const FName InRowName) override;
 #endif
-};
-
-USTRUCT()
-struct ARPG_API FNATestItemBaseTableRow : public FTableRowBase
-{
-	GENERATED_BODY()
-	
-	UPROPERTY(EditAnywhere, Category = "Item Base Data", meta=(BlueprintBaseOnly, AllowAbstract="false"))
-	TSubclassOf<ANAItemActor> ItemClass = nullptr;
-
 };
 
 USTRUCT()
