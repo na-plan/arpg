@@ -134,7 +134,7 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	virtual void OnItemDataInitialized();
 	
-	virtual EItemSubobjDirtyFlags CheckDirtySubobjectFlags(const FNAItemBaseTableRow* MetaData) const;
+	virtual EItemSubobjDirtyFlags GetDirtySubobjectFlags(const FNAItemBaseTableRow* MetaData) const;
 
 	UFUNCTION()
 	void OnActorBeginOverlap_Impl( AActor* OverlappedActor, AActor* OtherActor );
