@@ -15,7 +15,7 @@ UNAUpgradeBenchComponent::UNAUpgradeBenchComponent(const FObjectInitializer& Obj
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
-	static const FSoftClassPath PlaceableItemWidgetClassPath(TEXT("/Game/00_ProjectNA/ItemTest/UpgradeBench/BP_NAUpgradeBenchWidget.BP_NAUpgradeBenchWidget_C"));
+	static const FSoftClassPath PlaceableItemWidgetClassPath(TEXT("/Game/00_ProjectNA/01_Blueprint/01_Widget/Item/UpgradeBench/BP_NAUpgradeBenchWidget.BP_NAUpgradeBenchWidget_C"));
 	PlaceableItemWidgetClassRef = PlaceableItemWidgetClassPath;
 }
 

@@ -21,8 +21,8 @@ void UNAItemEngineSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	if (ItemDataTableSources.IsEmpty())
 	{
-		// 1) Registry 에셋 동기 로드 (나중에 실제 경로로 교체)
-		static const FString RegistryPath = TEXT("/Script/ARPG.ItemDataTablesAsset'/Game/00_ProjectNA/ItemTest/DA_ItemDataTables.DA_ItemDataTables'");
+		// 1) Registry 에셋 동기 로드
+		static const FString RegistryPath = TEXT("/Script/ARPG.ItemDataTablesAsset'/Game/00_ProjectNA/01_Blueprint/00_Actor/MainGame/Items/DA_ItemDataTables.DA_ItemDataTables'");
 		UItemDataTablesAsset* Registry = Cast<UItemDataTablesAsset>(StaticLoadObject(UItemDataTablesAsset::StaticClass(), nullptr, *RegistryPath));
 	
 		if (!Registry)
