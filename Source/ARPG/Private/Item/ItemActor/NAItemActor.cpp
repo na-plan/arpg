@@ -12,6 +12,10 @@
 #include "Item/ItemWidget/NAItemWidgetComponent.h"
 #include "Net/UnrealNetwork.h"
 
+struct ItemActorRevision2
+{
+	
+};
 
 ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -76,66 +80,69 @@ void ANAItemActor::PostActorCreated()
 	InitCheckIfChildActor();
 }
 
-bool ANAItemActor::UpgradeLegacyBlueprints()
+/*
+void ANAItemActor::UpgradeLegacyBlueprints()
 {
 	if ( HasAnyFlags( RF_ClassDefaultObject ) )
 	{
-		return false;
+		return;
 	}
 
-	bool bOldVersion = false;
-	if ( Version == 0 )
+	if ( StubRootComponent )
 	{
-		if ( StubRootComponent != nullptr && GetRootComponent() != StubRootComponent )
+		FTransform PreviousTransform;
+		
+		if ( GetRootComponent() )
 		{
-			if ( USceneComponent* LegacyComponent = GetRootComponent();
-				 LegacyComponent == ItemCollision ) 
-			{
-				ItemCollision = nullptr;
-			}
-
-			TArray<USceneComponent*> LegacyChildren;
-			const TSet<UActorComponent*> ActorChildrenComponent = GetComponents();
-
-			for ( auto It = ActorChildrenComponent.CreateConstIterator(); It; ++It )
-			{
-				if ( (*It)->GetName().StartsWith( "ItemCollision" ) &&
-					 (*It)->GetClass()->IsChildOf( UShapeComponent::StaticClass() ) )
-				{
-					const USceneComponent* SceneCast = Cast<USceneComponent>( *It );
-					for ( const auto CIt = SceneCast->GetAttachChildren().CreateConstIterator(); CIt; )
-					{
-						LegacyChildren.Add( *CIt );
-						(*CIt)->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
-					
-					}
-					(*It)->ClearFlags(RF_Standalone | RF_Public);
-					(*It)->DestroyComponent();
-					RemoveInstanceComponent( *It );
-					RemoveOwnedComponent( *It );
-				}
-			}
-
-			if ( LegacyChildren.Num() )
-			{
-				for ( USceneComponent* Orphan : LegacyChildren )
-				{
-					Orphan->AttachToComponent( StubRootComponent, FAttachmentTransformRules::KeepRelativeTransform );
-				}
-			}
-
-			SetRootComponent( StubRootComponent );
-
-			// 에셋 업데이트
-			Version = 1;
-			bOldVersion = true;
-			
-			GetPackage()->MarkPackageDirty();
+			PreviousTransform = GetRootComponent()->GetComponentTransform();
 		}
-	}
+		if ( PreviousTransform.Equals( FTransform::Identity ) )
+		{
+			PreviousTransform = TriggerSphere->GetComponentTransform();
+		}
+			
+		USceneComponent* LegacyComponent = GetRootComponent();
+		if ( LegacyComponent == ItemCollision ) 
+		{
+			ItemCollision = nullptr;
+		}
 
-	return bOldVersion;
+		TArray<USceneComponent*> LegacyChildren;
+		const TSet<UActorComponent*> ActorChildrenComponent = GetComponents();
+
+		for ( auto It = ActorChildrenComponent.CreateConstIterator(); It; ++It )
+		{
+			if ( (*It)->GetName().StartsWith( "ItemCollision" ) &&
+				 (*It)->GetClass()->IsChildOf( UShapeComponent::StaticClass() ) )
+			{
+				const USceneComponent* SceneCast = Cast<USceneComponent>( *It );
+				for ( const auto CIt = SceneCast->GetAttachChildren().CreateConstIterator(); CIt; )
+				{
+					LegacyChildren.Add( *CIt );
+					(*CIt)->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
+				}
+				(*It)->ClearFlags(RF_Standalone | RF_Public);
+				(*It)->DestroyComponent();
+				RemoveInstanceComponent( *It );
+				RemoveOwnedComponent( *It );
+			}
+		}
+			
+		SetRootComponent( StubRootComponent );
+		StubRootComponent->SetWorldTransform( PreviousTransform );
+			
+		if ( LegacyChildren.Num() )
+		{
+			for ( USceneComponent* Orphan : LegacyChildren )
+			{
+				Orphan->AttachToComponent( StubRootComponent, FAttachmentTransformRules::KeepRelativeTransform );
+			}
+		}
+			
+		GetPackage()->MarkPackageDirty();
+	}
 }
+*/
 
 EItemSubobjDirtyFlags ANAItemActor::GetDirtySubobjectFlags(const FNAItemBaseTableRow* MetaData) const
 {
@@ -256,10 +263,6 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	const FNAItemBaseTableRow* MetaData = UNAItemEngineSubsystem::Get()->GetItemMetaDataByClass(GetClass());
 	if (!MetaData) { return; }
 
-    // 구버전 블루프린트인 경우 Stub 루트 컴포넌트로 다시 구성
-#if WITH_EDITOR
-	UpgradeLegacyBlueprints();
-#endif
 	const EItemSubobjDirtyFlags DirtyFlags = GetDirtySubobjectFlags( MetaData );
 
 	// 루트 컴포넌트 기준으로 재구성
@@ -361,32 +364,33 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	// 어태치먼트
     if ( GetRootComponent() != CandidateRootComponent )
 	{
-    	TArray<USceneComponent*> ChildrenComponents;
+    	USceneComponent* OldRootComponent = GetRootComponent();
+    	SetRootComponent( CandidateRootComponent );
+    	
+    	// 만약 가짜 루트 컴포넌트였다면 프로퍼티에서 참조되지 않도록 지움
+    	if ( OldRootComponent && OldRootComponent != CandidateRootComponent )
+    	{
+    		const TArray<TObjectPtr<USceneComponent>> ChildrenComponentsRef = OldRootComponent->GetAttachChildren();
+    		for ( auto It = ChildrenComponentsRef.CreateConstIterator(); It; ++It )
+    		{
+    			if ( (*It)->GetAttachParent() )
+    			{
+    				(*It)->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );	
+    			}
 
-		if ( const USceneComponent* OldRoot = GetRootComponent() )
-		{
-			ChildrenComponents = OldRoot->GetAttachChildren();
-			for ( auto It = ChildrenComponents.CreateConstIterator(); It; ++It )
-			{
-				(*It)->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
-			}
+    			(*It)->AttachToComponent( CandidateRootComponent, FAttachmentTransformRules::KeepRelativeTransform );
+    		}
 
-			// 만약 가짜 루트 컴포넌트였다면 프로퍼티에서 참조되지 않도록 지움
-			if ( RootComponent == StubRootComponent && CandidateRootComponent != StubRootComponent )
-			{
-				StubRootComponent = nullptr;
-			}
-		}
-		
-		SetRootComponent( CandidateRootComponent );
-		
-		if ( ChildrenComponents.Num() )
-		{
-			for ( USceneComponent* Child : ChildrenComponents )
-			{
-				Child->AttachToComponent( ItemCollision, FAttachmentTransformRules::KeepRelativeTransform );
-			}
-		}
+#if WITH_EDITOR
+    		// TODO/HACK: 컴포넌트 분리를 수행했으나 이전 부모 컴포넌트에 남아있는 문제가 있음?
+    		// 에러가 발생하는 부분에서는 graceful하게 문제를 넘어감. 아마 Transactional한 작업을 할때 문제가 될 수 있음. (redo/undo) 
+    		const_cast<TArray<TObjectPtr<USceneComponent>>&>(OldRootComponent->GetAttachChildren()).Reset();
+#endif
+    		
+    		OldRootComponent->DestroyComponent();
+    		OldRootComponent->ClearFlags( RF_Public | RF_Standalone );
+    		StubRootComponent = nullptr;
+    	}
 	}
 
 	// 부모, 자식에서 Property로 설정된 컴포넌트들을 조회
@@ -406,17 +410,17 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	// 마지막으로 등록된 컴포넌트들을 순회하면서 프로퍼티에 없는 컴포넌트들을 삭제
 	for (UActorComponent* OwnedComponent : GetComponents().Array())
 	{
+		if ( SubObjsActorComponents.Contains( OwnedComponent ) )
+		{
+			if (!OwnedComponent->IsRegistered())
+			{
+				OwnedComponent->RegisterComponent();
+			}
+			continue;
+		}
+		
 		if (USceneComponent* OwnedSceneComp = Cast<USceneComponent>(OwnedComponent))
 		{
-			if ( SubObjsActorComponents.Contains( OwnedComponent ) )
-			{
-				if (!OwnedSceneComp->IsRegistered())
-				{
-					OwnedSceneComp->RegisterComponent();
-				}
-				continue;
-			}
-
 			TArray<USceneComponent*> AttachedChildren = OwnedSceneComp->GetAttachChildren();
 			for (USceneComponent* Child : AttachedChildren)
 			{
@@ -454,7 +458,7 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		ItemMesh->SetGenerateOverlapEvents( false );
 	}
 	
-	GetRootComponent()->SetWorldTransform(PreviousTransform);
+	CandidateRootComponent->SetWorldTransform(Transform);
 }
 
 void ANAItemActor::Destroyed()
