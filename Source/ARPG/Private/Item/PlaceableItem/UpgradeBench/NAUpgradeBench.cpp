@@ -17,7 +17,7 @@ ANAUpgradeBench::ANAUpgradeBench(const FObjectInitializer& ObjectInitializer)
 	ItemMesh = CreateOptionalDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh(Static)"));
 	if (ItemMesh)
 	{
-		bWasItemMeshCreated = true;
+		bNeedItemMesh = true;
 	}
 	ItemWidgetComponent = CreateOptionalDefaultSubobject<UNAUpgradeBenchComponent>(TEXT("UpgradeBenchComponent"));
 }

@@ -148,14 +148,14 @@ protected:
 private:
 	void InitItemData();
 	void VerifyInteractableData();
-	void InitCheckIfChildActor();
+	virtual void InitCheckIfChildActor();
 
 protected:
 	// Optional Subobject
-	uint8 bWasItemCollisionCreated :1 = true;
+	uint8 bNeedItemCollision :1 = true;
 	
 	// Optional Subobject
-	uint8 bWasItemMeshCreated :1 = true;
+	uint8 bNeedItemMesh :1 = true;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USceneComponent* FakeRootComponent;

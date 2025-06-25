@@ -72,7 +72,7 @@ ANACharacter::ANACharacter()
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
-	GetCapsuleComponent()->SetCollisionObjectType( ECC_Pawn); 
+	GetCapsuleComponent()->SetCollisionObjectType( ECC_Pawn);
 		
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
@@ -150,6 +150,9 @@ ANACharacter::ANACharacter()
 
 	VitalCheckComponent = CreateDefaultSubobject<UNAVitalCheckComponent>(TEXT("VitalCheckComponent"));
 	ReviveWidget = CreateDefaultSubobject<UNAReviveWidgetComponent>( TEXT("ReviveWidgetComponent") );
+	ReviveWidget->SetGenerateOverlapEvents( false );
+	ReviveWidget->SetSimulatePhysics( false );
+	ReviveWidget->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 	KineticComponent = CreateDefaultSubobject<UNAKineticComponent>( TEXT("KineticComponent") );
 
 	ApplyAttachments();

@@ -19,7 +19,7 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	ItemMesh = CreateOptionalDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh(Static)"));
 	TriggerSphere = CreateDefaultSubobject<USphereComponent>("TriggerSphere");
 	ItemWidgetComponent = CreateOptionalDefaultSubobject<UNAItemWidgetComponent>(TEXT("ItemWidgetComponent"));
-
+	
 	if ( ItemCollision )
 	{
 		SetRootComponent( ItemCollision );
@@ -94,7 +94,7 @@ EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTa
 		return DirtyFlags;
 	}
 	
-	if (MetaData->CollisionShape != EItemCollisionShape::ICS_None && bWasItemCollisionCreated)
+	if (MetaData->CollisionShape != EItemCollisionShape::ICS_None && bNeedItemCollision)
 	{
 		if (!ItemCollision)
 		{
@@ -132,7 +132,7 @@ EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTa
 		}
 	}
 	
-	if (MetaData->MeshType != EItemMeshType::IMT_None && bWasItemMeshCreated)
+	if (MetaData->MeshType != EItemMeshType::IMT_None && bNeedItemMesh)
 	{
 		if (!ItemMesh)
 		{
@@ -199,11 +199,13 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	{
 		return;
 	}
-	
+
+	// 기존 루트의 월드 트랜스폼을 저장
 	const FTransform PreviousTransform = RootComponent->GetComponentTransform();
 	EObjectFlags SubobjFlags = GetMaskedFlags(RF_PropagateToSubObjects);
 
-	if ( !ItemCollision && bWasItemCollisionCreated )
+	// 아이템 콜리전은 처음에 만들어지지 않기 때문에 한번 체크
+	if ( !ItemCollision && bNeedItemCollision )
 	{
 		switch (MetaData->CollisionShape)
 		{
@@ -222,25 +224,50 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		}
 		ensure(ItemCollision != nullptr);
 	}
+
+	// 아이템 매시가 ObjectInitializer에서 Optional로 생성되지 않을 수 있음
+	if ( bNeedItemMesh )
+	{
+		if ( ItemMesh )
+		{
+			switch (MetaData->MeshType)
+			{
+			case EItemMeshType::IMT_Static:
+				// 기존의 컴포넌트 재사용 (기본 컴포넌트가 스태틱 매쉬임)
+				break;
+			case EItemMeshType::IMT_Skeletal:
+				ItemMesh = NewObject<USkeletalMeshComponent>(this, TEXT("ItemMesh(Skeletal)"), SubobjFlags);
+				break;
+			default:
+				ensure(false);
+				break;
+			}
+		}
+		
+		ensure(ItemMesh != nullptr);
+	}
 	
 	// 어태치먼트
-    if (ItemCollision && GetRootComponent() != ItemCollision)
+    if ( GetRootComponent() != ItemCollision )
 	{
 		TArray<USceneComponent*> ComponentChildren;
     	
-		if (USceneComponent* OldRoot = GetRootComponent())
+		if ( const USceneComponent* OldRoot = GetRootComponent() )
 		{
 			const TArray<USceneComponent*>& ChildComponents = OldRoot->GetAttachChildren();
 			ComponentChildren.Reserve( ChildComponents.Num() );
-			for ( auto It = ChildComponents.CreateConstIterator(); It; ++It )
+			for ( auto It = ChildComponents.CreateConstIterator(); It; )
 			{
 				ComponentChildren.Emplace( *It );
 				(*It)->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
 			}
-			
-			OldRoot->DestroyComponent();
-			RemoveInstanceComponent(OldRoot);
-			FakeRootComponent = nullptr;
+
+			// 만약 가짜 루트 컴포넌트였다면 프로퍼티에서 참조되지 않도록 지움
+			if ( RootComponent == FakeRootComponent )
+			{
+				FakeRootComponent = nullptr;
+			}
+			RootComponent = nullptr;
 		}
 		
 		SetRootComponent(ItemCollision);
@@ -255,6 +282,7 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	}
 
 	// 부모, 자식에서 Property로 설정된 컴포넌트들을 조회
+	// 최종적으로 프로퍼티에 남은 컴포넌트 주소들을 확인
 	TSet<UActorComponent*> SubObjsActorComponents;
 	for ( TFieldIterator<FObjectProperty> It ( GetClass() ); It; ++It )
 	{
@@ -266,7 +294,8 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			}
 		}
 	}
-	
+
+	// 마지막으로 등록된 컴포넌트들을 순회하면서 프로퍼티에 없는 컴포넌트들을 삭제
 	for (UActorComponent* OwnedComponent : GetComponents().Array())
 	{
 		if (USceneComponent* OwnedSceneComp = Cast<USceneComponent>(OwnedComponent))
@@ -338,8 +367,16 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		ItemCollision->SetSimulatePhysics( false );
 		ItemCollision->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 		ItemCollision->SetIsReplicated( true );
+		ItemCollision->SetGenerateOverlapEvents( true );
 		ItemCollision->SetNetAddressable();
 		AddReplicatedSubObject( ItemCollision );
+	}
+	// 아이템 콜리전이 아이템의 물리 처리를 주도
+	if ( ItemCollision && ItemMesh )
+	{
+		ItemMesh->SetSimulatePhysics( false );
+		ItemMesh->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+		ItemMesh->SetGenerateOverlapEvents( false );
 	}
 		
 	GetRootComponent()->SetWorldTransform(PreviousTransform);
@@ -433,14 +470,18 @@ void ANAItemActor::VerifyInteractableData()
 
 void ANAItemActor::InitCheckIfChildActor()
 {
+	if ( HasAuthority() )
+	{
+		bWasChildActor = IsChildActor();
+	}
+	
 	// ChildActorComponent에 의해 생성된 경우
 	if ( bWasChildActor || GetAttachParentActor() || ( RootComponent && RootComponent->GetAttachParent() && RootComponent->GetAttachParent()->IsA<UChildActorComponent>() ) )
 	{
 		if (ItemCollision)
 		{
-			ItemCollision->Deactivate();
 			ItemCollision->SetSimulatePhysics(false);
-			ItemCollision->SetGenerateOverlapEvents(false);
+			ItemCollision->SetGenerateOverlapEvents( false );
 			ItemCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		}
 		if (TriggerSphere)
@@ -472,15 +513,21 @@ void ANAItemActor::InitCheckIfChildActor()
 			ItemCollision->SetCollisionProfileName(TEXT("BlockAllDynamic"));
 			if ( HasAuthority() )
 			{
+				// 서버에서만 물리 시뮬레이션을 수행
 				ItemCollision->SetSimulatePhysics( true );	
 			}
+			else
+			{
+				ItemCollision->SetSimulatePhysics( false );
+			}
+			ItemCollision->SetGenerateOverlapEvents( true );
 			ItemCollision->SetIsReplicated( true );
 		}
 		if ( ItemMesh )
 		{
 			ItemMesh->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 			ItemMesh->SetSimulatePhysics( false );
-			ItemMesh->SetGenerateOverlapEvents(false);
+			ItemMesh->SetGenerateOverlapEvents( false );
 		}
 	}
 }
@@ -526,17 +573,6 @@ void ANAItemActor::OnRep_ItemCollision( UShapeComponent* PreviousComponent )
 void ANAItemActor::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	if ( HasAuthority() )
-	{
-		bWasChildActor = IsChildActor();
-	}
-	else
-	{
-		// 서버에서만 물리 시뮬레이션을 수행
-		ItemCollision->SetSimulatePhysics( false );
-	}
-	
 	InitCheckIfChildActor();
 	
 	if (InteractableInterfaceRef)

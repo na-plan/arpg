@@ -24,7 +24,7 @@ ANAPlaceableItemActor_Door::ANAPlaceableItemActor_Door(const FObjectInitializer&
 	}
 	if (ItemCollision)
 	{
-		bWasItemCollisionCreated = true;
+		bNeedItemCollision = true;
 		SetRootComponent(ItemCollision);
 		if (TriggerSphere)
 		{
