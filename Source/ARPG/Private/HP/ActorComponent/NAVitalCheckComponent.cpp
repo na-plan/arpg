@@ -150,13 +150,6 @@ void UNAVitalCheckComponent::HandleKnockDown( const ANACharacter* Character, con
 	UNAMontageCombatComponent* CombatComponent = Character->GetComponentByClass<UNAMontageCombatComponent>();
 	check( CombatComponent );
 
-	// 캐릭터가 쓰러졌었다가 다시 일어난 경우
-	if ( CharacterState == ECharacterStatus::KnockDown && NewHealth > 0.f )
-	{
-		SetState( ECharacterStatus::Alive );
-		CombatComponent->SetActive( true );
-	}
-
 	// 캐릭터가 쓰러진 경우
 	if ( CharacterState == ECharacterStatus::Alive && NewHealth <= 0.f )
 	{
@@ -184,6 +177,8 @@ void UNAVitalCheckComponent::HandleDead( const ANACharacter* Character, const fl
 			const FActiveGameplayEffectHandle ActiveGameplayEffect = Character->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf( *SpecHandle.Data.Get() );
 			check( ActiveGameplayEffect.WasSuccessfullyApplied() );
 		}
+
+		SetState( ECharacterStatus::Dead );
 	}
 }
 

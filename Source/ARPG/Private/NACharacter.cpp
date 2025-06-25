@@ -166,7 +166,6 @@ ANACharacter::ANACharacter()
 	RightHandChildActor->SetNetAddressable();
 	KineticComponent->SetNetAddressable();
 	
-	GetMesh()->SetIsReplicated( true );
 	KineticComponent->SetIsReplicated( true );
 	LeftHandChildActor->SetIsReplicated( true );
 	RightHandChildActor->SetIsReplicated( true );

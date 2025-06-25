@@ -27,7 +27,8 @@ void UNAGA_Revive::OnReviveSucceeded()
 			const FGameplayEffectSpecHandle DamageSpecHandle = AbilitySystemComponent->MakeOutgoingSpec( UNAGE_Heal::StaticClass(), 1.f, ContextHandle );
 			if ( AttributeSet )
 			{
-				DamageSpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( TEXT("Data.Heal") ), AttributeSet->GetMaxHealth() * 0.1f );	
+				// 기존의 마이너스 체력 + 전체 체력의 10퍼센트!
+				DamageSpecHandle.Data->SetSetByCallerMagnitude( FGameplayTag::RequestGameplayTag( TEXT("Data.Heal") ), -AttributeSet->GetHealth() + AttributeSet->GetMaxHealth() * 0.1f );	
 			}
 			AbilitySystemComponent->ApplyGameplayEffectSpecToTarget( *DamageSpecHandle.Data.Get(), Character->GetAbilitySystemComponent() );
 			
