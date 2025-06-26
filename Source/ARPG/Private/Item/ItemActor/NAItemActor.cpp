@@ -1,7 +1,6 @@
 
 #include "Item/ItemActor/NAItemActor.h"
 
-#include "LandscapeGizmoActiveActor.h"
 #include "MovieSceneTracksComponentTypes.h"
 #include "Components/SphereComponent.h"
 #include "Components/BoxComponent.h"
@@ -11,11 +10,6 @@
 #include "GeometryCollection/GeometryCollectionObject.h"
 #include "Item/ItemWidget/NAItemWidgetComponent.h"
 #include "Net/UnrealNetwork.h"
-
-struct ItemActorRevision2
-{
-	
-};
 
 ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -268,8 +262,6 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	// 루트 컴포넌트 기준으로 재구성
 	USceneComponent* CandidateRootComponent = StubRootComponent;
 
-	// 기존 루트의 월드 트랜스폼을 저장
-	const FTransform PreviousTransform = RootComponent->GetComponentTransform();
 	EObjectFlags SubobjFlags = GetMaskedFlags(RF_PropagateToSubObjects);
 
 	// Sanity Check: 콜리전 설정 또는 콜리전 생성 요청이 conflict하는 경우
@@ -373,12 +365,15 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
     		const TArray<TObjectPtr<USceneComponent>> ChildrenComponentsRef = OldRootComponent->GetAttachChildren();
     		for ( auto It = ChildrenComponentsRef.CreateConstIterator(); It; ++It )
     		{
-    			if ( (*It)->GetAttachParent() )
+    			if ( (*It)->GetAttachParent() == OldRootComponent )
     			{
     				(*It)->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );	
     			}
 
-    			(*It)->AttachToComponent( CandidateRootComponent, FAttachmentTransformRules::KeepRelativeTransform );
+    			if ( *It != CandidateRootComponent)
+    			{
+    				(*It)->AttachToComponent( CandidateRootComponent, FAttachmentTransformRules::KeepRelativeTransform );
+    			}
     		}
 
 #if WITH_EDITOR
@@ -415,6 +410,14 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			if (!OwnedComponent->IsRegistered())
 			{
 				OwnedComponent->RegisterComponent();
+			}
+
+			if ( USceneComponent* Attachable = Cast<USceneComponent>( OwnedComponent) )
+			{
+				if ( Attachable && Attachable->GetAttachParent() == nullptr && Attachable != CandidateRootComponent )
+				{
+					Attachable->AttachToComponent( CandidateRootComponent, FAttachmentTransformRules::KeepRelativeTransform );
+				}
 			}
 			continue;
 		}
@@ -651,6 +654,44 @@ void ANAItemActor::OnRep_ItemCollision( UShapeComponent* PreviousComponent )
 
 void ANAItemActor::BeginPlay()
 {
+	USceneComponent* ReconstructPivot = StubRootComponent;
+	USceneComponent* PreviousRootComponent = RootComponent;
+	
+	if ( ItemCollision )
+	{
+		ReconstructPivot = ItemCollision;
+	}
+	
+	TSet<USceneComponent*> ReconstructTargets;
+	for ( UActorComponent* Component : GetComponents() )
+	{
+		if ( USceneComponent* Attachable = Cast<USceneComponent>(Component) )
+		{
+			if ( Attachable != ReconstructPivot &&
+				 !Attachable->GetName().RemoveFromStart( "FakeRootComponent" ) &&
+				 PreviousRootComponent != Attachable )
+			{
+				ReconstructTargets.Add( Attachable );
+			}
+		}
+	}
+
+	for ( USceneComponent* Component : ReconstructTargets )
+	{
+		if ( Component->GetAttachParent() && ReconstructTargets.Contains( Component->GetAttachParent() ) )
+		{
+			continue;
+		}
+
+		if ( Component->GetAttachParent() == PreviousRootComponent )
+		{
+			Component->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );
+		}
+		
+		Component->AttachToComponent( ReconstructPivot, FAttachmentTransformRules::KeepRelativeTransform );
+	}
+	
+	
 	Super::BeginPlay();
 	InitCheckIfChildActor();
 	
