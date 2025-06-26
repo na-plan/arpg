@@ -207,7 +207,7 @@ protected:
 	float InteractionAngleDegrees = 170.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction Component")
-	float InteractionCheckFrequency = 0.1f;
+	float InteractionCheckFrequency = 0.f;
 
 	float CurrentInteractionCheckTime;
 	

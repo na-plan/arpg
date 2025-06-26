@@ -159,6 +159,7 @@ void UNAItemWidgetComponent::ReleaseItemWidgetPopup()
 {
 	if (GetWorld()->IsPreviewWorld()) return;
 	if (!GetItemDataFromOwner()) return;
+	if (!GetItemWidget()) return;
 
 	GetItemWidget()->ReleaseItemWidget();
 }
@@ -166,7 +167,9 @@ void UNAItemWidgetComponent::ReleaseItemWidgetPopup()
 void UNAItemWidgetComponent::CollapseItemWidgetPopup()
 {
 	if (GetWorld()->IsPreviewWorld()) return;
-	if (!GetItemDataFromOwner()) return;
+	if (!GetItemDataFromOwner()
+		&& !GetOwner()->GetClass()->IsChildOf<ANAItemWidgetPopupActor>()) return;
+	if (!GetItemWidget()) return;
 
 	GetItemWidget()->CollapseItemWidget();
 }

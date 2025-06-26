@@ -89,6 +89,8 @@ void UNAItemWidget::OnItemWidgetCollapsed()
 		OwningItemWidgetComponent->SetWindowVisibility(EWindowVisibility::SelfHitTestInvisible);
 		OwningItemWidgetComponent->SetVisibility(false);
 		OwningItemWidgetComponent->Deactivate();
+	
+		OnItemWidgetCollapseFinishedForDestroy.ExecuteIfBound();
 	}
 }
 

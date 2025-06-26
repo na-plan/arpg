@@ -212,7 +212,11 @@ void UNAInteractionComponent::SetNearestInteractable(FWeakInteractableHandle Int
 
 bool UNAInteractionComponent::OnInteractableFound(TScriptInterface<INAInteractableInterface> InteractableActor)
 {
-	if (!GetOwner()) return false;
+	if (!GetOwner())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%hs: %s Owner가 null"), __FUNCTION__, *GetNameSafe(this));
+		return false;
+	}
 	if (!InteractableActor)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[OnInteractableFound]  InteractableActor이 null이었음"));
@@ -236,7 +240,7 @@ bool UNAInteractionComponent::OnInteractableFound(TScriptInterface<INAInteractab
 		AActor* AttachParentActor = InteractableItem->GetAttachParentActor();
 		if (AttachParentActor && AttachParentActor != GetOwner())
 		{
-			UE_LOG(LogTemp, Log, TEXT("%hs: %s 아이템 주인이 이미 있음"), __FUNCTION__, *GetNameSafe(InteractableItem));
+			UE_LOG(LogTemp, Warning, TEXT("%hs: %s 아이템 주인이 이미 있음"), __FUNCTION__, *GetNameSafe(InteractableItem));
 			return false;
 		}
 		
@@ -253,9 +257,12 @@ bool UNAInteractionComponent::OnInteractableFound(TScriptInterface<INAInteractab
 		{
 			bUpdateInteractionData = true;
 		}
+
 		return true;
 	}
 
+	FString LogName = InteractableActor.GetObject() ? *GetNameSafe(InteractableActor.GetObject()) : TEXT_NULL;
+	UE_LOG(LogTemp, Warning, TEXT("%hs: FocusedInteractables에 이미 등록된 아이템 %s"), __FUNCTION__, *LogName);
 	return false;
 }
 
@@ -618,7 +625,7 @@ int32 UNAInteractionComponent::TryAddItemToInventory(ANAItemActor* ItemActor)
 	if (RemainQuantity == 0) // 전부 추가 성공: 아이템 액터 파괴
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[TryAddItemToInventory]  (%s) 전부 추가 성공"), *ItemActor->GetName());
-		ItemActor->OnFullyAddedToInventoryBeforeDestroy(GetOwner());
+		ItemActor->FinalizeAndDestroyAfterInventoryAdded(GetOwner());
 	}
 	else if (RemainQuantity > 0) // 부분 추가
 	{

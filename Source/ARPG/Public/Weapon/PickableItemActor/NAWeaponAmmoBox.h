@@ -28,7 +28,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	
-	virtual void OnFullyAddedToInventoryBeforeDestroy_Impl(AActor* Interactor) override;
+	virtual void FinalizeAndDestroyAfterInventoryAdded_Impl(AActor* Interactor) override;
 
 	virtual bool BeginInteract_Implementation(AActor* InteractorActor) override;
 	

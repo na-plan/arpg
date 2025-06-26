@@ -27,7 +27,7 @@ void ANAWeaponAmmoBox::BeginPlay()
 	ensure( AmmoEffectType );
 }
 
-void ANAWeaponAmmoBox::OnFullyAddedToInventoryBeforeDestroy_Impl( AActor* Interactor )
+void ANAWeaponAmmoBox::FinalizeAndDestroyAfterInventoryAdded_Impl( AActor* Interactor )
 {
 	if ( const TScriptInterface<IAbilitySystemInterface>& Interface = Interactor )
 	{
