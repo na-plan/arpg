@@ -16,7 +16,6 @@ UNAGA_FireGun::UNAGA_FireGun(): WaitRotationTask( nullptr ), WhichHand()
 	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateYes;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-	AbilityTags.AddTag( FGameplayTag::RequestGameplayTag( "Player.Status.Firing" ) );
 }
 
 int32 UNAGA_FireGun::GetRemainingAmmo( const UAbilitySystemComponent* InAbilitySystemComponent, const TSubclassOf<UGameplayEffect>& InAmmoType )
