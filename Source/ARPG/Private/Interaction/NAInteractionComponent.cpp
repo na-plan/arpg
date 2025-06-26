@@ -618,7 +618,7 @@ int32 UNAInteractionComponent::TryAddItemToInventory(ANAItemActor* ItemActor)
 	if (RemainQuantity == 0) // 전부 추가 성공: 아이템 액터 파괴
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[TryAddItemToInventory]  (%s) 전부 추가 성공"), *ItemActor->GetName());
-		ItemActor->OnFullyAddedToInventoryBeforeDestroy(GetOwner());
+		ItemActor->FinalizeAndDestroyAfterInventoryAdded(GetOwner());
 	}
 	else if (RemainQuantity > 0) // 부분 추가
 	{

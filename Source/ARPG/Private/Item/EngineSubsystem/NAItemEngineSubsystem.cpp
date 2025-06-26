@@ -8,6 +8,11 @@
 #include "Item/ItemActor/NAItemActor.h"
 #include "Item/ItemDataStructs/NAWeaponDataStructs.h"
 
+#if WITH_EDITOR || WITH_EDITORONLY_DATA
+#include "Kismet2/KismetEditorUtilities.h"
+#endif
+
+
 // 와 이것도 정적 로드로 CDO 생김 ㅁㅊ
 UNAItemEngineSubsystem::UNAItemEngineSubsystem()
 {
@@ -77,6 +82,16 @@ void UNAItemEngineSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 			for (const auto& Pair : SoftItemMetaData)
 			{
 				UClass* NewItemActorClass = Pair.Key.LoadSynchronous();
+				// 블프 CDO 동적 패치 이후, 재컴파일 -> 블프 에디터 패널에 동적 패치한 내용을 반영하기 위함
+#if WITH_EDITOR || WITH_EDITORONLY_DATA
+				if (UBlueprint* BP = Cast<UBlueprint>(UBlueprint::GetBlueprintFromClass(NewItemActorClass)))
+				{
+					FKismetEditorUtilities::CompileBlueprint(
+						BP,
+						EBlueprintCompileOptions::SkipGarbageCollection
+					);
+				}
+#endif
 				if (NewItemActorClass && !Pair.Value.IsNull())
 				{
 					ItemMetaDataMap.Emplace(NewItemActorClass, Pair.Value);

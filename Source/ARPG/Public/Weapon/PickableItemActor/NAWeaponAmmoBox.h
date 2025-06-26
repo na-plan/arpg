@@ -9,7 +9,7 @@
 class UGameplayEffect;
 class UAbilitySystemComponent;
 
-UCLASS()
+UCLASS(Abstract)
 class ARPG_API ANAWeaponAmmoBox : public ANAPickableItemActor
 {
 	GENERATED_BODY()
@@ -28,7 +28,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	
-	virtual void OnFullyAddedToInventoryBeforeDestroy_Impl(AActor* Interactor) override;
+	virtual void FinalizeAndDestroyAfterInventoryAdded_Impl(AActor* Interactor) override;
 
 	virtual bool BeginInteract_Implementation(AActor* InteractorActor) override;
 	

@@ -17,7 +17,7 @@ enum class EDoorType : uint8
 DECLARE_DELEGATE_RetVal_OneParam(bool, FOnTickInteraction, AActor*);
 DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(bool, FOnGimicClear, AActor*, InActor);
 
-UCLASS()
+UCLASS(Abstract)
 class ARPG_API ANAPlaceableItemActor_Door : public ANAPlaceableItemActor
 {
 	friend class ANAPlayerController;

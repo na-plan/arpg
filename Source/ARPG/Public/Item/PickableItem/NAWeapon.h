@@ -15,7 +15,7 @@ class UGameplayEffect;
 class UNiagaraComponent;
 class UNAMontageCombatComponent;
 
-UCLASS()
+UCLASS(Abstract)
 class ARPG_API ANAWeapon : public ANAPickableItemActor, public IAbilitySystemInterface
 {
 	GENERATED_BODY()

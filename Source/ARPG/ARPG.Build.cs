@@ -37,7 +37,8 @@ public class ARPG : ModuleRules
 		{
 			PublicDependencyModuleNames.AddRange( new string[]
 			{
-				"UnrealEd"
+				"UnrealEd",
+				"KismetCompiler"
 			});
 		}
 	}

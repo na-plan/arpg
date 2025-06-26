@@ -159,9 +159,6 @@ struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 		, AllowedClasses="/Script/ARPG.ANAItemActor"))
 	TSoftClassPtr<ANAItemActor> ItemClass = nullptr;
 
-	// UPROPERTY(EditAnywhere, Category="Item Base Data", meta = (AllowedClasses="/Script/ARPG.ANAItemActor"))
-	// FSoftClassPath ItemClassPath;
-
 	// None: 기본 생성자에서 DoNotCreateSubobject로 ItemCollision 생성 수정한 경우!! 반다시!! 이 플래그 써야함
 	UPROPERTY(EditAnywhere, Category = "Item Collision Shape")
 	EItemCollisionShape CollisionShape = EItemCollisionShape::ICS_None;

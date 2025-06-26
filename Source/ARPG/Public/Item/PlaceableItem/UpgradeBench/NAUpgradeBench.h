@@ -6,7 +6,7 @@
 #include "Item/ItemActor/NAPlaceableItemActor.h"
 #include "NAUpgradeBench.generated.h"
 
-UCLASS()
+UCLASS(Abstract)
 class ARPG_API ANAUpgradeBench : public ANAPlaceableItemActor
 {
 	GENERATED_BODY()

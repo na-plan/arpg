@@ -6,7 +6,7 @@
 #include "Item/ItemActor/NAPickableItemActor.h"
 #include "NAUpgradeNode.generated.h"
 
-UCLASS()
+UCLASS(Abstract)
 class ARPG_API ANAUpgradeNode : public ANAPickableItemActor
 {
 	GENERATED_BODY()

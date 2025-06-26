@@ -7,7 +7,7 @@
 #include "Item/ItemDataStructs/NARecoveryPackDataStructs.h"
 #include "NAMedPack.generated.h"
 
-UCLASS()
+UCLASS(Abstract)
 class ARPG_API ANAMedPack : public ANAPickableItemActor
 {
 	GENERATED_BODY()

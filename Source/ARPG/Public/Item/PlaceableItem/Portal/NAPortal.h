@@ -6,7 +6,7 @@
 #include "Item/ItemActor/NAPlaceableItemActor.h"
 #include "NAPortal.generated.h"
 
-UCLASS()
+UCLASS(Abstract)
 class ARPG_API ANAPortal : public ANAPlaceableItemActor
 {
 	GENERATED_BODY()

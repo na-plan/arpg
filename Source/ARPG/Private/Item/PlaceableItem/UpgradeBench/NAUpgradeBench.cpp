@@ -13,13 +13,10 @@ ANAUpgradeBench::ANAUpgradeBench(const FObjectInitializer& ObjectInitializer)
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
-	ItemMesh = CreateOptionalDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh(Static)"));
-	if (ItemMesh)
-	{
-		bNeedItemMesh = true;
-	}
+	
+	bNeedItemMesh = true;
 	ItemWidgetComponent = CreateOptionalDefaultSubobject<UNAUpgradeBenchComponent>(TEXT("UpgradeBenchComponent"));
+	ItemWidgetComponent->SetupAttachment(GetRootComponent());
 }
 
 // Called every frame

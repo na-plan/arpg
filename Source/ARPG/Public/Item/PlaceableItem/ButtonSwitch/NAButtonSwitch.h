@@ -8,7 +8,7 @@
 
 DECLARE_DYNAMIC_DELEGATE(FOnActivateTargetActor);
 
-UCLASS()
+UCLASS(Abstract)
 class ARPG_API ANAButtonSwitch : public ANAPlaceableItemActor
 {
 	GENERATED_BODY()

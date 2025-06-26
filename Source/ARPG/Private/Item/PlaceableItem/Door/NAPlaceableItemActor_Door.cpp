@@ -16,6 +16,7 @@ ANAPlaceableItemActor_Door::ANAPlaceableItemActor_Door(const FObjectInitializer&
 	PrimaryActorTick.bCanEverTick = true;
 
 	bNeedItemCollision = false;
+	
 	TriggerSphere->SetSphereRadius(280);
 	TriggerSphere->SetRelativeLocation(FVector(0.f, 0.f, 0.f));
 }

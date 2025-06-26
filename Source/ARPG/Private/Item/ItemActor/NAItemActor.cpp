@@ -9,32 +9,10 @@
 #include "Item/ItemWidget/NAItemWidgetComponent.h"
 #include "Net/UnrealNetwork.h"
 
-
 ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
 {
-	if (HasAnyFlags(RF_ClassDefaultObject))
-	{
-	    if (!GetClass()->HasAllClassFlags(CLASS_CompiledFromBlueprint))
-	    {
-	        UE_LOG(LogTemp, Display, TEXT("[ANAItemActor]  C++ CDO 생성자 (%s)"), *GetName());
-	    }
-	    else
-	    {
-	        UE_LOG(LogTemp, Display, TEXT("[ANAItemActor]  BP CDO 생성자 (%s)"), *GetName());
-	    }
-	}
-	else
-	{
-	    if (!GetClass()->HasAllClassFlags(CLASS_CompiledFromBlueprint))
-	    {
-	        UE_LOG(LogTemp, Display, TEXT("[ANAItemActor]  C++ 인스턴스 생성자 (%s)"), *GetName());
-	    }
-	    else
-	    {
-	        UE_LOG(LogTemp, Display, TEXT("[ANAItemActor]  BP 인스턴스 생성자 (%s)"), *GetName());
-	    }
-	}
+	SetRootComponent(CreateDefaultSubobject<USceneComponent>("RootSceneComponent"));
 
 	if (UNAItemEngineSubsystem::Get())
 	{
@@ -54,7 +32,7 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 				}
 			}
 		}
-
+	
 		if (MetaData)
 		{
 			switch (MetaData->CollisionShape)
@@ -74,6 +52,7 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 			if (ItemCollision)
 			{
 				AddInstanceComponent(ItemCollision);
+				ItemCollision->SetRelativeTransform(FTransform::Identity);
 			}
 			switch (MetaData->MeshType)
 			{
@@ -104,16 +83,25 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	TriggerSphere->SetSimulatePhysics(false);
 
 	ItemWidgetComponent = CreateOptionalDefaultSubobject<UNAItemWidgetComponent>(TEXT("ItemWidgetComponent"));
-	
-	if (ItemCollision)
+
+	if (GetRootComponent())
 	{
-		SetRootComponent(ItemCollision);
+		if (ItemCollision)
+		{
+			ItemCollision->SetupAttachment(GetRootComponent());
+		}
 		if (ItemMesh)
 		{
-			ItemMesh->SetupAttachment(ItemCollision);
+			ItemMesh->SetupAttachment(GetRootComponent());
 		}
-		TriggerSphere->SetupAttachment(ItemCollision);
-		ItemWidgetComponent->SetupAttachment(ItemCollision);
+		if (TriggerSphere)
+		{
+			TriggerSphere->SetupAttachment(GetRootComponent());
+		}
+		if (ItemWidgetComponent)
+		{
+			ItemWidgetComponent->SetupAttachment(GetRootComponent());
+		}
 	}
 
 	bReplicateUsingRegisteredSubObjectList = true;
@@ -131,6 +119,7 @@ void ANAItemActor::PostInitProperties()
 void ANAItemActor::PostLoad()
 {
 	Super::PostLoad();
+	
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
 		if (ItemDataID.IsNone() && !GetWorld()->IsPreviewWorld()
@@ -147,7 +136,6 @@ void ANAItemActor::PostActorCreated()
 	
 	InitCheckIfChildActor();
 }
-
 
 EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTableRow* MetaData) const
 {
@@ -240,16 +228,11 @@ EItemSubobjDirtyFlags ANAItemActor::CheckDirtySubobjectFlags(const FNAItemBaseTa
 void ANAItemActor::OnConstruction(const FTransform& Transform)
 {
  	Super::OnConstruction(Transform);
- 	
-	if (HasAnyFlags(RF_ClassDefaultObject))
-	{
-		return;
-	}
 	
 	if (!UNAItemEngineSubsystem::Get()
+		|| !UNAItemEngineSubsystem::Get()->FindSoftItemMetaData(GetClass())
 		|| !UNAItemEngineSubsystem::Get()->IsItemMetaDataInitialized()
 #if WITH_EDITOR || WITH_EDITORONLY_DATA
-		|| !UNAItemEngineSubsystem::Get()->FindSoftItemMetaData(GetClass())
 		|| !UNAItemEngineSubsystem::Get()->IsRegisteredItemMetaClass(GetClass())
 #endif
 		)
@@ -257,14 +240,13 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 		return;
 	}
 	
-	if (ItemDataID.IsNone() && !GetWorld()->IsPreviewWorld()
+	if (!HasAnyFlags(RF_ClassDefaultObject) && ItemDataID.IsNone() && !GetWorld()->IsPreviewWorld()
 		&& !IsChildActor()) // ChildActorComponent에 의해 생성된 경우: 아이템 데이터 새로 생성 x
 	{
 		InitItemData();
 	}
 
 	const FNAItemBaseTableRow* MetaData = UNAItemEngineSubsystem::Get()->GetItemMetaDataByClass(GetClass());
-#if WITH_EDITOR || WITH_EDITORONLY_DATA
 	if (!MetaData)
 	{
 		if (const FDataTableRowHandle* SoftMetaDataHandle = UNAItemEngineSubsystem::Get()->FindSoftItemMetaData(GetClass());
@@ -273,11 +255,10 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			MetaData = SoftMetaDataHandle->GetRow<FNAItemBaseTableRow>(SoftMetaDataHandle->RowName.ToString());
 		}
 	}
-#endif
 	if (!MetaData) { return; }
 
 	// 어태치먼트
-	FTransform PreviousTransform = GetRootComponent()->GetComponentTransform();
+	FTransform PreviousTransform = HasAnyFlags(RF_ClassDefaultObject) ? FTransform::Identity : GetRootComponent()->GetComponentTransform();
 
 	const EItemSubobjDirtyFlags DirtyFlags = CheckDirtySubobjectFlags(MetaData);
 	UClass* NewItemCollisionClass = nullptr;
@@ -329,7 +310,8 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	{
 		if (!OwnedComponent) continue;
 
-		if (NewItemCollisionClass && OwnedComponent->GetClass()->IsChildOf(NewItemCollisionClass))
+		if (NewItemCollisionClass && OwnedComponent->GetClass()->IsChildOf(NewItemCollisionClass)
+			&& OwnedComponent->GetName().StartsWith(TEXT("ItemCollision")))
 		{
 			if (UShapeComponent* NewItemCollision = Cast<UShapeComponent>(OwnedComponent))
 			{
@@ -360,32 +342,27 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			}
 		}
 	}
-
-	if (ItemCollision)
-	{
-		SetRootComponent(ItemCollision);
-		AddReplicatedSubObject(ItemCollision);
-	}
 	
 	// 마지막으로 등록된 컴포넌트들을 순회하면서 프로퍼티에 없는 컴포넌트들을 삭제
 	for (UActorComponent* OwnedComponent : GetComponents().Array())
 	{
 		if (USceneComponent* OwnedSceneComp = Cast<USceneComponent>(OwnedComponent))
 		{
-			if ( SubObjsActorComponents.Contains( OwnedComponent ) )
+			if (SubObjsActorComponents.Contains( OwnedComponent ))
 			{
 				if (!OwnedSceneComp->IsRegistered())
 				{
 					OwnedSceneComp->RegisterComponent();
 				}
 				
-				if (OwnedSceneComp != GetRootComponent())
+				if (OwnedSceneComp != GetRootComponent()
+					&& OwnedSceneComp->GetAttachParent() != GetRootComponent())
 				{
 					OwnedSceneComp->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 				}
 				continue;
 			}
- 
+			
 			TArray<USceneComponent*> AttachedChildren = OwnedSceneComp->GetAttachChildren();
 			for (USceneComponent* Child : AttachedChildren)
 			{
@@ -420,11 +397,6 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 
 	if (MetaData->MeshType != EItemMeshType::IMT_None)
 	{
-		if (ItemMesh)
-		{
-			ItemMesh->SetRelativeTransform(MetaData->MeshTransform);
-		}
-		
 		if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(ItemMesh))
 		{
 			StaticMeshComp->SetStaticMesh(MetaData->StaticMeshAssetData.StaticMesh);
@@ -437,11 +409,26 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			SkeletalMeshComp->SetAnimClass(MetaData->SkeletalMeshAssetData.AnimClass);
 		}
 	}
-
-    if (GetRootComponent() && GetRootComponent() == ItemCollision)
-    {
-	    GetRootComponent()->SetWorldTransform(PreviousTransform);
-    }
+	
+	RegisterAllComponents();
+	
+	if (GetRootComponent())
+	{
+		GetRootComponent()->SetWorldTransform(PreviousTransform);
+	}
+	if (ItemCollision)
+	{
+		ItemCollision->SetRelativeTransform(FTransform::Identity);
+	}
+	if (ItemMesh)
+	{
+		ItemMesh->SetRelativeTransform(MetaData->MeshTransform);
+	}
+	
+	if (ItemCollision && !IsReplicatedActorComponentRegistered(ItemCollision) )
+	{
+		//AddReplicatedSubObject(ItemCollision);
+	}
 }
 
 void ANAItemActor::Destroyed()
@@ -481,35 +468,8 @@ void ANAItemActor::InitItemData()
 	if (const UNAItemData* NewItemData = UNAItemEngineSubsystem::Get()->CreateItemDataByActor(this))
 	{
 		ItemDataID = NewItemData->GetItemID();
-		OnItemDataInitialized();
+		VerifyInteractableData();
 	}
-}
-
-void ANAItemActor::ReleaseItemWidgetComponent()
-{
-	if (ItemWidgetComponent && !ItemWidgetComponent->IsVisible())
-	{
-		ItemWidgetComponent->ReleaseItemWidgetPopup();
-	}
-}
-
-void ANAItemActor::CollapseItemWidgetComponent()
-{
-	if (ItemWidgetComponent && ItemWidgetComponent->IsVisible())
-	{
-		ItemWidgetComponent->CollapseItemWidgetPopup();
-	}
-}
-
-void ANAItemActor::OnFullyAddedToInventoryBeforeDestroy(AActor* Interactor)
-{
-	OnFullyAddedToInventoryBeforeDestroy_Impl(Interactor);
-	Destroy();
-}
-
-void ANAItemActor::OnItemDataInitialized()
-{
-	VerifyInteractableData();
 }
 
 void ANAItemActor::VerifyInteractableData()
@@ -528,6 +488,29 @@ void ANAItemActor::VerifyInteractableData()
 	{
 		ensureAlways(false);
 	}
+}
+
+
+void ANAItemActor::ReleaseItemWidgetComponent()
+{
+	if (ItemWidgetComponent && !ItemWidgetComponent->IsVisible())
+	{
+		ItemWidgetComponent->ReleaseItemWidgetPopup();
+	}
+}
+
+void ANAItemActor::CollapseItemWidgetComponent()
+{
+	if (ItemWidgetComponent && ItemWidgetComponent->IsVisible())
+	{
+		ItemWidgetComponent->CollapseItemWidgetPopup();
+	}
+}
+
+void ANAItemActor::FinalizeAndDestroyAfterInventoryAdded(AActor* Interactor)
+{
+	FinalizeAndDestroyAfterInventoryAdded_Impl(Interactor);
+	Destroy();
 }
 
 void ANAItemActor::InitCheckIfChildActor()
@@ -566,7 +549,7 @@ void ANAItemActor::InitCheckIfChildActor()
 	}
 	else
 	{
-		// 트랜스폼 및 콜리전, 피직스 등등 설정 여기에
+		// 콜리전, 피직스 등등 설정 여기에
 		if (ItemCollision)
 		{
 			ItemCollision->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
@@ -583,11 +566,11 @@ void ANAItemActor::InitCheckIfChildActor()
 			ItemCollision->SetGenerateOverlapEvents( true );
 			ItemCollision->SetIsReplicated( true );
 		}
-		if ( ItemMesh )
+		if (ItemMesh)
 		{
-			ItemMesh->SetCollisionEnabled( ECollisionEnabled::NoCollision );
-			ItemMesh->SetSimulatePhysics( false );
-			ItemMesh->SetGenerateOverlapEvents( false );
+			ItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			ItemMesh->SetSimulatePhysics(false);
+			ItemMesh->SetGenerateOverlapEvents(false);
 		}
 	}
 }
@@ -632,7 +615,45 @@ void ANAItemActor::OnRep_ItemCollision( UShapeComponent* PreviousComponent )
 
 void ANAItemActor::BeginPlay()
 {
+	// 임시 로직
+	// 기본값으로 생성한 깡통 씬 루트를 제거하고, 아이템 콜리전으로 루트 대체
+	if (bNeedItemCollision && ItemCollision)
+	{
+		FTransform PreviousTransform = GetRootComponent()->GetComponentTransform();
+		
+		TArray<USceneComponent*> PreviousChildren;
+		PreviousChildren.Reserve(GetComponents().Num());
+		for ( auto It = GetComponents().CreateConstIterator(); It; ++It )
+		{
+			if (USceneComponent* Child = Cast<USceneComponent>(*It))
+			{
+				if (!Child->GetAttachParent()) continue;
+				if (Child == GetRootComponent()) continue;
+
+				Child->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+				PreviousChildren.Add(Child);
+			}
+		}
+
+		GetRootComponent()->ClearFlags(RF_Standalone | RF_Public);
+		RemoveInstanceComponent(GetRootComponent());
+		GetRootComponent()->DestroyComponent();
+
+		SetRootComponent(ItemCollision);
+		ItemCollision->SetWorldTransform(PreviousTransform);
+		if (PreviousChildren.Num() > 0)
+		{
+			for (USceneComponent* Child : PreviousChildren)
+			{
+				if (Child == ItemCollision) continue;
+
+				Child->AttachToComponent(ItemCollision, FAttachmentTransformRules::KeepRelativeTransform);
+			}
+		}
+	}
+	
 	Super::BeginPlay();
+	
 	InitCheckIfChildActor();
 	
 	if (InteractableInterfaceRef)
@@ -653,6 +674,155 @@ void ANAItemActor::BeginPlay()
 		{
 			GetItemData()->SetQuantity(1);
 		}
+	}
+}
+
+void ANAItemActor::InitializeSubobjectsWithMetaData()
+{
+	if (UNAItemEngineSubsystem::Get())
+	{
+		const FNAItemBaseTableRow* MetaData = nullptr;
+		if (UNAItemEngineSubsystem::Get()->IsSoftItemMetaDataInitialized())
+		{
+			if (UNAItemEngineSubsystem::Get()->IsItemMetaDataInitialized())
+			{
+				MetaData = UNAItemEngineSubsystem::Get()->
+					GetItemMetaDataByClass(GetClass());
+			}
+			else
+			{
+				const FDataTableRowHandle* SoftMetaDataHandle = UNAItemEngineSubsystem::Get()->
+					FindSoftItemMetaData(GetClass());
+				if (SoftMetaDataHandle && !SoftMetaDataHandle->IsNull())
+				{
+					MetaData = SoftMetaDataHandle->GetRow<FNAItemBaseTableRow>(
+						SoftMetaDataHandle->RowName.ToString());
+				}
+			}
+		}
+		
+		if (MetaData)
+		{
+			const EItemSubobjDirtyFlags DirtyFlags = CheckDirtySubobjectFlags(MetaData);
+			const EObjectFlags SubobjFlags = GetMaskedFlags(RF_PropagateToSubObjects);
+
+			if (EnumHasAnyFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_CollisionShape))
+			{
+				switch (MetaData->CollisionShape)
+				{
+				case EItemCollisionShape::ICS_Sphere:
+					ItemCollision = NewObject<USphereComponent>(this, TEXT("ItemCollision(Sphere)"), SubobjFlags);
+					break;
+				case EItemCollisionShape::ICS_Box:
+					ItemCollision = NewObject<UBoxComponent>(this, TEXT("ItemCollision(Box)"), SubobjFlags);
+					break;
+				case EItemCollisionShape::ICS_Capsule:
+					ItemCollision = NewObject<UCapsuleComponent>(this, TEXT("ItemCollision(Capsule)"), SubobjFlags);
+					break;
+				default:
+					break;
+				}
+			}
+
+			if (EnumHasAnyFlags(DirtyFlags, EItemSubobjDirtyFlags::ISDF_MeshType))
+			{
+				switch (MetaData->MeshType)
+				{
+				case EItemMeshType::IMT_Static:
+					ItemMesh = NewObject<UStaticMeshComponent>(this, TEXT("ItemMesh(Static)"), SubobjFlags);
+					break;
+				case EItemMeshType::IMT_Skeletal:
+					ItemMesh = NewObject<USkeletalMeshComponent>(this, TEXT("ItemMesh(Skeletal)"), SubobjFlags);
+					break;
+				default:
+					break;
+				}
+			}
+		}
+		
+		FTransform PreviousTransform = GetRootComponent() ? GetRootComponent()->GetComponentTransform() : FTransform::Identity;
+		if (ItemCollision)
+		{
+			TArray<USceneComponent*> ChildComponents;
+			if (USceneComponent* OldRoot = GetRootComponent())
+			{
+				ChildComponents.Reserve(GetComponents().Num());
+				for (UActorComponent* OwnedComponent : GetComponents().Array())
+				{
+					if (USceneComponent* OwnedScene = Cast<USceneComponent>(OwnedComponent))
+					{
+						if (OwnedScene->GetAttachParent() == OldRoot)
+						{
+							OwnedScene->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+							ChildComponents.Add(OwnedScene);
+						}
+					}
+				}
+				OldRoot->ClearFlags(RF_Standalone | RF_Public);
+				OldRoot->DestroyComponent();
+				RemoveInstanceComponent(OldRoot);
+			}
+			
+			SetRootComponent(ItemCollision);
+			
+			if (ItemCollision && GetWorld() && !GetWorld()->IsPreviewWorld())
+			{
+				AddReplicatedSubObject(ItemCollision);
+			}
+			
+			if (ChildComponents.Num() > 0)
+			{
+				for (USceneComponent* ChildScene : ChildComponents)
+				{
+					ChildScene->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+				}
+			}
+			ChildComponents.Empty();
+
+			if (GetRootComponent())
+			{
+				GetRootComponent()->SetWorldTransform(PreviousTransform);
+			}
+		}
+
+		if (ItemMesh)
+		{
+			ItemMesh->SetRelativeTransform(MetaData->MeshTransform);
+			ItemMesh->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+		}
+
+		if (MetaData->CollisionShape != EItemCollisionShape::ICS_None)
+		{
+			if (USphereComponent* SphereCollision = Cast<USphereComponent>(ItemCollision))
+			{
+				SphereCollision->SetSphereRadius(MetaData->CollisionSphereRadius);
+			}
+			else if (UBoxComponent* BoxCollision = Cast<UBoxComponent>(ItemCollision))
+			{
+				BoxCollision->SetBoxExtent(MetaData->CollisionBoxExtent);
+			}
+			else if (UCapsuleComponent* CapsuleCollision = Cast<UCapsuleComponent>(ItemCollision))
+			{
+				CapsuleCollision->SetCapsuleSize(MetaData->CollisionCapsuleSize.X, MetaData->CollisionCapsuleSize.Y);
+			}
+		}
+
+		if (MetaData->MeshType != EItemMeshType::IMT_None)
+		{
+			if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(ItemMesh))
+			{
+				StaticMeshComp->SetStaticMesh(MetaData->StaticMeshAssetData.StaticMesh);
+				ItemFractureCollection = MetaData->StaticMeshAssetData.FractureCollection;
+				ItemFractureCache = MetaData->StaticMeshAssetData.FractureCache;
+			}
+			else if (USkeletalMeshComponent* SkeletalMeshComp = Cast<USkeletalMeshComponent>(ItemMesh))
+			{
+				SkeletalMeshComp->SetSkeletalMesh(MetaData->SkeletalMeshAssetData.SkeletalMesh);
+				SkeletalMeshComp->SetAnimClass(MetaData->SkeletalMeshAssetData.AnimClass);
+			}
+		}
+
+		RegisterAllComponents();
 	}
 }
 

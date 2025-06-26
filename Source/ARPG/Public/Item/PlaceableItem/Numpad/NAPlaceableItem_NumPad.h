@@ -10,7 +10,7 @@ class UNANumpadWidget;
 
 DECLARE_DYNAMIC_DELEGATE(FOnCompleteGimic);
 
-UCLASS()
+UCLASS(Abstract)
 class ARPG_API ANAPlaceableItem_NumPad : public ANAPlaceableItemActor
 {
 	GENERATED_BODY()

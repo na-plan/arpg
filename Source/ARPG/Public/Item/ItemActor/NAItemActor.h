@@ -40,6 +40,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	UFUNCTION(BlueprintCallable)
+	virtual void InitializeSubobjectsWithMetaData();
+
 public:
 	virtual void Tick(float DeltaTime) override;
 	
@@ -126,12 +129,10 @@ public:
 	virtual void ReleaseItemWidgetComponent();
 	virtual void CollapseItemWidgetComponent();
 
-	void OnFullyAddedToInventoryBeforeDestroy(AActor* Interactor);
-	
+	void FinalizeAndDestroyAfterInventoryAdded(AActor* Interactor);
 protected:
-	// OnItemDataInitialized: BP 확장 가능
-	UFUNCTION(BlueprintCallable)
-	virtual void OnItemDataInitialized();
+	virtual void FinalizeAndDestroyAfterInventoryAdded_Impl(AActor* Interactor) {}
+	
 	
 	virtual EItemSubobjDirtyFlags CheckDirtySubobjectFlags(const FNAItemBaseTableRow* MetaData) const;
 
@@ -142,8 +143,6 @@ protected:
 
 	UFUNCTION()
 	virtual void OnRep_ItemCollision( UShapeComponent* PreviousComponent );
-
-	virtual void OnFullyAddedToInventoryBeforeDestroy_Impl(AActor* Interactor) {}
 	
 private:
 	void InitItemData();
@@ -151,6 +150,8 @@ private:
 	virtual void InitCheckIfChildActor();
 
 protected:
+	friend struct FNAItemBaseTableRow;
+	
 	// Optional Subobject
 	uint8 bNeedItemCollision :1 = true;
 	
@@ -160,10 +161,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category="Item Actor")
 	bool bWasChildActor = false;
 	
-	UPROPERTY(Instanced, VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_ItemCollision, Category="Item Actor | Collision Shape")
+	UPROPERTY(/*Instanced,*/ VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_ItemCollision, Category="Item Actor | Collision Shape")
 	TObjectPtr<UShapeComponent> ItemCollision;
 
-	UPROPERTY(Instanced, VisibleAnywhere, Category = "Item Actor | Mesh")
+	UPROPERTY(/*Instanced,*/ VisibleAnywhere, Category = "Item Actor | Mesh")
 	TObjectPtr<UMeshComponent> ItemMesh;
 
 	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Static Mesh")
