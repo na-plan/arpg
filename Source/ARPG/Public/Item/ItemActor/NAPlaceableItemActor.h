@@ -26,6 +26,4 @@ protected:
 	virtual bool BeginInteract_Implementation(AActor* Interactor) override;
 	virtual bool ExecuteInteract_Implementation(AActor* Interactor) override;
 	virtual bool EndInteract_Implementation(AActor* Interactor) override;
-	
-	virtual void SetInteractionPhysicsEnabled(const bool bEnabled) override;
 };

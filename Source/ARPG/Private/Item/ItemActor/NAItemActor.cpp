@@ -2,6 +2,7 @@
 #include "Item/ItemActor/NAItemActor.h"
 
 #include "MovieSceneTracksComponentTypes.h"
+#include "NACharacter.h"
 #include "Components/SphereComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -10,6 +11,8 @@
 #include "GeometryCollection/GeometryCollectionObject.h"
 #include "Item/ItemWidget/NAItemWidgetComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Item/ItemWidget/NAItemWidget.h"
+
 
 ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -28,13 +31,16 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	}
 	
 	TriggerSphere->SetRelativeLocation(FVector(0.f, 0.f, 140.f));
-	TriggerSphere->SetSphereRadius(180.0f);
-	TriggerSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	TriggerSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
+	TriggerSphere->SetSphereRadius(280.0f);
+	// TriggerSphere->SetCollisionObjectType(ECollisionChannel::ECC_GameTraceChannel1);
+	// TriggerSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	// TriggerSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
+	//TriggerSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	TriggerSphere->SetCollisionProfileName(TEXT("IX_TriggerShape"));
 	TriggerSphere->CanCharacterStepUpOn = ECB_No;
-	TriggerSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap); 
 	TriggerSphere->SetSimulatePhysics(false);
-	TriggerSphere->SetupAttachment( StubRootComponent );
+	TriggerSphere->SetGenerateOverlapEvents(true);
+	TriggerSphere->SetupAttachment(StubRootComponent);
 
 	if ( ItemWidgetComponent )
 	{
@@ -64,6 +70,7 @@ void ANAItemActor::PostLoad()
 			&& !IsChildActor())
 		{
 			InitItemData();
+			InitCheckIfChildActor();
 		}
 	}
 }
@@ -466,10 +473,28 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 
 void ANAItemActor::Destroyed()
 {
+	TransferItemWidgetToPopupBeforeDestroy();
 	Super::Destroyed();
+}
 
-	if (!HasActorBegunPlay()) return;
-	CollapseItemWidgetComponent();
+void ANAItemActor::TransferItemWidgetToPopupBeforeDestroy()
+{
+	if (HasActorBegunPlay() && IsPendingKillPending()
+		&& ItemWidgetComponent && ItemWidgetComponent->IsVisible())
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	
+		ANAItemWidgetPopupActor* Popup = GetWorld()->SpawnActor<ANAItemWidgetPopupActor>(
+		ANAItemWidgetPopupActor::StaticClass(),
+		GetRootComponent()->GetComponentTransform(),
+		Params);
+
+		ensureAlways(Popup);
+		
+		ItemWidgetComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+		Popup->InitializePopup(ItemWidgetComponent);
+	}
 }
 
 void ANAItemActor::GetLifetimeReplicatedProps( TArray<FLifetimeProperty>& OutLifetimeProps ) const
@@ -501,7 +526,7 @@ void ANAItemActor::InitItemData()
 	if (const UNAItemData* NewItemData = UNAItemEngineSubsystem::Get()->CreateItemDataByActor(this))
 	{
 		ItemDataID = NewItemData->GetItemID();
-		OnItemDataInitialized();
+		VerifyInteractableData();
 	}
 }
 
@@ -521,15 +546,10 @@ void ANAItemActor::CollapseItemWidgetComponent()
 	}
 }
 
-void ANAItemActor::OnFullyAddedToInventoryBeforeDestroy(AActor* Interactor)
+void ANAItemActor::FinalizeAndDestroyAfterInventoryAdded(AActor* Interactor)
 {
-	OnFullyAddedToInventoryBeforeDestroy_Impl(Interactor);
+	FinalizeAndDestroyAfterInventoryAdded_Impl(Interactor);
 	Destroy();
-}
-
-void ANAItemActor::OnItemDataInitialized()
-{
-	VerifyInteractableData();
 }
 
 void ANAItemActor::VerifyInteractableData()
@@ -614,14 +634,16 @@ void ANAItemActor::InitCheckIfChildActor()
 	}
 }
 
-void ANAItemActor::OnActorBeginOverlap_Impl(AActor* OverlappedActor, AActor* OtherActor)
+void ANAItemActor::OnActorBeginOverlap_Impl(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	Execute_NotifyInteractableFocusBegin(this, OverlappedActor, OtherActor);
+	Execute_NotifyInteractableFocusBegin(this, OverlappedComponent->GetOwner(), OtherActor);
 }
 
-void ANAItemActor::OnActorEndOverlap_Impl(AActor* OverlappedActor, AActor* OtherActor)
+void ANAItemActor::OnActorEndOverlap_Impl(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	Execute_NotifyInteractableFocusEnd(this, OverlappedActor, OtherActor);
+	Execute_NotifyInteractableFocusEnd(this,  OverlappedComponent->GetOwner(), OtherActor);
 }
 
 void ANAItemActor::OnRep_ItemCollision( UShapeComponent* PreviousComponent )
@@ -695,10 +717,13 @@ void ANAItemActor::BeginPlay()
 	Super::BeginPlay();
 	InitCheckIfChildActor();
 	
-	if (InteractableInterfaceRef)
+	if (InteractableInterfaceRef && TriggerSphere)
 	{
-		OnActorBeginOverlap.AddUniqueDynamic(this, &ThisClass::OnActorBeginOverlap_Impl);
-		OnActorEndOverlap.AddUniqueDynamic(this, &ThisClass::OnActorEndOverlap_Impl);
+		TriggerSphere->OnComponentBeginOverlap.AddUniqueDynamic(this, &ThisClass::OnActorBeginOverlap_Impl);
+		TriggerSphere->OnComponentEndOverlap.AddUniqueDynamic(this, &ThisClass::OnActorEndOverlap_Impl);
+
+		// 다음 틱에서 수동으로 오버랩 델리게이트를 직접 브로드캐스트
+		GetWorldTimerManager().SetTimerForNextTick(this, &ThisClass::BroadcastInitialOverlapsOnTriggerSphere);
 	}
 	
 	if (HasValidItemID())
@@ -713,6 +738,27 @@ void ANAItemActor::BeginPlay()
 		{
 			GetItemData()->SetQuantity(1);
 		}
+	}
+}
+
+void ANAItemActor::BroadcastInitialOverlapsOnTriggerSphere()
+{
+	if (!TriggerSphere ||
+		!TriggerSphere->GetGenerateOverlapEvents()) return;
+	
+	// 이미 겹친 액터들 가져와서 일괄 처리
+	TArray<AActor*> Overlaps;
+	TriggerSphere->GetOverlappingActors(Overlaps, ANACharacter::StaticClass());
+	for (AActor* Other : Overlaps)
+	{
+		TriggerSphere->OnComponentBeginOverlap.Broadcast(
+			TriggerSphere,
+			Other,
+			Cast<UPrimitiveComponent>(Other->GetRootComponent()),
+			0,
+			false,
+			FHitResult{}
+		);
 	}
 }
 
@@ -751,8 +797,13 @@ void ANAItemActor::NotifyInteractableFocusBegin_Implementation(AActor* Interacta
 {
 	if (UNAInteractionComponent* InteractionComp = GetInteractionComponent(InteractorActor))
 	{
+		// FString ItemName = InteractorActor ? GetNameSafe(InteractableActor) : TEXT_NULL;
+		// FString InteractorName = InteractorActor ? GetNameSafe(InteractorActor) : TEXT_NULL;
+		// UE_LOG(LogTemp, Warning, TEXT("[NotifyInteractableFocusBegin]  포커스 On 알림 - 아이템: %s, 행위자: %s")
+		// 	, *ItemName, *InteractorName);
+		
 		bIsFocused = InteractionComp->OnInteractableFound(this);
-		if (bIsFocused)
+		if (bIsFocused && IsValid(ItemWidgetComponent))
 		{
 			ReleaseItemWidgetComponent();
 		}
@@ -763,8 +814,13 @@ void ANAItemActor::NotifyInteractableFocusEnd_Implementation(AActor* Interactabl
 {
 	if (UNAInteractionComponent* InteractionComp = GetInteractionComponent(InteractorActor))
 	{
+		// FString ItemName = InteractorActor ? GetNameSafe(InteractableActor) : TEXT_NULL;
+		// FString InteractorName = InteractorActor ? GetNameSafe(InteractorActor) : TEXT_NULL;
+		// UE_LOG(LogTemp, Warning, TEXT("[NotifyInteractableFocusEnd]  포커스 Off 알림 - 아이템: %s, 행위자: %s")
+		// 	, *ItemName, *InteractorName);
+		
 		bIsFocused = !InteractionComp->OnInteractableLost(this);
-		if (!bIsFocused && !IsPendingKillPending())
+		if (!bIsFocused && IsValid(ItemWidgetComponent))
 		{
 			CollapseItemWidgetComponent();
 		}
@@ -912,4 +968,36 @@ bool ANAItemActor::CanPerformInteractionWith(AActor* Interactor) const
 		return bCanPerform;
 	}
 	return bCanPerform;
+}
+
+ANAItemWidgetPopupActor::ANAItemWidgetPopupActor()
+{
+	PrimaryActorTick.bCanEverTick = false;
+
+	SetRootComponent(CreateDefaultSubobject<USceneComponent>(TEXT("PopupSceneRoot")));
+}
+
+void ANAItemWidgetPopupActor::InitializePopup(UNAItemWidgetComponent* NewPopupWidgetComponent)
+{
+	if (HasActorBegunPlay() && GetRootComponent() && !PopupWidgetComponent
+		&& NewPopupWidgetComponent && NewPopupWidgetComponent->GetItemWidget())
+	{
+		NewPopupWidgetComponent->Rename(nullptr, this,REN_DontCreateRedirectors | REN_DoNotDirty);
+		PopupWidgetComponent = NewPopupWidgetComponent;
+		AddInstanceComponent(PopupWidgetComponent);
+		PopupWidgetComponent->AttachToComponent(GetRootComponent(),FAttachmentTransformRules::KeepWorldTransform);
+		if (PopupWidgetComponent->HasBeenCreated())
+		{
+			PopupWidgetComponent->OnComponentCreated();
+		}
+		PopupWidgetComponent->RegisterComponent();
+
+		PopupWidgetComponent->GetItemWidget()->OnItemWidgetCollapseFinishedForDestroy.BindUObject(this, &ThisClass::OnCollapseAnimationFinished);
+		PopupWidgetComponent->CollapseItemWidgetPopup();
+	}
+}
+
+void ANAItemWidgetPopupActor::OnCollapseAnimationFinished()
+{
+	Destroy();
 }

@@ -797,11 +797,13 @@ void UNAInventoryWidget::OnItemSlotFocusLost(UButton* Button)
 			{
 				StopAnimation(Above_Button_L_Focused);
 				Above_Button_L->SetColorAndOpacity(Above_Button_Button_DefaultColor);
+				Above_Button_L->SetBackgroundColor(Above_Button_Button_DefaultColor);
 			}
 			else if (Button == Above_Button_R)
 			{
 				StopAnimation(Above_Button_R_Focused);
 				Above_Button_R->SetColorAndOpacity(Above_Button_Button_DefaultColor);
+				Above_Button_R->SetBackgroundColor(Above_Button_Button_DefaultColor);
 			}
 			else if (Button == Above_Button_Title )
 			{

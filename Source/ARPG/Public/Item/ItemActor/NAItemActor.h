@@ -125,25 +125,26 @@ public:
 
 	virtual void ReleaseItemWidgetComponent();
 	virtual void CollapseItemWidgetComponent();
-
-	void OnFullyAddedToInventoryBeforeDestroy(AActor* Interactor);
+	
+	void FinalizeAndDestroyAfterInventoryAdded(AActor* Interactor);
 	
 protected:
-	// OnItemDataInitialized: BP 확장 가능
-	UFUNCTION(BlueprintCallable)
-	virtual void OnItemDataInitialized();
-	
 	virtual EItemSubobjDirtyFlags GetDirtySubobjectFlags(const FNAItemBaseTableRow* MetaData) const;
 
 	UFUNCTION()
-	void OnActorBeginOverlap_Impl( AActor* OverlappedActor, AActor* OtherActor );
+	void OnActorBeginOverlap_Impl(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+
 	UFUNCTION()
-	void OnActorEndOverlap_Impl( AActor* OverlappedActor, AActor* OtherActor );
+	void OnActorEndOverlap_Impl(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	UFUNCTION()
 	virtual void OnRep_ItemCollision( UShapeComponent* PreviousComponent );
 
-	virtual void OnFullyAddedToInventoryBeforeDestroy_Impl(AActor* Interactor) {}
+	virtual void FinalizeAndDestroyAfterInventoryAdded_Impl(AActor* Interactor) {}
+
+	void BroadcastInitialOverlapsOnTriggerSphere();
+
+	void TransferItemWidgetToPopupBeforeDestroy();
 	
 private:
 	void InitItemData();
@@ -221,4 +222,27 @@ protected:
 	TScriptInterface<INAInteractableInterface> InteractableInterfaceRef = nullptr;
 };
 
+UCLASS()
+class ARPG_API ANAItemWidgetPopupActor final : public AActor
+{
+	GENERATED_BODY()
+    
+public:
+	ANAItemWidgetPopupActor();
 
+private:
+	friend class ANAItemActor;
+	/** 
+	 * 외부에서 스폰 후 바로 호출할 초기화 함수
+	 */
+	void InitializePopup(UNAItemWidgetComponent* NewPopupWidgetComponent);
+	
+	/** 애니메이션 완료 시 호출될 함수 */
+	UFUNCTION()
+	void OnCollapseAnimationFinished();
+
+private:
+	/** Collapse 애니메이션이 담긴 위젯 컴포넌트 */
+	UPROPERTY()
+	UNAItemWidgetComponent* PopupWidgetComponent = nullptr;
+};

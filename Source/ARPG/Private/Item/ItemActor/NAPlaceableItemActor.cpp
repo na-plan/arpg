@@ -61,13 +61,6 @@ bool ANAPlaceableItemActor::EndInteract_Implementation(AActor* Interactor)
 	// 상호작용이 끝난 후 처리
 }
 
-void ANAPlaceableItemActor::SetInteractionPhysicsEnabled(const bool bEnabled)
-{
-	UE_LOG(LogTemp, Warning, TEXT(
-		"[ANAPlaceableItemActor::SetInteractionPhysicsEnabled]  Placeable Item Actor는 아무것도 안하고 스루"));
-}
-
-
 void ANAPlaceableItemActor::BeginPlay()
 {
 	Super::BeginPlay();

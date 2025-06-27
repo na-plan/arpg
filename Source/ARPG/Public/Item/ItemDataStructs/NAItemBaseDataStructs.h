@@ -218,16 +218,6 @@ protected:
 };
 
 USTRUCT()
-struct ARPG_API FNATestItemBaseTableRow : public FTableRowBase
-{
-	GENERATED_BODY()
-	
-	UPROPERTY(EditAnywhere, Category = "Item Base Data", meta=(BlueprintBaseOnly, AllowAbstract="false"))
-	TSubclassOf<ANAItemActor> ItemClass = nullptr;
-
-};
-
-USTRUCT()
 struct FNADropItemPair
 {
 	GENERATED_BODY()
