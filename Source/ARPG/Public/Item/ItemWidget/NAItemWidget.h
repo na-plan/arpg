@@ -6,9 +6,8 @@
 #include "Blueprint/UserWidget.h"
 #include "NAItemWidget.generated.h"
 
-/**
- * 
- */
+DECLARE_DELEGATE(FOnItemWidgetCollapseFinishedForDestroy);
+
 UCLASS()
 class ARPG_API UNAItemWidget : public UUserWidget
 {
@@ -33,6 +32,9 @@ public:
 	
 	virtual void ReleaseItemWidget();
 	virtual void CollapseItemWidget();
+
+public:
+	FOnItemWidgetCollapseFinishedForDestroy OnItemWidgetCollapseFinishedForDestroy;
 	
 protected:
 	UPROPERTY(Transient, BlueprintReadOnly)

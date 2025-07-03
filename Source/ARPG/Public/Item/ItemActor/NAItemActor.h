@@ -35,13 +35,9 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void Destroyed() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
-	
+
 protected:
 	virtual void BeginPlay() override;
-
-	UFUNCTION(BlueprintCallable)
-	virtual void InitializeSubobjectsWithMetaData();
 
 public:
 	virtual void Tick(float DeltaTime) override;
@@ -131,18 +127,22 @@ public:
 
 	void FinalizeAndDestroyAfterInventoryAdded(AActor* Interactor);
 protected:
+	virtual EItemSubobjDirtyFlags GetDirtySubobjectFlags(const FNAItemBaseTableRow* MetaData) const;
+	
+	UFUNCTION()
+	void OnActorBeginOverlap_Impl(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+
+	UFUNCTION()
+	void OnActorEndOverlap_Impl(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
 	virtual void FinalizeAndDestroyAfterInventoryAdded_Impl(AActor* Interactor) {}
-	
-	
-	virtual EItemSubobjDirtyFlags CheckDirtySubobjectFlags(const FNAItemBaseTableRow* MetaData) const;
 
-	UFUNCTION()
-	void OnActorBeginOverlap_Impl( AActor* OverlappedActor, AActor* OtherActor );
-	UFUNCTION()
-	void OnActorEndOverlap_Impl( AActor* OverlappedActor, AActor* OtherActor );
+	void BroadcastInitialOverlapsOnTriggerSphere();
 
-	UFUNCTION()
-	virtual void OnRep_ItemCollision( UShapeComponent* PreviousComponent );
+	void TransferItemWidgetToPopupBeforeDestroy() const;
+	
+	/** 기존 루트 컴포넌트를 제거하고, ItemCollision을 새로운 루트로 설정한 뒤, 기존 자식 컴포넌트들을 이관 */
+	virtual void ReplaceRootWithItemCollisionIfNeeded();
 	
 private:
 	void InitItemData();
@@ -161,11 +161,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category="Item Actor")
 	bool bWasChildActor = false;
 	
-	UPROPERTY(/*Instanced,*/ VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_ItemCollision, Category="Item Actor | Collision Shape")
-	TObjectPtr<UShapeComponent> ItemCollision;
+	UPROPERTY(Instanced, VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Collision Shape")
+	UShapeComponent* ItemCollision;
 
-	UPROPERTY(/*Instanced,*/ VisibleAnywhere, Category = "Item Actor | Mesh")
-	TObjectPtr<UMeshComponent> ItemMesh;
+	UPROPERTY(Instanced, VisibleAnywhere, Category = "Item Actor | Mesh")
+	UMeshComponent* ItemMesh;
 
 	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Static Mesh")
 	TObjectPtr<class UGeometryCollection> ItemFractureCollection;
@@ -219,4 +219,27 @@ protected:
 	TScriptInterface<INAInteractableInterface> InteractableInterfaceRef = nullptr;
 };
 
+UCLASS()
+class ARPG_API ANAItemWidgetPopupActor final : public AActor
+{
+	GENERATED_BODY()
+    
+public:
+	ANAItemWidgetPopupActor();
 
+private:
+	friend class ANAItemActor;
+	/** 
+	 * 외부에서 스폰 후 바로 호출할 초기화 함수
+	 */
+	void InitializePopup(UNAItemWidgetComponent* NewPopupWidgetComponent);
+	
+	/** 애니메이션 완료 시 호출될 함수 */
+	UFUNCTION()
+	void OnCollapseAnimationFinished();
+
+private:
+	/** Collapse 애니메이션이 담긴 위젯 컴포넌트 */
+	UPROPERTY()
+	UNAItemWidgetComponent* PopupWidgetComponent = nullptr;
+};

@@ -34,8 +34,8 @@ ANAWeapon::ANAWeapon() : ANAPickableItemActor(FObjectInitializer::Get())
 
 	if ( ItemMesh )
 	{
-		AmmoIndicatorComponent->AttachToComponent( ItemMesh, FAttachmentTransformRules::KeepRelativeTransform, TEXT("Indicator") );
-		MuzzleFlashComponent->AttachToComponent( ItemMesh, FAttachmentTransformRules::KeepRelativeTransform, TEXT( "Muzzle" ) );
+		AmmoIndicatorComponent->SetupAttachment( ItemMesh,TEXT("Indicator") );
+		MuzzleFlashComponent->SetupAttachment( ItemMesh,TEXT( "Muzzle" ) );
 	}
 }
 
@@ -134,6 +134,17 @@ void ANAWeapon::OnConstruction( const FTransform& Transform )
 	{
 		FireArmType = WeaponTable->FirearmStatistics.FireArmType;
 	}
+}
+
+void ANAWeapon::ReplaceRootWithItemCollisionIfNeeded()
+{
+	Super::ReplaceRootWithItemCollisionIfNeeded();
+
+	// if ( ItemMesh )
+	// {
+	// 	AmmoIndicatorComponent->AttachToComponent( ItemMesh, FAttachmentTransformRules::KeepRelativeTransform, TEXT("Indicator") );
+	// 	MuzzleFlashComponent->AttachToComponent( ItemMesh, FAttachmentTransformRules::KeepRelativeTransform, TEXT( "Muzzle" ) );
+	// }
 }
 
 // Called every frame

@@ -50,24 +50,18 @@ public:
 		
 		return nullptr;
 	}
-
-	FORCEINLINE bool IsSoftItemMetaDataInitialized() const {
-		return bSoftMetaDataInitialized;
-	}
 	
 	FORCEINLINE bool IsItemMetaDataInitialized() const {
-		return bMetaDataInitialized;
+		return bSoftMetaDataInitialized && bMetaDataInitialized;
 	}
 
 	template<typename ItemDTRow_T = FNAItemBaseTableRow>
 		requires TIsDerivedFrom<ItemDTRow_T, FNAItemBaseTableRow>::IsDerived
 	const ItemDTRow_T* GetItemMetaDataByClass(UClass* InItemActorClass) const
 	{
-		if (!InItemActorClass->IsChildOf<ANAItemActor>())
-		{
-			return nullptr;
-		}
-
+		if (!InItemActorClass->IsChildOf<ANAItemActor>()) return nullptr;
+		if (!IsSoftItemMetaDataInitialized()) return nullptr;
+		
 		UClass* Key = InItemActorClass;
 #if WITH_EDITOR || WITH_EDITORONLY_DATA
 		if (UBlueprintGeneratedClass* BPClass = Cast<UBlueprintGeneratedClass>(InItemActorClass))
@@ -77,12 +71,21 @@ public:
 				Key = BP->GeneratedClass.Get();
 			}
 		}
-#endif
 		Key = Key ? Key : InItemActorClass;
-		
-		if (const FDataTableRowHandle* Value = ItemMetaDataMap.Find(Key))
+#endif
+		if (!IsItemMetaDataInitialized())
 		{
-			return Value->GetRow<ItemDTRow_T>(Value->RowName.ToString());
+			if (const FDataTableRowHandle* Value = SoftItemMetaData.Find(Key))
+			{
+				return Value->GetRow<ItemDTRow_T>(Value->RowName.ToString());
+			}
+		}
+		else
+		{
+			if (const FDataTableRowHandle* Value = ItemMetaDataMap.Find(Key))
+			{
+				return Value->GetRow<ItemDTRow_T>(Value->RowName.ToString());
+			}
 		}
 		return nullptr;
 	}
@@ -195,8 +198,11 @@ public:
 			}
 		}
 	}
-
-	const FDataTableRowHandle* FindSoftItemMetaData(UClass* ItemActorClass) const;
+	
+protected:
+	FORCEINLINE bool IsSoftItemMetaDataInitialized() const {
+		return bSoftMetaDataInitialized;
+	}
 		
 private:
 	// 실제 사용할 DataTable 포인터 보관

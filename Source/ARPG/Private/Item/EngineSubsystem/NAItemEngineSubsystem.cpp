@@ -54,7 +54,7 @@ void UNAItemEngineSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 		if (ItemDataTableSources.IsEmpty()) return;
 		
-		// (2) TSoftClassPtr<T>, FDataTableRowHandle 맵 생성 -> 블루프린트 에셋 로드 전에 메타데이터 미리 인스턴싱
+		// 3) TSoftClassPtr<T>, FDataTableRowHandle 맵 생성 -> 블루프린트 에셋 로드 전에 메타데이터 미리 인스턴싱
 		UE_LOG(LogTemp, Warning,
 				TEXT("[UNAItemGameInstanceSubsystem]  블루프린트 에셋 로드 전에 메타데이터 미리 인스턴싱"));
 		for (UDataTable* DT : ItemDataTableSources)
@@ -71,7 +71,7 @@ void UNAItemEngineSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 			}
 		}
 	
-		// (3) 메타데이터 맵 빌드
+		// 4) 메타데이터 맵 빌드
 		UE_LOG(LogTemp, Warning,
 				TEXT("[UNAItemGameInstanceSubsystem]  메타데이터 맵 빌드"));
 		if ( !SoftItemMetaData.IsEmpty() && ItemMetaDataMap.IsEmpty())
@@ -298,23 +298,4 @@ bool UNAItemEngineSubsystem::DestroyRuntimeItemData(const FName& InItemID, const
 bool UNAItemEngineSubsystem::DestroyRuntimeItemData(UNAItemData* InItemData, const bool bDestroyItemActor)
 {
 	return DestroyRuntimeItemData(InItemData->ID, bDestroyItemActor);
-}
-
-const FDataTableRowHandle* UNAItemEngineSubsystem::FindSoftItemMetaData(UClass* ItemActorClass) const
-{
-	if (!ItemActorClass || !bSoftMetaDataInitialized) return nullptr;
-	
-	UClass* Key = ItemActorClass;
-#if WITH_EDITOR || WITH_EDITORONLY_DATA
-	if (UBlueprintGeneratedClass* BPClass = Cast<UBlueprintGeneratedClass>(ItemActorClass))
-	{
-		if (UBlueprint* BP = Cast<UBlueprint>(BPClass->ClassGeneratedBy))
-		{
-			Key = BP->GeneratedClass.Get();
-		}
-	}
-#endif
-	Key = Key ? Key : ItemActorClass;
-	
-	return SoftItemMetaData.Find(Key);
 }
