@@ -10,6 +10,7 @@
 #include "Item/ItemDataStructs/NAWeaponDataStructs.h"
 #include "Net/UnrealNetwork.h"
 #include "Weapon/WidgetComponent/NAAmmoIndicatorComponent.h"
+#include "Components/ShapeComponent.h"
 
 // Sets default values
 ANAWeapon::ANAWeapon() : ANAPickableItemActor(FObjectInitializer::Get())
@@ -110,26 +111,7 @@ void ANAWeapon::GetLifetimeReplicatedProps( TArray<FLifetimeProperty>& OutLifeti
 void ANAWeapon::OnConstruction( const FTransform& Transform )
 {
 	Super::OnConstruction( Transform );
-
-	if ( ItemMesh && MuzzleFlashComponent->GetAttachParent() != ItemMesh )
-	{
-		if ( MuzzleFlashComponent->GetAttachParent() )
-		{
-			MuzzleFlashComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );	
-		}
-		
-		MuzzleFlashComponent->AttachToComponent( ItemMesh, FAttachmentTransformRules::KeepRelativeTransform, TEXT( "Muzzle" ) );	
-	}
-	if ( ItemMesh && AmmoIndicatorComponent->GetAttachParent() != ItemMesh )
-	{
-		if ( AmmoIndicatorComponent->GetAttachParent() )
-		{
-			AmmoIndicatorComponent->DetachFromComponent( FDetachmentTransformRules::KeepRelativeTransform );	
-		}
-		
-		AmmoIndicatorComponent->AttachToComponent( ItemMesh, FAttachmentTransformRules::KeepRelativeTransform, TEXT("Indicator") );	
-	}
-
+	
 	if ( const FNAWeaponTableRow* WeaponTable = static_cast<const FNAWeaponTableRow*>( UNAItemEngineSubsystem::Get()->GetItemMetaDataByClass( GetClass() ) ) )
 	{
 		FireArmType = WeaponTable->FirearmStatistics.FireArmType;

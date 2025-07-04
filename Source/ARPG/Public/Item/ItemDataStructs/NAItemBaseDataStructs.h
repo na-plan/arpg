@@ -155,10 +155,9 @@ struct ARPG_API FNAItemBaseTableRow : public FTableRowBase
 	// https://forums.unrealengine.com/t/uproperty-specifier-blueprintbaseonly-is-not-working-this-is-clearly-bug/2334795/6
 	// https://issues.unrealengine.com/issue/UE-210088
 	// 휴먼 에러 주의(c++ 네이티브 클래스 선택하지 말 것)
-	UPROPERTY(EditAnywhere, Category = "Item Base Data", meta=(BlueprintBaseOnly, AllowAbstract="false"
-		, AllowedClasses="/Script/ARPG.ANAItemActor"))
+	UPROPERTY(EditAnywhere, Category = "Item Base Data", meta=(BlueprintBaseOnly, AllowAbstract="false"))
 	TSoftClassPtr<ANAItemActor> ItemClass = nullptr;
-
+	
 	// None: 기본 생성자에서 DoNotCreateSubobject로 ItemCollision 생성 수정한 경우!! 반다시!! 이 플래그 써야함
 	UPROPERTY(EditAnywhere, Category = "Item Collision Shape")
 	EItemCollisionShape CollisionShape = EItemCollisionShape::ICS_None;

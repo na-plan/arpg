@@ -89,6 +89,9 @@ void UNAItemEngineSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 					FKismetEditorUtilities::CompileBlueprint(
 						BP,
 						EBlueprintCompileOptions::SkipGarbageCollection
+						// | EBlueprintCompileOptions::IncludeCDOInReferenceReplacement
+						// | EBlueprintCompileOptions::SkipNewVariableDefaultsDetection
+						| EBlueprintCompileOptions::UseDeltaSerializationDuringReinstancing
 					);
 				}
 #endif

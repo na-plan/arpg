@@ -33,6 +33,7 @@ public:
 	virtual void PostLoad() override;
 	virtual void PostActorCreated() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
+	virtual void UnregisterAllComponents(bool bForReregister = false) override;
 	virtual void Destroyed() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -161,10 +162,13 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category="Item Actor")
 	bool bWasChildActor = false;
 	
-	UPROPERTY(Instanced, VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Collision Shape")
+	UPROPERTY(Transient, NonTransactional, VisibleAnywhere, BlueprintReadOnly, Category="ItemActor")
+	USceneComponent* StubRootComponent;
+	
+	UPROPERTY(Transient, NonTransactional, VisibleAnywhere, BlueprintReadOnly, Category="Item Actor | Collision Shape")
 	UShapeComponent* ItemCollision;
 
-	UPROPERTY(Instanced, VisibleAnywhere, Category = "Item Actor | Mesh")
+	UPROPERTY(Transient, NonTransactional, VisibleAnywhere, Category = "Item Actor | Mesh")
 	UMeshComponent* ItemMesh;
 
 	UPROPERTY(VisibleAnywhere, Category = "Item Actor | Static Mesh")

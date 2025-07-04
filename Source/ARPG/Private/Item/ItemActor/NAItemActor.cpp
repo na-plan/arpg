@@ -15,7 +15,31 @@
 ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
 {
-	SetRootComponent(CreateDefaultSubobject<USceneComponent>("RootSceneComponent"));
+	if (HasAnyFlags(RF_ClassDefaultObject))
+	{
+		if (!GetClass()->HasAllClassFlags(CLASS_CompiledFromBlueprint))
+		{
+			UE_LOG(LogTemp, Display, TEXT("[ANAItemActor]  C++ CDO 생성자 (%s)"), *GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Display, TEXT("[ANAItemActor]  BP CDO 생성자 (%s)"), *GetName());
+		}
+	}
+	else
+	{
+		if (!GetClass()->HasAllClassFlags(CLASS_CompiledFromBlueprint))
+		{
+			UE_LOG(LogTemp, Display, TEXT("[ANAItemActor]  C++ 인스턴스 생성자 (%s)"), *GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Display, TEXT("[ANAItemActor]  BP 인스턴스 생성자 (%s)"), *GetName());
+		}
+	}
+
+	StubRootComponent = CreateDefaultSubobject<USceneComponent>( "StubRootComponent", true );
+	SetRootComponent( StubRootComponent );
 
 	if (UNAItemEngineSubsystem* ItemEngineSubsystem = UNAItemEngineSubsystem::Get())
 	{
@@ -24,13 +48,13 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 			switch (MetaData->CollisionShape)
 			{
 			case EItemCollisionShape::ICS_Sphere:
-				ItemCollision = CreateDefaultSubobject<USphereComponent>(TEXT("ItemCollision(Sphere)"));
+				ItemCollision = CreateDefaultSubobject<USphereComponent>(TEXT("ItemCollision(Sphere)"), true);
 				break;
 			case EItemCollisionShape::ICS_Box:
-				ItemCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("ItemCollision(Box)"));
+				ItemCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("ItemCollision(Box)"), true);
 				break;
 			case EItemCollisionShape::ICS_Capsule:
-				ItemCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("ItemCollision(Capsule)"));
+				ItemCollision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("ItemCollision(Capsule)"), true);
 				break;
 			default:
 				break;
@@ -38,10 +62,10 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 			switch (MetaData->MeshType)
 			{
 			case EItemMeshType::IMT_Static:
-				ItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh(Static)"));
+				ItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh(Static)"), true);
 				break;
 			case EItemMeshType::IMT_Skeletal:
-				ItemMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ItemMesh(Skeletal)"));
+				ItemMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ItemMesh(Skeletal)"), true);
 				break;
 			default:
 				break;
@@ -59,25 +83,23 @@ ANAItemActor::ANAItemActor(const FObjectInitializer& ObjectInitializer)
 	ItemWidgetComponent
 		= CreateOptionalDefaultSubobject<UNAItemWidgetComponent>(TEXT("ItemWidgetComponent"));
 
-	if (GetRootComponent())
+	if (ItemCollision)
 	{
-		if (ItemCollision)
-		{
-			ItemCollision->SetupAttachment(GetRootComponent());
-		}
-		if (ItemMesh)
-		{
-			ItemMesh->SetupAttachment(GetRootComponent());
-		}
-		if (TriggerSphere)
-		{
-			TriggerSphere->SetupAttachment(GetRootComponent());
-		}
-		if (ItemWidgetComponent)
-		{
-			ItemWidgetComponent->SetupAttachment(GetRootComponent());
-		}
+		ItemCollision->SetupAttachment(GetRootComponent());
 	}
+	if (ItemMesh)
+	{
+		ItemMesh->SetupAttachment(GetRootComponent());
+	}
+	if (TriggerSphere)
+	{
+		TriggerSphere->SetupAttachment(GetRootComponent());
+	}
+	if (ItemWidgetComponent)
+	{
+		ItemWidgetComponent->SetupAttachment(GetRootComponent());
+	}
+	
 	ItemDataID = NAME_None;
 	AActor::SetReplicateMovement( true );
 	bAlwaysRelevant = true;
@@ -301,7 +323,9 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			RemoveInstanceComponent(ItemMesh);
 		}
 	}
-	for (UActorComponent* OwnedComponent : GetComponents().Array())
+
+	TArray<UActorComponent*> Components = GetComponents().Array();
+	for (UActorComponent* OwnedComponent : Components)
 	{
 		if (!OwnedComponent) continue;
 		if (NewItemCollisionClass && OwnedComponent->GetClass()->IsChildOf(NewItemCollisionClass)
@@ -310,7 +334,6 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			if (UShapeComponent* NewItemCollision = Cast<UShapeComponent>(OwnedComponent))
 			{
 				ItemCollision = NewItemCollision;
-				AddInstanceComponent(ItemCollision);
 			}
 		}
 		if (NewItemMeshClass && OwnedComponent->GetClass()->IsChildOf(NewItemMeshClass))
@@ -318,7 +341,6 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 			if (UMeshComponent* NewItemMesh = Cast<UMeshComponent>(OwnedComponent))
 			{
 				ItemMesh = NewItemMesh;
-				AddInstanceComponent(ItemMesh);
 			}
 		}
 	}
@@ -408,6 +430,48 @@ void ANAItemActor::OnConstruction(const FTransform& Transform)
 	{
 		ItemMesh->SetRelativeTransform(MetaData->MeshTransform);
 	}
+}
+
+void ANAItemActor::UnregisterAllComponents(bool bForReregister)
+{
+#if WITH_EDITOR
+	if ( !bForReregister )
+	{
+		bool bDirty = false;
+		TArray<USceneComponent*> TransientComponents = { ItemMesh, ItemCollision };
+	
+		for ( USceneComponent* OwnedTransient : TransientComponents )
+		{
+			if ( OwnedTransient )
+			{
+				if ( OwnedTransient->GetAttachParent() )
+				{
+					OwnedTransient->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+				}
+				bDirty = true;
+			}
+		}
+
+		for ( TFieldIterator<FObjectProperty> It( GetClass() ); It; ++It )
+		{
+			if ( It->PropertyClass->IsChildOf( USceneComponent::StaticClass() ) )
+			{
+				USceneComponent* Component = It->ContainerPtrToValuePtr<USceneComponent>( this );
+				if ( Component->GetAttachParent() && TransientComponents.Contains( Component->GetAttachParent() ) )
+				{
+					Component->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+				}
+			}
+		}
+
+		if ( bDirty )
+		{
+			//MarkPackageDirty();
+			//CollectGarbage(RF_NoFlags);
+		}
+	}
+#endif
+	Super::UnregisterAllComponents(bForReregister);	
 }
 
 void ANAItemActor::Destroyed()

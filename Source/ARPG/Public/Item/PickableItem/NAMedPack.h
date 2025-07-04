@@ -41,4 +41,8 @@ public:
 	virtual bool UseItem(UNAItemData* InItemData, AActor* User, int32& UsedAmount) const override;
 
 	EMedPackGrade GetMedPackGrade() const;
+
+protected:
+	UPROPERTY(VisibleAnywhere)
+	class UArrowComponent* TestArrowComponent;
 };
